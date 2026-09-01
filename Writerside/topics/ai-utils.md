@@ -16,6 +16,7 @@ Prefer **builders**: `SkillsAgent.builder()`, `SkillsToolbox.builder()`, `Skills
 - **Enforcement**: after a skill with `allowed-tools` activates, other tools are gated; file tools jail to workspace ∪ that skill.
 - **Discovery**: directories, single files, in-memory skills, npm packages, or neutral defaults at `.agents/skills` and `~/.agents/skills`.
 - **Project policy**: hierarchical `AGENTS.md` instructions and root `.aiignore` enforcement with inspectable provenance and diagnostics.
+- **Repository operations**: read-only agent-configuration audits plus deterministic, dry-run-first neutral migration plans and explicit execution.
 
 ## Installation
 
@@ -168,7 +169,8 @@ package root. No vendor-specific path is loaded implicitly.
 Repository instructions and ignore policy share the same boundary-safe source
 model. See [Agent configuration](agent-foundations.md) for source provenance,
 catalog validation, `AGENTS.md` hierarchy, `.aiignore` discovery/direct modes,
-security precedence, and migration from vendor-specific layouts.
+security precedence, typed repository audits, and plan-before-apply migration
+from vendor-specific layouts into neutral paths.
 
 ### Large catalogs
 

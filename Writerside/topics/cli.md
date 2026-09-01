@@ -41,7 +41,10 @@ di-framework
 │   └── openapi
 │       └── generate
 ├── agent
-│   └── inspect
+│   ├── audit
+│   ├── init
+│   ├── inspect
+│   └── migrate
 └── mx
     ├── build
     ├── test
@@ -62,7 +65,10 @@ available only below `di-framework mx`.
 | `skills index build\|inspect\|validate\|query\|migrate` | Build, examine, validate, search, or migrate the skills index. |
 | `skills validate` | Validate skill catalogs and report diagnostics. |
 | `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |
+| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |
+| `agent init` | Preview or create requested neutral agent-configuration assets. |
 | `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |
+| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |
 | `mx build\|test\|typecheck\|publish` | Run di-framework monorepo maintainer workflows. |
 
 The command paths and conventions on this page are the stable public contract.
@@ -205,22 +211,32 @@ contains `controllerModules`, `outputPath`, and `bytes`. Usage failures exit
 `2`; package loading, controller loading, generation, and writing failures exit
 `3`.
 
-## Inspect agent configuration
+## Agent configuration commands
+
+All four leaves delegate agent-configuration decisions to typed
+`@di-framework/ai-utils` APIs. They only discover the neutral `AGENTS.md`,
+`.agents/skills`, `~/.agents/skills`, and root `.aiignore` conventions
+automatically. An audit may report known vendor assets as migration
+opportunities, but those assets are never loaded as active configuration and no
+command creates a vendor-specific path or compatibility adapter.
+
+### Audit
 
 ```bash
-di-framework agent inspect
-di-framework agent inspect \
+di-framework agent audit
+di-framework agent audit \
   --working-directory packages/api \
   --skills-dir ./team-skills \
   --json
 ```
 
-`agent inspect` is read-only. It delegates source resolution, catalog conflict
-detection, hierarchical instruction discovery, and root `.aiignore` loading to
-`@di-framework/ai-utils`. Text and JSON identify resolved skill roots and
-precedence, instruction file paths from broad to specific, active policy rules,
-suppressed sources, and shadowed skills. Instruction contents are not emitted,
-and the command does not change files.
+`agent audit` is read-only and delegates every rule to
+`auditAgentConfiguration`. Text output groups findings under Errors, Warnings,
+and Info and includes source paths, provenance, precedence, related paths, and
+recommended actions when present. JSON `data` is the unchanged typed audit
+report, including resolved instruction and skill provenance, active ignore
+policy, content-free suppressions, conflicts, vendor assets, and migration
+opportunities. Instruction and ignored-file contents are not emitted.
 
 | Option | Description |
 | --- | --- |
@@ -232,6 +248,97 @@ and the command does not change files.
 | `--source-mode <merge\|replace>` | Merge with or replace neutral skill roots. |
 | `--instructions-fallback <name>` | Additional instruction filename; repeatable. |
 | `--max-instruction-bytes <count>` | Non-negative combined instruction byte limit. |
+| `--allowed-directory <path>` | Further restrict allowed instruction roots; repeatable. |
+
+A report with no error-severity finding exits `0`; a report containing an error
+exits `1`. Invalid options exit `2`, and an unavailable package or unexpected
+execution failure exits `3`.
+
+### Inspect
+
+```bash
+di-framework agent inspect
+di-framework agent inspect --working-directory packages/api --json
+```
+
+`agent inspect` is also read-only. It delegates source resolution, catalog
+conflict detection, hierarchical instruction discovery, and root `.aiignore`
+loading to `@di-framework/ai-utils`. Text and JSON identify resolved skill roots
+and precedence, instruction file paths from broad to specific, active policy
+rules, suppressed sources, and shadowed skills. Instruction contents are not
+emitted, and the command does not change files. It accepts the audit options
+above except `--allowed-directory`.
+
+### Initialize neutral assets
+
+```bash
+# Preview all four assets without writing (the default).
+di-framework agent init
+
+# Preview a selected subset.
+di-framework agent init \
+  --asset AGENTS.md \
+  --asset .agents/skills
+
+# Apply the generated plan after reviewing the preview.
+di-framework agent init \
+  --asset AGENTS.md \
+  --asset .agents/skills \
+  --apply
+```
+
+With no `--asset`, `agent init` requests `AGENTS.md`,
+`.agents/AGENTS.md`, `.agents/skills`, and `.aiignore`. The repeatable option
+accepts only those four paths. Dry-run is the default; explicit `--dry-run` and
+`--apply` are mutually exclusive. Both text and JSON contain the deterministic
+plan followed by its dry-run or apply result. Existing files become explicit
+collisions and are never silently overwritten. Initialization excludes
+audit-discovered vendor assets, so it only creates the requested neutral
+scaffolding.
+
+Plan or execution failures exit `1`; invalid options exit `2`; package-loading
+or unexpected failures exit `3`.
+
+### Migrate audited assets
+
+```bash
+# Planning is the default and never writes.
+di-framework agent migrate
+di-framework agent migrate --plan --json
+
+# Select exact audited source paths.
+di-framework agent migrate \
+  --source ./CLAUDE.md \
+  --source ./.claude/skills
+
+# Generate and apply that invocation's exact plan.
+di-framework agent migrate --apply
+```
+
+`agent migrate` calls the audit API, passes its report directly to the
+migration planner, and calls the executor only in `--apply` mode. Default mode
+and explicit `--plan` perform no writes. Text always shows the audit and planned
+actions; apply mode additionally groups every result as applied, skipped, or
+failed. Stable JSON `data` contains `mode`, the audit validity and findings, and
+the complete versioned plan; apply mode also includes the typed execution
+result.
+
+The repeatable `--source` option limits migration to exact paths reported by
+the audit. Without it, all audited opportunities are planned.
+`--replace-existing` converts eligible file collisions into explicit
+`replace-file` actions whose old targets are retained with a
+`.di-framework-backup` suffix. It does not silently weaken directory, symlink,
+boundary, source-change, target-change, or backup-collision checks.
+
+`agent migrate` also accepts the audit options above except
+`--allowed-directory`. `--plan` and `--apply` are mutually exclusive. Invalid
+audits, plans, collisions, and partial execution failures exit `1`; invalid
+options exit `2`; package-loading or unexpected failures exit `3`.
+
+Migration writes only `AGENTS.md`, `.agents/AGENTS.md`, `.agents/skills/**`,
+and `.aiignore`. Source vendor files remain in place for deliberate cleanup
+after the neutral result is verified; no legacy or vendor-specific destination
+is generated.
 
 ## Maintainer commands
 
