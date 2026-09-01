@@ -373,18 +373,18 @@ visible to automation. These APIs copy approved content into neutral paths;
 they do not remove the source, create vendor directories or adapters, expose a
 CLI, or build a semantic index.
 
-### Migration mapping
+### Neutral migration targets
 
-| Previous convention | Neutral location or setting |
-| --- | --- |
-| Vendor-specific workspace skill directory | `<workspace>/.agents/skills` |
-| Vendor-specific user skill directory | `~/.agents/skills` |
-| `noDefaultDirectories()` | `.sourceMode('replace')` |
-| Vendor-specific instruction filename | `AGENTS.md`, or a temporary explicit `fallbackFilenames` entry |
+Migration plans map workspace and user skill sources to
+`<workspace>/.agents/skills` and `~/.agents/skills`. Repository instructions
+target `AGENTS.md`; a caller can temporarily include another instruction name
+through `fallbackFilenames` while moving its content. Use
+`.sourceMode('replace')` when explicit skill directories and packages must be
+the complete catalog instead of supplementing the neutral automatic roots.
 
-Update package metadata to use `package.json#skills` or place packaged skills in
-`.agents/skills` (with `skills` as the final conventional fallback). After
+Package metadata should declare `package.json#skills` or place packaged skills
+in `.agents/skills` (with `skills` as the final conventional fallback). After
 applying a migration, verify the audit report, source precedence, instruction
 provenance, and `.aiignore` suppressions before deliberately removing old source
-assets. There is no implicit compatibility scan: vendor paths do not become
+assets. There is no implicit compatibility scan: non-neutral paths do not become
 active configuration unless the application passes them as explicit sources.
