@@ -1,0 +1,25 @@
+{
+  "name": "@di-framework/docs",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "corpus": "bun run search/scripts/build-corpus.ts",
+    "test": "bun test search/src",
+    "typecheck": "tsc -p search/tsconfig.json --noEmit",
+    "check": "bun run corpus && bun run test && bun run typecheck && bun x wrangler deploy --dry-run --config search/wrangler.jsonc"
+  },
+  "dependencies": {
+    "@di-framework/core": "5.0.0",
+    "@di-framework/http": "5.0.0",
+    "@di-framework/repo": "5.0.0",
+    "jose": "^6.0.11"
+  },
+  "devDependencies": {
+    "@di-framework/cli": "5.0.0",
+    "@di-framework/tsc": "5.0.0",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "wrangler": "4.120.0"
+  }
+}

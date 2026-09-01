@@ -1,0 +1,188 @@
+name: Deploy documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      full_reindex:
+        description: Re-embed every document
+        type: boolean
+        default: false
+  repository_dispatch:
+    types: [framework-release]
+
+concurrency:
+  group: docs-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  SEARCH_URL: https://di-framework-docs-search.seemueller.workers.dev/api/docs/search
+  OIDC_AUDIENCE: di-framework-docs-search
+
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: versions
+        run: echo "matrix=$(jq -c . supported-versions.json)" >> "$GITHUB_OUTPUT"
+
+  worker:
+    name: Deploy or validate search Worker
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - run: bun install --frozen-lockfile
+      - name: Build Worker bundle
+        run: bun x wrangler deploy --dry-run --config search/wrangler.jsonc
+      - name: Deploy Worker before frontend
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: bun x wrangler deploy --config search/wrangler.jsonc
+      - name: Explain credential-free validation
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: echo 'Cloudflare secrets are not configured; requiring the deployed Worker to pass its production contract.'
+      - name: Validate production Worker contract
+        run: |
+          set -euo pipefail
+          curl -fsS "$SEARCH_URL/"
+          code="$(curl -sS -o /tmp/search.json -w '%{http_code}' "$SEARCH_URL/preview-search/Writerside/d/latest?query=installation")"
+          test "$code" = 200
+          jq -e 'has("hits") or has("results")' /tmp/search.json >/dev/null
+
+  build:
+    needs: versions
+    strategy:
+      fail-fast: false
+      matrix:
+        docs: ${{ fromJSON(needs.versions.outputs.matrix) }}
+    name: Build ${{ matrix.docs.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.docs.ref }}
+      - name: Build Writerside
+        uses: JetBrains/writerside-github-action@738910d7cf197d67188300d0e0f84b2e708db3cf # v4
+        with:
+          instance: Writerside/d
+          location: .
+          docker-version: 2.1.1479-p3869
+          artifact: webHelpD2-all.zip
+      - name: Prepare versioned site
+        run: |
+          set -euo pipefail
+          mkdir -p "built/${{ matrix.docs.version }}"
+          unzip -O UTF-8 -qq artifacts/webHelpD2-all.zip -d "built/${{ matrix.docs.version }}"
+          python3 scripts/patch-site.py "built/${{ matrix.docs.version }}" "${{ matrix.docs.version }}" "$SEARCH_URL"
+          cp Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.png"
+          cp Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.ico"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ matrix.docs.version }}
+          path: built/${{ matrix.docs.version }}
+          if-no-files-found: error
+
+  index:
+    name: Index every deployed version
+    needs: [versions, worker, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - run: bun install --frozen-lockfile
+      - name: Build combined corpus from maintained branches
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/docs-corpora /tmp/docs-sources
+          while IFS=$'\t' read -r version ref; do
+            safe="${version//\//-}"
+            mkdir -p "/tmp/docs-sources/$safe"
+            git archive "origin/$ref" Writerside | tar -x -C "/tmp/docs-sources/$safe"
+            DOCS_VERSION="$version" TOPICS_DIR="/tmp/docs-sources/$safe/Writerside/topics" \
+              CORPUS_OUT="/tmp/docs-corpora/$safe.json" bun run corpus
+          done < <(jq -r '.[] | [.version,.ref] | @tsv' supported-versions.json)
+          jq -s '{generatedAt: now | todate, docs: map(.docs) | add}' /tmp/docs-corpora/*.json > /tmp/corpus.json
+          jq -e '.docs | length > 0' /tmp/corpus.json >/dev/null
+      - name: Mint short-lived reindex token
+        id: auth
+        run: |
+          set -euo pipefail
+          oidc="$(curl -fsSL -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$OIDC_AUDIENCE" | jq -r .value)"
+          echo "::add-mask::$oidc"
+          response="$(curl -fsS -X POST "$SEARCH_URL/auth/token" -H "Authorization: Bearer $oidc" -H 'Content-Type: application/json')"
+          token="$(jq -r .access_token <<<"$response")"
+          test -n "$token" && test "$token" != null
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+      - name: Reindex
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+          FULL_REINDEX: ${{ inputs.full_reindex || false }}
+        run: |
+          endpoint="$SEARCH_URL/reindex"
+          test "$FULL_REINDEX" = true && endpoint="$endpoint?full=1"
+          curl -fsS -X POST "$endpoint" -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' --data-binary @/tmp/corpus.json | tee /tmp/result.json
+          jq -e '.ok == true' /tmp/result.json >/dev/null
+
+  deploy:
+    name: Publish one atomic Pages tree
+    needs: [versions, build, index]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: site-*
+          path: builds
+      - name: Normalize artifact layout and assemble
+        run: |
+          set -euo pipefail
+          for artifact in builds/site-*; do
+            version="${artifact#builds/site-}"
+            mv "$artifact" "builds/$version"
+          done
+          python3 scripts/assemble-site.py builds site supported-versions.json
+          echo docs.di-framework.dev > site/CNAME
+          jq -e 'length == 2 and .[0].version == "latest"' site/versions.json >/dev/null
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - id: pages
+        uses: actions/deploy-pages@v5
+
+  smoke:
+    name: Production smoke tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify navigation, versions, and scoped search
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsS https://docs.di-framework.dev/versions.json -o /tmp/versions.json; then break; fi
+            sleep 10
+          done
+          jq -e 'map(.version) == ["latest", "v5.0"]' /tmp/versions.json >/dev/null
+          curl -fsS https://docs.di-framework.dev/overview.html >/dev/null
+          curl -fsS https://docs.di-framework.dev/v5.0/overview.html >/dev/null
+          curl -fsS "$SEARCH_URL/preview-search/Writerside/d/latest?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
+          curl -fsS "$SEARCH_URL/preview-search/Writerside/d/v5.0?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null

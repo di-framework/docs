@@ -1,0 +1,7 @@
+node_modules/
+dist/
+search/dist-test/
+artifacts/
+site/
+.wrangler/
+search/data/corpus-*.json

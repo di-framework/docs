@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - run: bun install --frozen-lockfile
+      - run: bun run corpus
+      - run: bun run test
+      - run: bun run typecheck
+      - name: Validate Cloudflare bundle
+        run: bun x wrangler deploy --dry-run --config search/wrangler.jsonc
+

@@ -1,0 +1,8 @@
+{
+  "extends": "./search/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "include": ["search/src/**/*.ts", "search/scripts/**/*.ts", "search/worker-configuration.d.ts"]
+}
