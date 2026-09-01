@@ -41,10 +41,7 @@ di-framework
 │   └── openapi
 │       └── generate
 ├── agent
-│   ├── inspect
-│   ├── audit
-│   ├── init
-│   └── migrate
+│   └── inspect
 └── mx
     ├── build
     ├── test
@@ -52,9 +49,9 @@ di-framework
     └── publish
 ```
 
-This tree is exhaustive. There are no public command aliases, deprecated routes, or
-package-specific alternatives. In particular, maintainer commands are available only below
-`di-framework mx`.
+This is the implemented public tree covered here. There are no public command aliases,
+deprecated routes, or package-specific alternatives. In particular, maintainer commands are
+available only below `di-framework mx`.
 
 | Command | Purpose |
 | --- | --- |
@@ -66,13 +63,28 @@ package-specific alternatives. In particular, maintainer commands are available 
 | `skills validate` | Validate skill catalogs and report diagnostics. |
 | `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |
 | `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |
-| `agent audit` | Audit a repository's agent configuration without writing files. |
-| `agent init` | Plan or create neutral agent assets without vendor-specific paths. |
-| `agent migrate` | Plan or explicitly apply migration to neutral agent assets. Planning is the default. |
 | `mx build\|test\|typecheck\|publish` | Run di-framework monorepo maintainer workflows. |
 
-Command-specific options and examples are documented as their implementations become available. The
-command paths and conventions on this page are the stable public contract.
+The command paths and conventions on this page are the stable public contract.
+
+## One executable
+
+`@di-framework/cli` publishes one `bin`: `di-framework`. The former
+`di-skills-index`, `di-framework-http`, and `dtsc` executables, standalone
+maintainer aliases, and compatibility shims are removed. Use these canonical
+paths instead:
+
+| Removed surface | Canonical command |
+| --- | --- |
+| `di-skills-index` | `di-framework skills index ...` |
+| `di-framework-http` | `di-framework http openapi generate` |
+| `dtsc` | `di-framework build` or `di-framework check` |
+| top-level `test`, `typecheck`, `publish` maintainer commands | `di-framework mx test`, `mx typecheck`, `mx publish` |
+
+Feature packages such as `@di-framework/http` remain programmatic libraries;
+they do not publish package-specific CLIs. Neutral skill discovery uses
+`.agents/skills` and `~/.agents/skills`. No vendor-specific path is consulted
+implicitly.
 
 ## App commands
 
@@ -106,6 +118,121 @@ di-framework init [name] [--dir path] [--name package-name] [--force]
 
 Existing files are skipped unless `--force` is set.
 
+## Skills index commands
+
+The five index leaves delegate to the typed `@di-framework/ai-utils` operations;
+the CLI only maps arguments and presents their results:
+
+```bash
+di-framework skills index build \
+  --skills-dir ./.agents/skills \
+  --output ./.di-framework/skills-index.json
+di-framework skills index inspect --input ./.di-framework/skills-index.json
+di-framework skills index validate \
+  --input ./.di-framework/skills-index.json \
+  --skills-dir ./.agents/skills
+di-framework skills index query \
+  --input ./.di-framework/skills-index.json \
+  --query 'review TypeScript authorization'
+di-framework skills index migrate \
+  --input ./older-skills-index.json \
+  --output ./.di-framework/skills-index.json
+```
+
+| Leaf | Options |
+| --- | --- |
+| `build` | repeatable `--skills-dir`, repeatable `--skill-file`, `--output`, `--threshold`, `--limit`, `--batch-size`, `--chunk-tokens`, `--chunk-overlap`, `--force` |
+| `inspect` | `--input` |
+| `validate` | `--input`, repeatable `--skills-dir`, repeatable `--skill-file`, `--allow-extra-skills` |
+| `query` | required `--query`, `--input`, `--limit`, `--min-score`, `--abstention-threshold` |
+| `migrate` | `--input`, `--output` |
+
+The default index path is `.di-framework/skills-index.json`. Text output
+summarizes the typed package result; JSON mode returns that result in `data`.
+Validation drift and query abstention exit `1`. Invalid options, missing inputs,
+and invalid indexes exit `2`; dependency, embedding, write, and unexpected
+operation failures exit `3`.
+
+## Validate skill catalogs
+
+`skills validate` uses the same neutral source resolution and
+`validateSkillCatalog` API as application code:
+
+```bash
+# Workspace and user neutral defaults.
+di-framework skills validate
+
+# Explicit sources before the defaults.
+di-framework skills validate \
+  --workspace . \
+  --skills-dir ./team-skills \
+  --skills-package @example/shared-skills
+
+# Explicit sources only.
+di-framework skills validate \
+  --skills-dir ./team-skills \
+  --source-mode replace \
+  --json
+```
+
+| Option | Description |
+| --- | --- |
+| `--workspace <path>` | Workspace root; defaults to the current directory. |
+| `--user-directory <path>` | User root for neutral default discovery. |
+| `--skills-dir <path>` | Explicit `SKILL.md` tree; repeatable. |
+| `--skills-package <name-or-path>` | Package skill source; repeatable. |
+| `--source-mode <merge\|replace>` | Merge with or replace neutral defaults. |
+
+Text mode prints a summary and source-aware diagnostics. JSON `data` contains
+`valid`, `skillCount`, and the typed diagnostics without skill bodies. Valid
+catalogs exit `0`, catalogs with error findings exit `1`, malformed CLI
+configuration exits `2`, and unavailable packages or unexpected failures exit
+`3`.
+
+## Generate HTTP OpenAPI
+
+```bash
+di-framework http openapi generate \
+  --controllers ./src/controllers.ts \
+  --controllers ./src/admin/controllers.ts \
+  --output ./openapi.json
+```
+
+`--controllers` is required and repeatable. `--output` may be supplied once and
+defaults to `openapi.json`. The handler delegates controller loading, OpenAPI
+3.1 generation, and explicit file writing to `@di-framework/http`. JSON `data`
+contains `controllerModules`, `outputPath`, and `bytes`. Usage failures exit
+`2`; package loading, controller loading, generation, and writing failures exit
+`3`.
+
+## Inspect agent configuration
+
+```bash
+di-framework agent inspect
+di-framework agent inspect \
+  --working-directory packages/api \
+  --skills-dir ./team-skills \
+  --json
+```
+
+`agent inspect` is read-only. It delegates source resolution, catalog conflict
+detection, hierarchical instruction discovery, and root `.aiignore` loading to
+`@di-framework/ai-utils`. Text and JSON identify resolved skill roots and
+precedence, instruction file paths from broad to specific, active policy rules,
+suppressed sources, and shadowed skills. Instruction contents are not emitted,
+and the command does not change files.
+
+| Option | Description |
+| --- | --- |
+| `--workspace <path>` | Workspace boundary; defaults to the current directory. |
+| `--working-directory <path>` | Location used for hierarchical instruction discovery. |
+| `--user-directory <path>` | User-level neutral source root. |
+| `--skills-dir <path>` | Explicit skill root; repeatable. |
+| `--skills-package <name>` | Package-provided skill root; repeatable. |
+| `--source-mode <merge\|replace>` | Merge with or replace neutral skill roots. |
+| `--instructions-fallback <name>` | Additional instruction filename; repeatable. |
+| `--max-instruction-bytes <count>` | Non-negative combined instruction byte limit. |
+
 ## Maintainer commands
 
 The `mx` group is only for the di-framework monorepo:
@@ -129,8 +256,9 @@ Top-level maintainer aliases are not part of the public command tree.
 - Explicitly requested help goes to standard output with exit status `0`. An incomplete group writes its
   help to standard error with exit status `2`.
 - Help includes usage, available children or options, and a short description.
-- Unknown commands, unknown options, missing option values, and extra positional arguments identify the
-  invalid token and show the nearest relevant help. Arguments are never silently ignored.
+- Unknown commands identify the invalid token and show the nearest group help. Leaf handlers reject
+  unknown options, missing option values, duplicate single-value options, and extra positional arguments.
+  Arguments are never silently ignored.
 - Global `--json` is accepted before or after the canonical command path. Command-specific options follow
   the complete command path.
 
@@ -160,9 +288,12 @@ command-specific object. A failure omits `data` and uses a stable error code:
   "command": "skills validate",
   "ok": false,
   "error": {
-    "code": "configuration_invalid",
-    "message": "The skill source could not be resolved.",
-    "details": {}
+    "code": "INVALID_USAGE",
+    "message": "Invalid value for --source-mode: invalid",
+    "details": {
+      "token": "--source-mode",
+      "value": "invalid"
+    }
   }
 }
 ```

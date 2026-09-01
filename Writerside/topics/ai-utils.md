@@ -188,7 +188,7 @@ await SkillsIndex.builder()
   .build();
 ```
 
-This writes `.di-framework/skills-index.jsonl`. Enable fail-closed retrieval with `.semanticDiscovery()` on `SkillsAgent.builder()` or `SkillsToolbox.builder()`. The default index is also detected automatically when present.
+This writes `.di-framework/skills-index.json`. Enable fail-closed retrieval with `.semanticDiscovery()` on `SkillsAgent.builder()` or `SkillsToolbox.builder()`. The default index is also detected automatically when present.
 
 The default indexer uses the optional `@huggingface/transformers` peer. Install it only for large-catalog indexing (`bun add @huggingface/transformers@4.2.0`); small catalogs and custom embedders do not need it. Transformers.js tokenizes each exact `SKILL.md` into overlapping model-token chunks and embeds them locally with a pinned quantized BGE model. Runtime ranks skills using chunk cosine scores and sends only the top 10 names/descriptions to the chat model. Chunks and vectors do not enter the prompt; the full body remains lazy until activation. At or below the threshold, Transformers.js is not initialized and normal discovery remains active.
 
@@ -214,7 +214,7 @@ import {
   packages: ['@company/skills'],
 })
 @SemanticSkillDiscovery({
-  indexFile: '.di-framework/skills-index.jsonl',
+  indexFile: '.di-framework/skills-index.json',
   limit: 10,
 })
 @Skill({
