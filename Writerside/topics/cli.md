@@ -75,22 +75,13 @@ The command paths and conventions on this page are the stable public contract.
 
 ## One executable
 
-`@di-framework/cli` publishes one `bin`: `di-framework`. The former
-`di-skills-index`, `di-framework-http`, and `dtsc` executables, standalone
-maintainer aliases, and compatibility shims are removed. Use these canonical
-paths instead:
+`@di-framework/cli` publishes one `bin`: `di-framework`. Application builds,
+skill indexing, OpenAPI generation, agent operations, and monorepo maintenance
+all route through the canonical command tree above. Feature packages remain
+programmatic libraries and do not publish package-specific executables.
 
-| Removed surface | Canonical command |
-| --- | --- |
-| `di-skills-index` | `di-framework skills index ...` |
-| `di-framework-http` | `di-framework http openapi generate` |
-| `dtsc` | `di-framework build` or `di-framework check` |
-| top-level `test`, `typecheck`, `publish` maintainer commands | `di-framework mx test`, `mx typecheck`, `mx publish` |
-
-Feature packages such as `@di-framework/http` remain programmatic libraries;
-they do not publish package-specific CLIs. Neutral skill discovery uses
-`.agents/skills` and `~/.agents/skills`. No vendor-specific path is consulted
-implicitly.
+Neutral skill discovery uses `.agents/skills` and `~/.agents/skills`. No
+non-neutral path is consulted implicitly.
 
 ## App commands
 
@@ -308,8 +299,8 @@ di-framework agent migrate --plan --json
 
 # Select exact audited source paths.
 di-framework agent migrate \
-  --source ./CLAUDE.md \
-  --source ./.claude/skills
+  --source ./legacy-agent-instructions.md \
+  --source ./legacy-skills
 
 # Generate and apply that invocation's exact plan.
 di-framework agent migrate --apply
