@@ -275,9 +275,105 @@ rejected by a stronger layer. Sandbox denials take precedence over policy
 messages. Symlink checks use canonical paths so an apparently in-workspace link
 cannot escape the workspace.
 
-## Migrate vendor-specific layouts
+## Audit repository configuration
 
-Move shared assets to neutral locations explicitly:
+`auditAgentConfiguration` combines the instruction, skill, and ignore-policy
+APIs into one stable typed report without constructing an agent, creating an
+index, or changing the repository:
+
+```typescript
+import { auditAgentConfiguration } from '@di-framework/ai-utils';
+
+const report = auditAgentConfiguration({
+  workspace: process.cwd(),
+  workingDirectory: 'packages/api',
+  directories: ['./team-skills'],
+  sourceMode: 'merge',
+});
+
+for (const finding of report.findings) {
+  console.log(finding.severity, finding.code, finding.path);
+}
+```
+
+The report contains:
+
+- `valid`, which is false when any finding has `error` severity;
+- workspace and working-directory paths;
+- content-free instruction provenance and the combined byte count;
+- resolved skill sources and names;
+- the active root `.aiignore` policy and content-free suppression diagnostics;
+- detected vendor assets and neutral migration opportunities; and
+- sorted findings with stable codes, severity, paths, provenance, and optional
+  precedence, related paths, and recommended action.
+
+Instruction bodies and suppressed file contents are not included. Known vendor
+paths are checked only to report explicit migration opportunities; their
+configuration is never loaded into the active instruction or skill set.
+
+## Plan and execute neutral migrations
+
+Migration is split into two APIs so callers can persist, display, approve, or
+test a deterministic JSON-safe plan before any write occurs:
+
+```typescript
+import {
+  auditAgentConfiguration,
+  executeAgentConfigurationMigration,
+  planAgentConfigurationMigration,
+} from '@di-framework/ai-utils';
+
+const audit = auditAgentConfiguration({ workspace: process.cwd() });
+const plan = planAgentConfigurationMigration(audit, {
+  // Omit to plan every audited opportunity.
+  opportunityPaths: audit.migrationOpportunities.map(({ path }) => path),
+  requests: [
+    { target: '.agents/AGENTS.md', content: '# Agent defaults\n' },
+    { target: '.agents/skills' },
+    { target: '.aiignore', content: 'private/\n' },
+  ],
+});
+
+// Safe default: validate and classify the exact plan without writing.
+const preview = executeAgentConfigurationMigration(plan);
+
+// Explicit opt-in: execute the same fingerprinted plan.
+const applied = executeAgentConfigurationMigration(plan, { dryRun: false });
+```
+
+`planAgentConfigurationMigration` includes all audited opportunities by default.
+Set `includeAuditOpportunities: false` for neutral initialization only, or pass
+`opportunityPaths` to select exact audited sources. Explicit `requests` can
+initialize only these neutral assets:
+
+```text
+AGENTS.md
+.agents/AGENTS.md
+.agents/skills/**
+.aiignore
+```
+
+Each version-1 plan action has a stable ID, operation (`create-directory`,
+`write-file`, or `replace-file`), fingerprinted source data when applicable,
+original target state, status, and code. Plans expose target collisions,
+incompatible kinds, unsafe symlinks, unreadable sources, duplicate targets,
+boundary failures, and backup collisions as data rather than hiding them.
+
+Execution is a dry run unless `dryRun: false` is passed. Before applying, the
+executor checks the plan boundary, target state, and source fingerprint again.
+It creates files through same-directory staging and an atomic no-replace link.
+Existing files are not replaced unless planning explicitly requested a
+`replace-file` action; that action retains the old file beside the target with
+the `.di-framework-backup` suffix. Symbolic-link sources and targets are
+rejected.
+
+The execution result reports `success`, `changed`, and every action in exactly
+one of `applied`, `skipped`, or `failed`, making collisions and partial failures
+visible to automation. These APIs copy approved content into neutral paths;
+they do not remove the source, create vendor directories or adapters, expose a
+CLI, or build a semantic index.
+
+### Migration mapping
 
 | Previous convention | Neutral location or setting |
 | --- | --- |
@@ -287,8 +383,8 @@ Move shared assets to neutral locations explicitly:
 | Vendor-specific instruction filename | `AGENTS.md`, or a temporary explicit `fallbackFilenames` entry |
 
 Update package metadata to use `package.json#skills` or place packaged skills in
-`.agents/skills` (with `skills` as the final conventional fallback). Remove old
-directories after verifying `skillSources`, `skillDiagnostics`, instruction
-provenance, and `.aiignore` suppressions. There is no implicit compatibility
-scan: vendor paths are not consulted unless the application passes them as
-explicit sources.
+`.agents/skills` (with `skills` as the final conventional fallback). After
+applying a migration, verify the audit report, source precedence, instruction
+provenance, and `.aiignore` suppressions before deliberately removing old source
+assets. There is no implicit compatibility scan: vendor paths do not become
+active configuration unless the application passes them as explicit sources.
