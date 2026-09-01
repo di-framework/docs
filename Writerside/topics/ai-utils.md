@@ -14,7 +14,8 @@ Prefer **builders**: `SkillsAgent.builder()`, `SkillsToolbox.builder()`, `Skills
 - **Jailed file tools**: `Read`, `ListDirectory`, `Glob`, `Grep`, opt-in `Write` / `Edit` / `Bash`.
 - **Agent extras**: `TodoWrite`, optional `AskUserQuestion`, web fetch/search, file memory, nested `Task`.
 - **Enforcement**: after a skill with `allowed-tools` activates, other tools are gated; file tools jail to workspace ∪ that skill.
-- **Discovery**: directories, single files, in-memory skills, npm packages, or default `.claude/skills` and `~/.claude/skills`.
+- **Discovery**: directories, single files, in-memory skills, npm packages, or neutral defaults at `.agents/skills` and `~/.agents/skills`.
+- **Project policy**: hierarchical `AGENTS.md` instructions and root `.aiignore` enforcement with inspectable provenance and diagnostics.
 
 ## Installation
 
@@ -37,8 +38,9 @@ import { SkillsAgent } from '@di-framework/ai-utils';
 const agent = SkillsAgent.builder()
   .chatModel(new OpenAiChatModel({ model: 'gpt-4o-mini' }))
   .system('You help with TypeScript code review.')
-  .addSkillsDirectory('.claude/skills')
   .workspace(process.cwd())
+  .instructionDiscovery({ workingDirectory: 'src' })
+  .aiIgnore('read-write')
   .write()
   .shell()
   .build();
@@ -53,7 +55,6 @@ import { ChatClient } from '@di-framework/ai';
 import { SkillsToolbox } from '@di-framework/ai-utils';
 
 const tools = SkillsToolbox.builder()
-  .addSkillsDirectory('.claude/skills')
   .workspace(process.cwd())
   .buildTools();
 
@@ -67,7 +68,7 @@ The [`ai-skills`](https://github.com/di-framework/di-framework/tree/main/example
 A skill is a folder with a `SKILL.md` file (YAML front matter + instructions). Optional `scripts/`, `references/`, and other files stay on disk until the model reads them.
 
 ```
-.claude/skills/
+.agents/skills/
 └── code-reviewer/
     ├── SKILL.md
     ├── references/
@@ -76,7 +77,7 @@ A skill is a folder with a `SKILL.md` file (YAML front matter + instructions). O
         └── count-lines.sh
 ```
 
-```md
+```text
 ---
 name: code-reviewer
 description: Reviews TypeScript for nulls and framework conventions. Use when the user asks to review or audit code.
@@ -116,11 +117,14 @@ These exist on both `SkillsAgent.builder()` and `SkillsToolbox.builder()`.
 | `addSkillsDirectory` / `addSkillsDirectories` | Load `SKILL.md` trees |
 | `addSkillsFile` | Load one `SKILL.md` |
 | `addSkill` / `addSkills` | In-memory skills |
-| `addPackage` / `addPackages` | npm package or path (`package.json` `skills`, else `.claude/skills` / `skills`) |
-| `noDefaultDirectories` | Do not scan `.claude/skills` and `~/.claude/skills` |
+| `addPackage` / `addPackages` | npm package or path (`package.json` `skills`, else `.agents/skills` / `skills`) |
+| `sourceMode('merge' \| 'replace')` | Supplement or replace the neutral automatic roots |
 | `workspace` | Default cwd / search root (also an allowed file root) |
+| `userDirectory` | Override the user root used for `~/.agents/skills` |
 | `extraAllowedDirectory(s)` | Extra sandbox roots |
 | `write()` / `shell()` | Opt-in `Write`+`Edit` / `Bash` |
+| `aiIgnore('discovery' \| 'read' \| 'read-write')` | Enforce root `.aiignore` for direct file tools |
+| `aiIgnorePolicy` / `onSuppressed` | Supply discovery policy and observe content-free suppressions |
 | `confirmShell(fn)` | Approve or reject each `Bash` command |
 | `askUser(handler)` | `AskUserQuestion` |
 | `web(true \| { fetch, search, braveApiKey })` | `WebFetch` / `WebSearch` |
@@ -132,9 +136,9 @@ These exist on both `SkillsAgent.builder()` and `SkillsToolbox.builder()`.
 
 ### Agent-only methods
 
-`system`, `chatModel`, `chatClient`, `extraTools`, `advisors`, `conversationMemory`, `defaultConversationId`, `defaultOptions`, `clientBuilderOptions`.
+`system`, `instructionDiscovery`, `chatModel`, `chatClient`, `extraTools`, `advisors`, `conversationMemory`, `defaultConversationId`, `defaultOptions`, `clientBuilderOptions`.
 
-`build()` returns `ChatAgent`. `buildBundle()` returns `{ agent, toolbox }`.
+`build()` returns `ChatAgent`. `buildBundle()` also returns the toolbox and inspectable repository instruction result.
 
 ## Tools
 
@@ -150,9 +154,21 @@ File tools are limited to `workspace` ∪ skill folders (and extras). After a sk
 
 ## Discovery
 
-If you never add directories, files, in-memory skills, or packages, existing **`.claude/skills`** (cwd) and **`~/.claude/skills`** are loaded. Missing dirs are skipped. `noDefaultDirectories()` disables that.
+The automatic roots are **`<workspace>/.agents/skills`** and
+**`~/.agents/skills`**. In the default `merge` mode, explicit directories and
+packages precede the workspace and user defaults. Use `sourceMode('replace')`
+to use only explicit directories and packages. Duplicate skill names are
+deterministic: the first definition wins, and the toolbox exposes source and
+duplicate diagnostics.
 
-`addPackage('@scope/pack')` resolves the package from the workspace, then uses `package.json` `skills` or falls back to `.claude/skills` and `skills` under the package root.
+`addPackage('@scope/pack')` resolves the package from the workspace, then uses
+`package.json#skills` or falls back to `.agents/skills` and `skills` under the
+package root. No vendor-specific path is loaded implicitly.
+
+Repository instructions and ignore policy share the same boundary-safe source
+model. See [Agent configuration](agent-foundations.md) for source provenance,
+catalog validation, `AGENTS.md` hierarchy, `.aiignore` discovery/direct modes,
+security precedence, and migration from vendor-specific layouts.
 
 ### Large catalogs
 
@@ -168,7 +184,7 @@ Or call the same package implementation programmatically:
 import { SkillsIndex } from '@di-framework/ai-utils';
 
 await SkillsIndex.builder()
-  .addSkillsDirectory('.claude/skills')
+  .addSkillsDirectory('.agents/skills')
   .build();
 ```
 
@@ -194,7 +210,7 @@ import {
 } from '@di-framework/ai-utils';
 
 @Skills({
-  directories: ['.claude/skills'],
+  directories: ['.agents/skills'],
   packages: ['@company/skills'],
 })
 @SemanticSkillDiscovery({
@@ -213,7 +229,7 @@ const agent = skillsAgentFrom(ApplicationSkills, {
 });
 
 @SkillsIndexConfig({
-  directories: ['.claude/skills'],
+  directories: ['.agents/skills'],
   threshold: 50,
   retrievalLimit: 10,
 })
@@ -240,7 +256,7 @@ const skillOnly = SkillsTool.builder()
   .build();
 
 const mcp = skillsToolboxAsMcp({
-  directories: ['.claude/skills'],
+  directories: ['.agents/skills'],
   workspace: process.cwd(),
 });
 ```
@@ -250,5 +266,6 @@ const mcp = skillsToolboxAsMcp({
 ## Related
 
 - [AI](ai.md) — chat, tools, RAG, MCP, and agents (`@di-framework/ai`)
+- [Agent configuration](agent-foundations.md) — neutral sources, validation, instructions, and `.aiignore`
 - [Package README](https://github.com/di-framework/di-framework/blob/main/packages/di-framework-ai-utils/README.md)
 - [Example](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-skills)

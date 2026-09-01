@@ -32,7 +32,7 @@ Decorators need TypeScript 5 and `experimentalDecorators`. `emitDecoratorMetadat
 
 ## Quick Start
 
-```ts
+```typescript
 import { registerAuth } from '@di-framework/auth';
 import { requireAuth, withAuthErrors, withAuthRoutes } from '@di-framework/auth/http';
 import { TypedRouter, json } from '@di-framework/http';
@@ -63,7 +63,7 @@ secure.get('/me', (req) => json({ sub: req.principal.sub }));
 
 An `AuthStrategy` answers one question: does this request carry a credential of my kind, and is it valid? Strategies are factory functions returning object literals, the same shape `@di-framework/events` uses for transports.
 
-```ts
+```typescript
 import { authenticated, authFailed, chain, createPrincipal, noCredential } from '@di-framework/auth';
 
 function headerStrategy(users: UserStore): AuthStrategy {
@@ -86,7 +86,7 @@ The three-state result is deliberate. `no-credential` means try the next strateg
 
 ### Principal
 
-```ts
+```typescript
 interface Principal {
   sub: string;              // stable subject id
   method: AuthMethod;       // how they proved it on this request
@@ -105,7 +105,7 @@ interface Principal {
 
 The following example adapts an Open Policy Agent endpoint. The same interface can wrap SpiceDB, SQL, or an in-process policy engine.
 
-```ts
+```typescript
 import {
   type AuthorizationManager,
   authorizationAllowed,
@@ -145,7 +145,7 @@ Denial reasons are retained for application logging but are never exposed to cli
 
 ## HTTP
 
-```ts
+```typescript
 import { TypedRouter, json } from '@di-framework/http';
 import {
   applyAuthHeaders, createAuthRoutes, mountAuthRoutes,
@@ -161,7 +161,7 @@ const router = TypedRouter({
 
 Per-route protection, which types the principal:
 
-```ts
+```typescript
 const secure = withAuthRoutes(router);
 
 @Controller()
@@ -178,7 +178,7 @@ Escape hatches: `{ auth: false }` for a public route, `{ auth: { mode: 'optional
 
 Add authorization metadata to a protected route. Authentication runs first, then the registered manager decides whether the principal may perform the action:
 
-```ts
+```typescript
 secure.get('/admin', (req) => json({ subject: req.principal.sub }), {
   authorization: { metadata: { resource: 'admin', action: 'read' } },
 });
@@ -186,7 +186,7 @@ secure.get('/admin', (req) => json({ subject: req.principal.sub }), {
 
 When composing route middleware directly, keep the same order:
 
-```ts
+```typescript
 router.get('/admin', handler, {
   use: [requireAuth(), requireAuthz({ metadata: { action: 'admin:read' } })],
 });
@@ -196,7 +196,7 @@ By default, `requireAuthz()` returns 401 when no principal is present. Set `allo
 
 ### Mountable auth routes
 
-```ts
+```typescript
 const authRouter = createAuthRoutes({ oauth: { google: googleClient } });
 mountAuthRoutes(router, authRouter, '/auth');
 ```
@@ -214,7 +214,7 @@ mountAuthRoutes(router, authRouter, '/auth');
 
 ### OpenAPI
 
-```ts
+```typescript
 const spec = generateOpenAPI({
   title: 'API',
   securitySchemes: securitySchemesFor([auth.strategy]),
@@ -230,7 +230,7 @@ Handlers are static class properties invoked with itty's positional `(req, ...ar
 
 ## GraphQL
 
-```ts
+```typescript
 import { buildSemanticSchema, createGraphQLHandler } from '@di-framework/graphql';
 import { Authenticated, Authorize, createAuthContext, protectSchema, requireSubject } from '@di-framework/auth/graphql';
 
@@ -265,7 +265,7 @@ Note: `printSDL` renders from the type graph rather than the executable schema, 
 
 ## Storage providers
 
-```ts
+```typescript
 import { inMemoryAuthStores } from '@di-framework/auth';
 import { repoSessionStore, repoUserStore } from '@di-framework/auth/repo';
 
@@ -286,7 +286,7 @@ Three methods must be a compare-and-swap: `StateStore.consume`, `RefreshTokenSto
 
 `@di-framework/auth/server` turns an application into an OAuth 2.0 (RFC 6749) and OpenID Connect 1.0 Authorization Server:
 
-```ts
+```typescript
 import { AuthorizationServer, handleOAuthServerRequest } from '@di-framework/auth/server';
 
 const server = new AuthorizationServer({
@@ -311,7 +311,7 @@ const response = await handleOAuthServerRequest(server, request);
 
 **Choosing a password hasher.** The default is PBKDF2-HMAC-SHA-256 at 600,000 iterations (NIST SP 800-132; OWASP's 2024 figure), because it is the only password KDF the Web Cryptography API offers and this package carries no dependencies. PBKDF2 is memory-cheap, so a GPU attacker gets better value against it than against Argon2id. If you run on Bun or Node, supply a stronger hasher:
 
-```ts
+```typescript
 registerAuth({ secret, hasher: bunPasswordHasher() });   // Argon2id via Bun.password
 ```
 

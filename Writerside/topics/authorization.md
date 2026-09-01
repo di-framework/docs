@@ -28,7 +28,7 @@ Multi-argument role and scope predicates are intentionally different: `@HasRole(
 
 `compilePolicies()` produces the same AST accepted directly by the evaluator. `printPolicies()` emits deterministic ISO/IEC 14977-style EBNF and `parsePolicies()` parses the documented authorization subset, including comments, action alternatives, comma-separated conditions, and the four v1 predicates.
 
-```ebnf
+```text
 policy DocumentPolicy = "document" ;
 
 allow DocumentPolicy updateOwn =
@@ -101,4 +101,3 @@ const protectedResolver = protectGraphQLField(ArticlePolicy, rawResolver, {
 - Action inference detects `list`, `create`, `update`, `delete`, or `read` based on field names, or uses `@ResourceAction`.
 - Missing or ambiguous resource IDs fail closed immediately.
 - Client error responses sanitize decision details (`ruleIds`, `category`) and return standard `GraphQLResourcePolicyError` (`FORBIDDEN`/`UNAUTHENTICATED`).
-
