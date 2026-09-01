@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -22,4 +23,3 @@ jobs:
       - run: bun run typecheck
       - name: Validate Cloudflare bundle
         run: bun x wrangler deploy --dry-run --config search/wrangler.jsonc
-
