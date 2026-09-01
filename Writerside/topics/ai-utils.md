@@ -159,7 +159,7 @@ If you never add directories, files, in-memory skills, or packages, existing **`
 Normal discovery places every skill name and description in the `Skill` tool. For catalogs above the default threshold of 50, generate a semantic index during the application build:
 
 ```bash
-di-skills-index --skills-dir .claude/skills
+di-framework skills index build --skills-dir .agents/skills
 ```
 
 Or call the same package implementation programmatically:
@@ -222,7 +222,7 @@ class ApplicationSkillsIndex {}
 await skillsIndexBuilderFrom(ApplicationSkillsIndex).build();
 ```
 
-Helpers: `skillsToolboxOptionsFrom`, `skillsToolboxBuilderFrom` / `skillsToolboxFrom`, `skillsAgentBuilderFrom` / `skillsAgentFrom`, `skillsIndexBuilderFrom`. Pass `chatModel`, custom `SkillEmbedder`, and stores as **overrides** — they are not stored on decorator metadata. Stack `@Skills`, `@SemanticSkillDiscovery`, and `@Skill` on one class; merge multiple catalog classes yourself. `di-skills-index` stays flag-driven.
+Helpers: `skillsToolboxOptionsFrom`, `skillsToolboxBuilderFrom` / `skillsToolboxFrom`, `skillsAgentBuilderFrom` / `skillsAgentFrom`, `skillsIndexBuilderFrom`. Pass `chatModel`, custom `SkillEmbedder`, and stores as **overrides** — they are not stored on decorator metadata. Stack `@Skills`, `@SemanticSkillDiscovery`, and `@Skill` on one class; merge multiple catalog classes yourself. Terminal use goes through `di-framework skills index`; package APIs remain independent of command-line arguments and output.
 
 ## Skill-only and MCP
 

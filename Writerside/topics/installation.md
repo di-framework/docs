@@ -148,5 +148,5 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 Now that you have the framework installed, learn how to use it:
 
 - [Quick Start](quick-start.md) - Learn the basics with simple examples
-- [CLI](cli.md) - App `init` / `check` / `build` and maintainer `mx`
+- [CLI](cli.md) - Complete command tree, output contract, and package ownership
 - [API Reference](api-reference.md) - Complete API documentation
