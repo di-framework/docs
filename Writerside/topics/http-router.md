@@ -156,15 +156,16 @@ router.get<
 
 ### OpenAPI Generation
 
-`@di-framework/http` provides a built-in CLI and a registry to generate OpenAPI specs from your controllers.
+`@di-framework/http` provides typed APIs and a registry for generating OpenAPI specs from your
+controllers. Terminal routing and presentation belong to the unified `di-framework` CLI.
 
 #### Using the CLI
 
-The easiest way to generate a spec is using the provided CLI tool.
+Generate a spec through the canonical CLI command:
 
 ```bash
 # Generate openapi.json from your controllers
-bun x di-framework-http generate --controllers ./src/index.ts
+di-framework http openapi generate --controllers ./src/index.ts
 ```
 
 **Options:**

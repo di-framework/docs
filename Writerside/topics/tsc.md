@@ -108,6 +108,6 @@ Class-typed parameters use `instanceof` when the checker can name an accessible 
 
 ## Next Steps
 
-- [CLI](cli.md) - App `init` / `check` / `build` and maintainer `mx`
+- [CLI](cli.md) - Complete command tree, output contract, and package ownership
 - [Installation](installation.md) - Core package setup
 - [Best Practices](best-practices.md) - Recommended patterns
