@@ -239,9 +239,80 @@ const { answer } = await PlannerExecutorWorkflow.of(chatClient).run(goal, {
 
 Uses `@modelcontextprotocol/sdk`. Adapt an SDK client and expose remote tools as `ToolCallback`s, or mark beans with `@McpClient` / `@McpTool`. Token: `AiTokens.MCP_CLIENT`.
 
+## Network A2A 1.0 (Agent-to-Agent Protocol over HTTP)
+
+`@di-framework/ai` implements the standard [AAIF Agent-to-Agent (A2A) 1.0 Protocol](https://github.com/google/A2A) over HTTP JSON-RPC.
+
+- **Agent Cards**: Discover skills and capabilities at `GET {url}/.well-known/agent-card.json`.
+- **JSON-RPC Operations**: Standard 1.0 methods (`SendMessage`, `GetTask`, `ListTasks`, `CancelTask`) over HTTP POST.
+- **Task Lifecycle**: Strict states (`submitted` → `working` → `completed` | `failed` | `canceled` | `rejected` | `input-required` | `auth-required`).
+- **Discovery**: `A2ADirectory` fetches cards from registered origins and returns connected `A2AClient` instances.
+- **Process Boundary Opacity**: Wire representation carries only messages, tasks, and artifacts. Internal prompts, tool definitions (MCP), and memory keys remain completely private inside the serving process.
+- **MCP vs A2A**: MCP equips agents with internal tools and resources; A2A dispatches tasks and work across independent agent services over the network.
+
+### Exposing an Agent over A2A
+
+```typescript
+import { Agent, EnableAi } from '@di-framework/ai';
+
+@Agent({
+  name: 'ReviewAgent',
+  description: 'Automated code review agent',
+  skills: [{ id: 'dev.review', description: 'Review pull request diffs' }],
+  a2a: { url: 'https://agents.example.com/review' },
+  system: 'You are an expert code reviewer.',
+  tools: [/* internal MCP tools */],
+})
+export class ReviewAgent {}
+
+@EnableAi({
+  a2a: true, // opts into serving Agent Card and JSON-RPC HTTP handlers
+})
+export class AppModule {}
+```
+
+### Discovering and Dispatching Work via `A2ADirectory` and `A2AClient`
+
+```typescript
+import { A2ADirectory, A2AClient } from '@di-framework/ai';
+
+// Initialize directory with remote origins
+const directory = A2ADirectory.create({
+  origins: [
+    'https://agents.example.com/aria',
+    'https://agents.example.com/ravi',
+  ],
+});
+
+// Discover a peer advertising the required skill
+const reviewer: A2AClient = await directory.find({ skill: 'dev.review' });
+
+// Dispatch task and await completion
+const task = await reviewer.sendAndWait({
+  skill: 'dev.review',
+  message: 'git diff main...feature',
+  metadata: { workId: 'ticket-456' },
+});
+
+console.log(task.status.state); // 'completed'
+console.log(task.artifacts); // array of A2AArtifact
+```
+
+### In-process Local Bus (Non-network)
+
+> **Note:** `A2ABus` is an in-process memory event bus for local co-located callbacks and is **not** the network A2A protocol. Use `A2ADirectory` and `A2AClient` for standard network A2A 1.0 communication.
+
+```typescript
+import { A2ABus } from '@di-framework/ai';
+
+const bus = A2ABus.create();
+bus.register('researcher', async (msg) => `notes:${msg.content}`);
+const reply = await bus.request('user', 'researcher', 'topic');
+```
+
 ## Agent Skills
 
-Reusable `SKILL.md` folders live in **`@di-framework/ai-utils`**, not this package. Prefer `SkillsAgent.builder()` / `SkillsToolbox.builder()`. `configureAi` / `@Agent` stay skill-free.
+Reusable `SKILL.md` folders live in **`@di-framework/ai-utils`**, not this package. Prefer `SkillsAgent.builder()` / `SkillsToolbox.builder()`. For network agent capability advertising, use A2A Agent Card skills on `@Agent({ skills, a2a })`.
 
 See [Agent Skills](ai-utils.md).
 
@@ -306,13 +377,15 @@ Prefer `AiTokens` over ad-hoc strings:
 | `TOOL_CALLBACKS` | `ai.tools` | Aggregated tools |
 | `ADVISORS` | `ai.advisors` | Aggregated advisors |
 | `MCP_CLIENT` | `mcpClient` | MCP session |
+| `A2A_TASK_STORE` | `a2a.taskStore` | A2A server task store |
+| `A2A_HTTP_HANDLER` | `a2a.httpHandler` | A2A Fetch HTTP handler |
 
 ## Decorator catalog (selection)
 
 | Decorator | Purpose |
 | --- | --- |
 | `@AiService` / `@Assistant` | Declarative chat assistant (class → proxy) |
-| `@Agent` / `@ChatAgentBean` | Declarative `ChatAgent` bean |
+| `@Agent` / `@ChatAgentBean` | Declarative `ChatAgent` bean and A2A Agent Card endpoint |
 | `@SystemMessageAnn` / `@UserMessageAnn()` / `@MemoryId()` | Prompt + session wiring |
 | `@Tool` / `@ToolSet` / `@ToolParam()` | Tool methods on beans |
 | `@WithMemory` / `@WithRag` / `@WithTools` / `@AiObserved` | Attach advisors |
@@ -323,7 +396,7 @@ Prefer `AiTokens` over ad-hoc strings:
 
 | Export | Description |
 | --- | --- |
-| `configureAi` / `enableAi` | Bootstrap model, client, builder, annotations |
+| `configureAi` / `enableAi` | Bootstrap model, client, builder, annotations, A2A |
 | `ChatClient` / `ChatClientBuilder` | Fluent chat API |
 | `OpenAiChatModel` / `AnthropicChatModel` | HTTP providers |
 | `AiService` / `Assistant` / `resolveAiService` | Annotated assistants |
@@ -335,7 +408,13 @@ Prefer `AiTokens` over ad-hoc strings:
 | `ChainWorkflow` / `RoutingWorkflow` / … | Fixed-pattern workflows |
 | `GraphWorkflow` / `chatToolLoopGraph` | Graph agent runtime |
 | `PlannerExecutorWorkflow` | Plan → act → replan |
-| `A2ABus` | In-process multi-agent messages |
+| `A2ADirectory` | Registry and remote A2A agent discovery |
+| `A2AClient` | HTTP JSON-RPC client for A2A operations |
+| `A2ATaskStore` | In-memory task state lifecycle store |
+| `A2AJsonRpcHandler` | JSON-RPC 2.0 A2A request dispatcher |
+| `createA2AHttpHandler` | Standard Web Fetch `(Request) => Promise<Response>` handler |
+| `createA2AAuthHandler` | Bearer token auth handler via `@di-framework/auth` |
+| `A2ABus` | In-process multi-agent messages (local bus) |
 | `ScriptedChatModel` / `FakeChatModel` | Tests |
 | `AiTokens` | Well-known DI tokens |
 | `AiError` / `isAiError` | Typed errors |
@@ -350,4 +429,4 @@ Prefer `AiTokens` over ad-hoc strings:
 
 ## Example
 
-Package tests under [`packages/di-framework-ai/tests`](https://github.com/di-framework/di-framework/tree/main/packages/di-framework-ai/tests) cover ChatClient, tools, memory, RAG, MCP, agents, and the annotation DX.
+Package tests under [`packages/di-framework-ai/tests`](https://github.com/di-framework/di-framework/tree/main/packages/di-framework-ai/tests) cover ChatClient, tools, memory, RAG, MCP, agents, A2A 1.0, and the annotation DX.
