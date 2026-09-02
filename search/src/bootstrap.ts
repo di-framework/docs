@@ -2,6 +2,7 @@ import { useContainer } from '@di-framework/core/container';
 import corpus from '../data/corpus.json';
 import { AuthController } from './controllers/AuthController';
 import { HealthController } from './controllers/HealthController';
+import { OpenApiController } from './controllers/OpenApiController';
 import { ReindexController } from './controllers/ReindexController';
 import { SearchController } from './controllers/SearchController';
 import { hydrateCorpus } from './corpus-state';
@@ -42,6 +43,7 @@ const DI_CLASSES = [
   AuthController,
   SearchController,
   ReindexController,
+  OpenApiController,
 ] as const;
 
 /**

@@ -6,8 +6,9 @@
   "description": "Writerside docs search on Cloudflare Workers — showcase of @di-framework/core + repo + http + Workers AI",
   "scripts": {
     "corpus": "bun run scripts/build-corpus.ts",
+    "openapi": "bun run scripts/build-openapi.ts",
     "dev": "wrangler dev",
-    "deploy": "bun run corpus && wrangler deploy",
+    "deploy": "bun run openapi && bun run corpus && wrangler deploy",
     "test": "bun test",
     "typecheck": "di-framework check",
     "cf-typegen": "wrangler types",

@@ -56,6 +56,16 @@ describe('HTTP API (Controller → Service → Repo)', () => {
     expect(typeof body.docsIndexed).toBe('number');
   });
 
+  test('GET /openapi.json returns OpenAPI 3.1.0 document via OpenApiController', async () => {
+    const env = testEnv();
+    const res = await worker.fetch(new Request('http://localhost/openapi.json'), env, {} as ExecutionContext);
+    expect(res.status).toBe(200);
+    const doc = (await res.json()) as { openapi: string; paths: Record<string, unknown> };
+    expect(doc.openapi).toBe('3.1.0');
+    expect(doc.paths['/preview-search/{project}/{instance}']).toBeDefined();
+    expect(doc.paths['/preview-search/{project}/{instance}/{version}']).toBeDefined();
+  });
+
   test('strips BASE_PATH before routing', async () => {
     const env = testEnv({ BASE_PATH: '/api/docs/search' });
     const res = await worker.fetch(

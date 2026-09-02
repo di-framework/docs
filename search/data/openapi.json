@@ -1,0 +1,144 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "di-framework Documentation Search API",
+    "version": "1.0.0",
+    "description": "Writerside docs search on Cloudflare Workers"
+  },
+  "paths": {
+    "/auth/token": {
+      "post": {
+        "summary": "Mint reindex token",
+        "description": "Exchange a GitHub Actions OIDC JWT for a short-lived reindex Bearer token signed by the Worker.",
+        "operationId": "AuthController.post",
+        "responses": {
+          "200": {
+            "description": "Reindex access token"
+          },
+          "401": {
+            "description": "Missing or invalid OIDC token"
+          },
+          "403": {
+            "description": "OIDC claims not allowed"
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Service health / discovery",
+        "description": "Returns indexed doc count, architecture notes, and Writerside endpoint hints.",
+        "operationId": "HealthController.get",
+        "responses": {
+          "200": {
+            "description": "Service metadata"
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "OpenAPI Specification",
+        "description": "Returns the OpenAPI 3.1.0 specification for the search service.",
+        "operationId": "OpenApiController.get",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1.0 document"
+          }
+        }
+      }
+    },
+    "/reindex": {
+      "post": {
+        "summary": "Reindex corpus + Vectorize",
+        "description": "Optional JSON body `{ docs }` upserts those versions into the corpus (other frozen versions are kept). Then syncs Vectorize (incremental unless `?full=1`).",
+        "operationId": "ReindexController.post",
+        "responses": {
+          "200": {
+            "description": "Sync result"
+          },
+          "400": {
+            "description": "Invalid corpus body"
+          },
+          "401": {
+            "description": "Missing or invalid auth"
+          },
+          "403": {
+            "description": "Auth claims not allowed"
+          }
+        }
+      }
+    },
+    "/preview-search/{project}/{instance}": {
+      "get": {
+        "summary": "Writerside preview search",
+        "description": "Hybrid semantic + lexical search. Writerside calls `/preview-search/{project}/{instance}` or `/preview-search/{project}/{instance}/{version}`.",
+        "operationId": "SearchController.get",
+        "responses": {
+          "200": {
+            "description": "Algolia-shaped Writerside hits"
+          }
+        },
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "instance",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/preview-search/{project}/{instance}/{version}": {
+      "get": {
+        "summary": "Writerside preview search (versioned)",
+        "description": "Same as `/preview-search/{project}/{instance}` but scoped to a docs snapshot (`latest` or `vMAJOR.MINOR`).",
+        "operationId": "SearchController.getVersioned",
+        "responses": {
+          "200": {
+            "description": "Algolia-shaped Writerside hits"
+          }
+        },
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "instance",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
