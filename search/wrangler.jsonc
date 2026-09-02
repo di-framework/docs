@@ -8,8 +8,12 @@
   // Also expose *.workers.dev as a CI/fallback URL when apex DNS is flaky.
   "workers_dev": true,
   "preview_urls": false,
-  // Path-style mount; index.ts strips BASE_PATH before routing
+  // Path-style mount and custom domain
   "routes": [
+    {
+      "pattern": "search.di-framework.dev",
+      "custom_domain": true
+    },
     {
       "pattern": "di-framework.dev/api/docs/search*",
       "zone_name": "di-framework.dev"
