@@ -10,7 +10,7 @@ on:
         type: boolean
         default: false
   repository_dispatch:
-    types: [framework-release]
+    types: [framework-release, coverage-update]
 
 concurrency:
   group: docs-production
@@ -153,6 +153,13 @@ jobs:
         with:
           pattern: site-*
           path: builds
+      - name: Fetch latest coverage badges from di-framework
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p coverage
+          gh run download --repo di-framework/di-framework --name coverage-badges --dir coverage || true
       - name: Normalize artifact layout and assemble
         run: |
           set -euo pipefail
@@ -186,3 +193,4 @@ jobs:
           curl -fsS https://docs.di-framework.dev/v5.0/overview.html >/dev/null
           curl -fsS "$SEARCH_URL/preview-search/Writerside/d/latest?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
           curl -fsS "$SEARCH_URL/preview-search/Writerside/d/v5.0?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
+          curl -fsS https://docs.di-framework.dev/coverage/core.json | jq -e '.label == "line coverage" and .color == "brightgreen"' >/dev/null

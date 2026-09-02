@@ -23,3 +23,7 @@ for item in versions:
         "isCurrent": version == "latest",
     })
 (site / "versions.json").write_text(json.dumps(entries, indent=2) + "\n")
+
+coverage_dir = Path("coverage")
+if coverage_dir.is_dir():
+    shutil.copytree(coverage_dir, site / "coverage", dirs_exist_ok=True)
