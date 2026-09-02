@@ -432,5 +432,5 @@ typed package API is extended first.
 - [Installation](installation.md) - Core package and CLI setup
 - [Quick Start](quick-start.md) - Basics after scaffolding
 - [HTTP Router](http-router.md) - HTTP routing and OpenAPI generation
-- [Agent Skills](ai-utils.md) - Skills and skill-index programmatic APIs
+- [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`

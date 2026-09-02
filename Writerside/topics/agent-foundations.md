@@ -1,13 +1,13 @@
 # Agent configuration
 
 `@di-framework/ai-utils` provides vendor-neutral project discovery for skills,
-repository instructions, and AI exclusion policy. These APIs are independent of
-the CLI: applications, tests, and build tooling can inspect the same ordered
-sources and typed diagnostics without constructing an agent.
+plugins, repository instructions, and AI exclusion policy. These APIs are
+independent of the CLI: applications, tests, and build tooling can inspect the
+same ordered sources and typed diagnostics without constructing an agent.
 
 ## Neutral project layout
 
-A repository can keep all three foundations at predictable paths:
+A repository can keep these foundations at predictable paths:
 
 ```text
 workspace/
@@ -15,11 +15,17 @@ workspace/
 ├── .aiignore
 ├── .agents/
 │   ├── AGENTS.md
-│   └── skills/
-│       └── code-reviewer/
-│           ├── SKILL.md
-│           └── references/
-│               └── checklist.md
+│   ├── skills/
+│   │   └── code-reviewer/
+│   │       ├── SKILL.md
+│   │       └── references/
+│   │           └── checklist.md
+│   └── plugins/
+│       └── di-framework/
+│           ├── plugin.json
+│           ├── mcp_config.json
+│           ├── skills/
+│           └── rules/
 └── packages/
     └── api/
         └── AGENTS.md
@@ -30,8 +36,9 @@ the workspace; `packages/api/AGENTS.md` is more specific when work occurs in
 that subtree. `.agents/AGENTS.md` participates only when the working directory
 is under `.agents/**`; it is not a second global instruction file.
 
-Only `.agents/skills` paths are automatic. Vendor-specific skill directories
-are never loaded implicitly.
+Only `.agents/skills` and `.agents/plugins` paths are automatic for their
+respective catalogs. Vendor-specific skill or plugin directories are never
+loaded implicitly.
 
 ## Shared source resolution
 
@@ -135,6 +142,45 @@ name/directory mismatch, missing entrypoints, duplicates and shadowing,
 unreadable resources, missing resources, broken symlinks, and resources that
 escape the skill directory. Findings are typed, source-aware data with no
 terminal formatting and do not require an agent or semantic index.
+
+## Plugin sources and precedence
+
+The only automatic plugin roots are:
+
+```text
+<workspace>/.agents/plugins
+~/.agents/plugins
+```
+
+`resolvePluginSources` / `validatePluginCatalog` use the same merge/replace
+model as skills. Explicit directories and packages precede the workspace and
+user defaults under `merge`; `replace` keeps only explicit roots.
+
+Within an npm package, discovery checks `package.json#plugins` first, then
+`.agents/plugins`, then `plugins`, then a package-root `plugin.json` for
+single-plugin packages such as `@di-framework/plugin`. Catalog validation also
+checks nested `skills/`, `mcp_config.json`, and `hooks.json`.
+
+`SkillsAgent` / `SkillsToolbox` do not load plugins automatically. See
+[Agents](ai-utils.md#plugins) for programmatic load APIs and elective wiring of
+skills, rules, and MCP.
+
+```typescript
+import { validatePluginCatalog } from '@di-framework/ai-utils';
+
+const plugins = validatePluginCatalog({
+  packages: ['@di-framework/plugin'],
+  sourceMode: 'replace',
+});
+```
+
+| API | Scope |
+| --- | --- |
+| `validatePluginDefinition` | One loaded plugin |
+| `validatePluginDirectory` | One plugin folder with `plugin.json` |
+| `validatePluginsDirectory` | One catalog root |
+| `validateResolvedPluginCatalog` | Already-resolved ordered sources |
+| `validatePluginCatalog` | Resolve and validate with runtime precedence |
 
 ## Hierarchical `AGENTS.md`
 
