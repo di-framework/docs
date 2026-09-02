@@ -136,6 +136,39 @@
           }
         ]
       }
+    },
+    "/window/{topic}/{cursor}": {
+      "get": {
+        "summary": "Documentation window expansion",
+        "description": "Expands context around a matched topic section cursor (slug, chunk id, or index) by a specified neighbor radius.",
+        "operationId": "WindowController.get",
+        "responses": {
+          "200": {
+            "description": "Window of neighboring section chunks"
+          },
+          "404": {
+            "description": "Topic or cursor not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "topic",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {

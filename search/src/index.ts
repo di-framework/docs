@@ -7,8 +7,10 @@ import { router } from './router';
 // Controllers register routes on `router` via static `@Endpoint` properties
 import './controllers/AuthController';
 import './controllers/HealthController';
+import './controllers/OpenApiController';
 import './controllers/ReindexController';
 import './controllers/SearchController';
+import './controllers/WindowController';
 
 /** Strip mount path on di-framework.dev (e.g. /api/docs/search). */
 function appPath(pathname: string, env: Env): string {

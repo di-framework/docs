@@ -5,6 +5,7 @@ import { HealthController } from './controllers/HealthController';
 import { OpenApiController } from './controllers/OpenApiController';
 import { ReindexController } from './controllers/ReindexController';
 import { SearchController } from './controllers/SearchController';
+import { WindowController } from './controllers/WindowController';
 import { hydrateCorpus } from './corpus-state';
 import type { Env } from './env';
 import {
@@ -44,6 +45,7 @@ const DI_CLASSES = [
   SearchController,
   ReindexController,
   OpenApiController,
+  WindowController,
 ] as const;
 
 /**

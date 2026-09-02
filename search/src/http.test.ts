@@ -64,6 +64,23 @@ describe('HTTP API (Controller → Service → Repo)', () => {
     expect(doc.openapi).toBe('3.1.0');
     expect(doc.paths['/preview-search/{project}/{instance}']).toBeDefined();
     expect(doc.paths['/preview-search/{project}/{instance}/{version}']).toBeDefined();
+    expect(doc.paths['/window/{topic}/{cursor}']).toBeDefined();
+  });
+
+  test('GET /window/:topic/:cursor returns neighbor chunks around cursor', async () => {
+    const env = testEnv();
+    const res = await worker.fetch(
+      new Request('http://localhost/window/agent-foundations/neutral-project-layout?radius=1'),
+      env,
+      {} as ExecutionContext
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { topic: string; cursor: string; radius: number; chunks: any[] };
+    expect(body.topic).toBe('agent-foundations');
+    expect(body.cursor).toBe('neutral-project-layout');
+    expect(body.radius).toBe(1);
+    expect(body.chunks.length).toBeGreaterThanOrEqual(2);
+    expect(body.chunks.some((c) => c.url.includes('#neutral-project-layout'))).toBe(true);
   });
 
   test('strips BASE_PATH before routing', async () => {
