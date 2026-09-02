@@ -15,6 +15,7 @@ Prefer **builders**: `SkillsAgent.builder()`, `SkillsToolbox.builder()`, `Skills
 - **Agent extras**: `TodoWrite`, optional `AskUserQuestion`, web fetch/search, file memory, nested `Task`.
 - **Enforcement**: after a skill with `allowed-tools` activates, other tools are gated; file tools jail to workspace ∪ that skill.
 - **Discovery**: directories, single files, in-memory skills, npm packages, or neutral defaults at `.agents/skills` and `~/.agents/skills`.
+- **Plugins**: discover and validate `.agents/plugins` bundles (`plugin.json`, nested skills, rules, `mcp_config.json`, hooks) without auto-wiring agents or MCP.
 - **Project policy**: hierarchical `AGENTS.md` instructions and root `.aiignore` enforcement with inspectable provenance and diagnostics.
 - **Repository operations**: read-only agent-configuration audits plus deterministic, dry-run-first neutral migration plans and explicit execution.
 
@@ -63,6 +64,8 @@ const client = ChatClient.builder(model).defaultTools(...tools).build();
 ```
 
 The [`ai-skills`](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-skills) example has scripted tests (no API key) and a live `bun start` path that reviews `fixtures/sample-user.ts` with `OpenAiChatModel` (`process.env.OPENAI_API_KEY`).
+
+The [`ai-plugins`](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-plugins) example validates the published [`@di-framework/plugin`](https://www.npmjs.com/package/@di-framework/plugin) package, expands `${pluginDir}` in `mcp_config.json`, and electively starts its stdio MCP (no API keys for local tools such as `di_scaffold_provider`).
 
 ## Skill folders
 
@@ -265,9 +268,110 @@ const mcp = skillsToolboxAsMcp({
 
 `skillsToolboxAsMcp` returns descriptor + handler pairs from `@di-framework/ai` `toolCallbackAsMcpTool`.
 
+## Plugins
+
+Plugins are filesystem bundles under `.agents/plugins/<id>/` (and
+`~/.agents/plugins/<id>/`):
+
+```text
+.agents/plugins/<plugin-id>/
+  plugin.json          # required; name optional (defaults to directory name)
+  mcp_config.json      # optional { mcpServers: ... }
+  hooks.json           # optional object
+  skills/              # optional nested SKILL.md trees
+  rules/               # optional *.md rule files
+```
+
+`SkillsAgent` / `SkillsToolbox` do **not** load plugins by themselves. Use the
+plugin APIs to discover and validate bundles, then wire pieces electively.
+
+### Automatic (discovery only)
+
+Defaults are **`<workspace>/.agents/plugins`** then **`~/.agents/plugins`**.
+Explicit `directories` / `packages` and `sourceMode` work like skill sources.
+A package that publishes `plugin.json` at its own root (for example
+`@di-framework/plugin`) resolves as a single-plugin source. Nested `skills/`
+are validated with the skill catalog rules when you validate a plugin catalog.
+
+```typescript
+import { resolvePluginSources, validatePluginCatalog } from '@di-framework/ai-utils';
+
+const resolution = resolvePluginSources({ workspace: process.cwd() });
+const catalog = validatePluginCatalog({ workspace: process.cwd() });
+const fromPackage = validatePluginCatalog({
+  packages: ['@di-framework/plugin'],
+  sourceMode: 'replace',
+});
+```
+
+Automatic here means **where plugins are found**, not that agents consume them.
+
+### Programmatic
+
+```typescript
+import {
+  loadPluginDirectory,
+  loadPluginsDirectory,
+  validatePluginDirectory,
+} from '@di-framework/ai-utils';
+
+const plugin = loadPluginDirectory('.agents/plugins/di-framework');
+const fromRoot = loadPluginsDirectory('.agents/plugins');
+const one = validatePluginDirectory('.agents/plugins/di-framework');
+```
+
+`AgentPlugin` exposes `skillsDirectory`, `mcpConfig`, `rules`, and `hooks`.
+This package does not start MCP servers or run hooks.
+
+### Elective (opt into an agent)
+
+Validate the catalog, pass each plugin’s `skills/` root into skill discovery,
+and append rule markdown to system context:
+
+```typescript
+import {
+  SkillsAgent,
+  validatePluginCatalog,
+} from '@di-framework/ai-utils';
+
+const workspace = process.cwd();
+const catalog = validatePluginCatalog({ workspace });
+if (!catalog.valid) {
+  throw new Error(catalog.diagnostics.map((d) => d.message).join('\n'));
+}
+
+const pluginSkillDirs = catalog.plugins
+  .map((plugin) => plugin.skillsDirectory)
+  .filter((path): path is string => path != null);
+
+const ruleText = catalog.plugins
+  .flatMap((plugin) => plugin.rules)
+  .map((rule) => rule.content)
+  .join('\n\n');
+
+const agent = SkillsAgent.builder()
+  .chatModel(model)
+  .workspace(workspace)
+  .addSkillsDirectories(pluginSkillDirs)
+  .system(
+    ruleText
+      ? `You help with this codebase.\n\n${ruleText}`
+      : 'You help with this codebase.',
+  )
+  .build();
+```
+
+MCP is elective the same way: read `plugin.mcpConfig.mcpServers` and register
+those entries with your MCP client (expand `${pluginDir}` when present). Hooks
+stay data until you interpret `hooks.json`.
+
+See the [`ai-plugins`](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-plugins)
+example for official `@di-framework/plugin` discovery plus elective MCP wiring.
+
 ## Related
 
 - [AI](ai.md) — chat, tools, RAG, MCP, and agents (`@di-framework/ai`)
-- [Agent configuration](agent-foundations.md) — neutral sources, validation, instructions, and `.aiignore`
+- [Agent configuration](agent-foundations.md) — neutral sources, validation, instructions, plugins, and `.aiignore`
 - [Package README](https://github.com/di-framework/di-framework/blob/main/packages/di-framework-ai-utils/README.md)
-- [Example](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-skills)
+- [Skills example](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-skills)
+- [Plugins example](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-plugins)

@@ -11,7 +11,7 @@ Spring AI–aligned chat, tools, RAG, MCP, and agents for TypeScript. Portable m
 - **Tools**: `functionToolCallback`, method-level `@Tool` on DI beans, automatic tool-calling loops.
 - **Structured output**: JSON Schema converters and `call().entity(...)`.
 - **Memory / RAG / MCP / agents**: same runtime as the imperative APIs, annotation-friendly.
-- **Agent Skills**: not in this package — see [Agent Skills](ai-utils.md) (`@di-framework/ai-utils`).
+- **Agent Skills / plugins**: not in this package — see [Agents](ai-utils.md) (`@di-framework/ai-utils`).
 
 ## Installation
 
@@ -312,9 +312,13 @@ const reply = await bus.request('user', 'researcher', 'topic');
 
 ## Agent Skills
 
-Reusable `SKILL.md` folders live in **`@di-framework/ai-utils`**, not this package. Prefer `SkillsAgent.builder()` / `SkillsToolbox.builder()`. For network agent capability advertising, use A2A Agent Card skills on `@Agent({ skills, a2a })`.
+Reusable `SKILL.md` folders and `.agents/plugins` discovery live in
+**`@di-framework/ai-utils`**, not this package. Prefer `SkillsAgent.builder()` /
+`SkillsToolbox.builder()` for skills, and `validatePluginCatalog` /
+`loadPluginDirectory` for plugins. For network agent capability advertising, use
+A2A Agent Card skills on `@Agent({ skills, a2a })`.
 
-See [Agent Skills](ai-utils.md).
+See [Agents](ai-utils.md).
 
 ## Providers
 
