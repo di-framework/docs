@@ -35,6 +35,106 @@ export type WindowResponse = {
   chunks: WindowChunk[];
 };
 
+/**
+ * Pure static utilities for documentation window slicing and cursor resolution.
+ */
+export class DocWindowUtils {
+  /**
+   * Filters all pages down to those belonging to a specific topic and version.
+   */
+  static filterTopicPages(
+    allPages: readonly DocPage[],
+    topic: string,
+    version: string
+  ): DocPage[] {
+    const topicPrefix = `docs_${topic}`;
+    return allPages.filter((p) => {
+      const isVersionMatch = p.version === version;
+      const isTopicMatch =
+        p.id.startsWith(topicPrefix) || p.url.includes(`/${topic}.html`);
+      return isVersionMatch && isTopicMatch;
+    });
+  }
+
+  /**
+   * Locates the numerical index of a section cursor in the ordered topic pages.
+   */
+  static findCursorIndex(
+    topicPages: readonly DocPage[],
+    topic: string,
+    rawCursor: string,
+    version: string
+  ): number {
+    const cursor = rawCursor.trim();
+    if (!cursor || cursor === 'root' || cursor === 'intro' || cursor === '0') {
+      return 0;
+    }
+
+    const topicPrefix = `docs_${topic}`;
+
+    // 1. Exact ID match
+    const idIndex = topicPages.findIndex(
+      (p) =>
+        p.id === cursor ||
+        p.id === `${topicPrefix}__${cursor}` ||
+        p.id === `${topicPrefix}__${cursor}__${version}`
+    );
+    if (idIndex !== -1) return idIndex;
+
+    // 2. Anchor slug match in URL
+    const anchorIndex = topicPages.findIndex((p) => p.url.endsWith(`#${cursor}`));
+    if (anchorIndex !== -1) return anchorIndex;
+
+    // 3. Title match (case-insensitive)
+    const lowerCursor = cursor.toLowerCase();
+    const titleIndex = topicPages.findIndex(
+      (p) => p.pageTitle.toLowerCase() === lowerCursor
+    );
+    if (titleIndex !== -1) return titleIndex;
+
+    // 4. Numeric index match
+    if (/^\d+$/.test(cursor)) {
+      const num = parseInt(cursor, 10);
+      if (num >= 0 && num < topicPages.length) {
+        return num;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Slices a window of items around a center index bounded by [0, total].
+   */
+  static sliceWindow<T>(
+    items: readonly T[],
+    centerIndex: number,
+    rawRadius: number,
+    maxRadius = 5
+  ): { radius: number; sliced: T[] } {
+    const radius = Math.max(0, Math.min(rawRadius, maxRadius));
+    const start = Math.max(0, centerIndex - radius);
+    const end = Math.min(items.length, centerIndex + radius + 1);
+    return {
+      radius,
+      sliced: items.slice(start, end),
+    };
+  }
+
+  /**
+   * Maps a DocPage entity to a response WindowChunk.
+   */
+  static formatChunk(page: DocPage): WindowChunk {
+    return {
+      id: page.id,
+      url: page.url,
+      title: page.pageTitle,
+      breadcrumbs: page.breadcrumbs,
+      content: page.content,
+    };
+  }
+}
+
 @Controller()
 export class WindowController {
   constructor(
@@ -50,66 +150,17 @@ export class WindowController {
     const version = normalizeDocsVersion(opts.version);
     const allPages = await this.documents.findAll();
 
-    // Filter pages for this topic and version, preserving document order
-    const topicPrefix = `docs_${opts.topic}`;
-    const topicPages = allPages.filter((p) => {
-      const isVersionMatch = p.version === version;
-      const isTopicMatch =
-        p.id.startsWith(topicPrefix) ||
-        p.url.includes(`/${opts.topic}.html`);
-      return isVersionMatch && isTopicMatch;
-    });
-
+    const topicPages = DocWindowUtils.filterTopicPages(allPages, opts.topic, version);
     if (topicPages.length === 0) {
       return null;
     }
 
-    // Locate the cursor index
-    const cursor = opts.cursor.trim();
-    let index = -1;
-
-    // 1. Exact ID match
-    index = topicPages.findIndex(
-      (p) =>
-        p.id === cursor ||
-        p.id === `${topicPrefix}__${cursor}` ||
-        p.id === `${topicPrefix}__${cursor}__${version}`
-    );
-
-    // 2. Anchor slug match in URL
+    const index = DocWindowUtils.findCursorIndex(topicPages, opts.topic, opts.cursor, version);
     if (index === -1) {
-      index = topicPages.findIndex((p) => p.url.endsWith(`#${cursor}`));
+      return null;
     }
 
-    // 3. Title match (case-insensitive)
-    if (index === -1) {
-      const lowerCursor = cursor.toLowerCase();
-      index = topicPages.findIndex(
-        (p) => p.pageTitle.toLowerCase() === lowerCursor
-      );
-    }
-
-    // 4. Numeric index match
-    if (index === -1 && /^\d+$/.test(cursor)) {
-      const num = parseInt(cursor, 10);
-      if (num >= 0 && num < topicPages.length) {
-        index = num;
-      }
-    }
-
-    if (index === -1) {
-      // Default to first chunk if cursor is "root", "intro", or "0"
-      if (cursor === 'root' || cursor === 'intro' || cursor === '') {
-        index = 0;
-      } else {
-        return null;
-      }
-    }
-
-    const radius = Math.max(0, Math.min(opts.radius, 5));
-    const start = Math.max(0, index - radius);
-    const end = Math.min(topicPages.length, index + radius + 1);
-    const sliced = topicPages.slice(start, end);
+    const { radius, sliced } = DocWindowUtils.sliceWindow(topicPages, index, opts.radius);
 
     return {
       topic: opts.topic,
@@ -118,13 +169,7 @@ export class WindowController {
       radius,
       currentIndex: index,
       totalSections: topicPages.length,
-      chunks: sliced.map((p) => ({
-        id: p.id,
-        url: p.url,
-        title: p.pageTitle,
-        breadcrumbs: p.breadcrumbs,
-        content: p.content,
-      })),
+      chunks: sliced.map(DocWindowUtils.formatChunk),
     };
   }
 
