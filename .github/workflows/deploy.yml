@@ -134,10 +134,14 @@ jobs:
           TOKEN: ${{ steps.auth.outputs.token }}
           FULL_REINDEX: ${{ inputs.full_reindex || false }}
         run: |
+          set -euo pipefail
           endpoint="$SEARCH_URL/reindex"
           test "$FULL_REINDEX" = true && endpoint="$endpoint?full=1"
-          curl -fsS -X POST "$endpoint" -H "Authorization: Bearer $TOKEN" \
-            -H 'Content-Type: application/json' --data-binary @/tmp/corpus.json | tee /tmp/result.json
+          code="$(curl -sS -o /tmp/result.json -w '%{http_code}' -X POST "$endpoint" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' --data-binary @/tmp/corpus.json)"
+          cat /tmp/result.json
+          test "$code" = 200
           jq -e '.ok == true' /tmp/result.json >/dev/null
 
   deploy:

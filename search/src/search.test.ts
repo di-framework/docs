@@ -221,10 +221,10 @@ describe('EmbeddingService with a Workers AI binding', () => {
     const texts = Array.from({ length: 125 }, (_, i) => `doc ${i}`);
     const vectors = await service.embed(texts);
 
-    expect(calls).toEqual([50, 50, 25]);
+    expect(calls).toEqual([32, 32, 32, 29]);
     expect(vectors).toHaveLength(125);
     expect(vectors[0]).toEqual([0, 1]);
-    expect(vectors[124]).toEqual([24, 25]);
+    expect(vectors[124]).toEqual([28, 29]);
   });
 
   test('throws when the AI binding returns a mismatched number of vectors', async () => {

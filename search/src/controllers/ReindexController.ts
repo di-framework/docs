@@ -99,10 +99,15 @@ export class ReindexController {
       return json({ error: 'Invalid JSON body' }, { status: 400 });
     }
     const body = (raw ?? null) as ReindexBody | null;
-    const result = await controller.reindex(req as unknown as Request, { full, body });
-    if (!result.ok) {
-      return json({ error: result.error }, { status: result.status });
+    try {
+      const result = await controller.reindex(req as unknown as Request, { full, body });
+      if (!result.ok) {
+        return json({ error: result.error }, { status: result.status });
+      }
+      return json(result.body);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return json({ error: `Reindex failed: ${message}` }, { status: 500 });
     }
-    return json(result.body);
   });
 }

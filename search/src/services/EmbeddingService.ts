@@ -5,7 +5,7 @@ import type { Env } from '../env';
 export const DEFAULT_EMBEDDING_MODEL = '@cf/google/embeddinggemma-300m';
 
 /** Max texts per Workers AI embedding request. */
-export const EMBEDDING_BATCH_SIZE = 50;
+export const EMBEDDING_BATCH_SIZE = 32;
 
 /**
  * Thin wrapper around the Workers AI binding for text embeddings.
@@ -33,25 +33,30 @@ export class EmbeddingService {
       return input.map((t) => bagOfChars(t, 32));
     }
 
-    const batches: string[][] = [];
-    for (let i = 0; i < input.length; i += EMBEDDING_BATCH_SIZE) {
-      batches.push(input.slice(i, i + EMBEDDING_BATCH_SIZE));
+    const results: number[][] = [];
+    const concurrency = 2;
+    for (let i = 0; i < input.length; i += EMBEDDING_BATCH_SIZE * concurrency) {
+      const chunkGroup: string[][] = [];
+      for (let j = 0; j < concurrency && i + j * EMBEDDING_BATCH_SIZE < input.length; j++) {
+        chunkGroup.push(
+          input.slice(i + j * EMBEDDING_BATCH_SIZE, i + (j + 1) * EMBEDDING_BATCH_SIZE),
+        );
+      }
+      const groupResults = await Promise.all(
+        chunkGroup.map(async (batch) => {
+          const result = (await ai.run(this.model() as Parameters<Ai['run']>[0], {
+            text: batch,
+          })) as { data?: number[][] };
+
+          if (!result?.data || result.data.length !== batch.length) {
+            throw new Error('Workers AI embedding response missing data[]');
+          }
+          return result.data;
+        }),
+      );
+      results.push(...groupResults.flat());
     }
-
-    const batchResults = await Promise.all(
-      batches.map(async (batch) => {
-        const result = (await ai.run(this.model() as Parameters<Ai['run']>[0], {
-          text: batch,
-        })) as { data?: number[][] };
-
-        if (!result?.data || result.data.length !== batch.length) {
-          throw new Error('Workers AI embedding response missing data[]');
-        }
-        return result.data;
-      }),
-    );
-
-    return batchResults.flat();
+    return results;
   }
 
   async embedOne(text: string): Promise<number[]> {
