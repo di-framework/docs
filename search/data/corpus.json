@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T14:55:55.716Z",
+  "generatedAt": "2026-09-06T11:56:20.260Z",
   "docs": [
     {
       "objectID": "docs_agent-foundations",
@@ -7,7 +7,7 @@
       "pageTitle": "Agent configuration",
       "mainTitle": "Agent configuration",
       "breadcrumbs": "Docs|Agent configuration",
-      "content": "`@di-framework/ai-utils` provides vendor-neutral project discovery for skills,\nrepository instructions, and AI exclusion policy. These APIs are independent of\nthe CLI: applications, tests, and build tooling can inspect the same ordered\nsources and typed diagnostics without constructing an agent.",
+      "content": "`@di-framework/ai-utils` provides vendor-neutral project discovery for skills,\nplugins, repository instructions, and AI exclusion policy. These APIs are\nindependent of the CLI: applications, tests, and build tooling can inspect the\nsame ordered sources and typed diagnostics without constructing an agent.",
       "product": "d",
       "version": "latest"
     },
@@ -17,7 +17,7 @@
       "pageTitle": "Neutral project layout",
       "mainTitle": "Agent configuration",
       "breadcrumbs": "Docs|Agent configuration|Neutral project layout",
-      "content": "A repository can keep all three foundations at predictable paths:\n\n```text\nworkspace/\n├── AGENTS.md\n├── .aiignore\n├── .agents/\n│ ├── AGENTS.md\n│ └── skills/\n│ └── code-reviewer/\n│ ├── SKILL.md\n│ └── references/\n│ └── checklist.md\n└── packages/\n └── api/\n └── AGENTS.md\n```\n\n`AGENTS.md` applies by directory hierarchy. The root file applies throughout\nthe workspace; `packages/api/AGENTS.md` is more specific when work occurs in\nthat subtree. `.agents/AGENTS.md` participates only when the working directory\nis under `.agents/**`; it is not a second global instruction file.\n\nOnly `.agents/skills` paths are automatic. Vendor-specific skill directories\nare never loaded implicitly.",
+      "content": "A repository can keep these foundations at predictable paths:\n\n```text\nworkspace/\n├── AGENTS.md\n├── .aiignore\n├── .agents/\n│ ├── AGENTS.md\n│ ├── skills/\n│ │ └── code-reviewer/\n│ │ ├── SKILL.md\n│ │ └── references/\n│ │ └── checklist.md\n│ └── plugins/\n│ └── di-framework/\n│ ├── plugin.json\n│ ├── mcp_config.json\n│ ├── skills/\n│ └── rules/\n└── packages/\n └── api/\n └── AGENTS.md\n```\n\n`AGENTS.md` applies by directory hierarchy. The root file applies throughout\nthe workspace; `packages/api/AGENTS.md` is more specific when work occurs in\nthat subtree. `.agents/AGENTS.md` participates only when the working directory\nis under `.agents/**`; it is not a second global instruction file.\n\nOnly `.agents/skills` and `.agents/plugins` paths are automatic for their\nrespective catalogs. Vendor-specific skill or plugin directories are never\nloaded implicitly.",
       "product": "d",
       "version": "latest"
     },
@@ -48,6 +48,16 @@
       "mainTitle": "Agent configuration",
       "breadcrumbs": "Docs|Agent configuration|Validate without running an agent",
       "content": "Catalog validation uses the same source resolution and precedence as runtime\ndiscovery:\n\n```typescript\nimport { validateSkillCatalog } from '@di-framework/ai-utils';\n\nconst report = validateSkillCatalog({\n workspace: process.cwd(),\n sourceMode: 'merge',\n directories: ['./team-skills'],\n});\n\nif (!report.valid) {\n for (const diagnostic of report.diagnostics) {\n console.error(diagnostic.code, diagnostic.source.path);\n }\n}\n```\n\n| API | Scope |\n| --- | --- |\n| `validateSkillDefinition` | One parsed or in-memory skill |\n| `validateSkillDirectory` | One skill folder, `SKILL.md`, and resources |\n| `validateSkillsDirectory` | One catalog root |\n| `validateResolvedSkillCatalog` | Already-resolved ordered sources |\n| `validateSkillCatalog` | Resolve and validate with runtime precedence |\n\nDiagnostics cover invalid frontmatter, name and description rules,\nname/directory mismatch, missing entrypoints, duplicates and shadowing,\nunreadable resources, missing resources, broken symlinks, and resources that\nescape the skill directory. Findings are typed, source-aware data with no\nterminal formatting and do not require an agent or semantic index.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_agent-foundations__plugin-sources-and-precedence",
+      "url": "https://docs.di-framework.dev/agent-foundations.html#plugin-sources-and-precedence",
+      "pageTitle": "Plugin sources and precedence",
+      "mainTitle": "Agent configuration",
+      "breadcrumbs": "Docs|Agent configuration|Plugin sources and precedence",
+      "content": "The only automatic plugin roots are:\n\n```text\n<workspace>/.agents/plugins\n~/.agents/plugins\n```\n\n`resolvePluginSources` / `validatePluginCatalog` use the same merge/replace\nmodel as skills. Explicit directories and packages precede the workspace and\nuser defaults under `merge`; `replace` keeps only explicit roots.\n\nWithin an npm package, discovery checks `package.json#plugins` first, then\n`.agents/plugins`, then `plugins`, then a package-root `plugin.json` for\nsingle-plugin packages such as `@di-framework/plugin`. Catalog validation also\nchecks nested `skills/`, `mcp_config.json`, and `hooks.json`.\n\n`SkillsAgent` / `SkillsToolbox` do not load plugins automatically. See\nAgents for programmatic load APIs and elective wiring of\nskills, rules, and MCP.\n\n```typescript\nimport { validatePluginCatalog } from '@di-framework/ai-utils';\n\nconst plugins = validatePluginCatalog({\n packages: ['@di-framework/plugin'],\n sourceMode: 'replace',\n});\n```\n\n| API | Scope |\n| --- | --- |\n| `validatePluginDefinition` | One loaded plugin |\n| `validatePluginDirectory` | One plugin folder with `plugin.json` |\n| `validatePluginsDirectory` | One catalog root |\n| `validateResolvedPluginCatalog` | Already-resolved ordered sources |\n| `validatePluginCatalog` | Resolve and validate with runtime precedence |",
       "product": "d",
       "version": "latest"
     },
@@ -237,7 +247,7 @@
       "pageTitle": "Features",
       "mainTitle": "Agents",
       "breadcrumbs": "Docs|Agents|Features",
-      "content": "- **Progressive disclosure**: discovery embeds `name` + `description`; activation loads the full `SKILL.md` body and base directory.\n- **Builder-first**: `SkillsAgent.builder()` for a `ChatAgent`, `SkillsToolbox.builder()` to attach tools, `SkillsTool.builder()` for `Skill` only.\n- **YAML front matter**: maps, lists, scalars, `|` / `>` blocks; `allowed-tools`, `license`, `compatibility`, `metadata`.\n- **Jailed file tools**: `Read`, `ListDirectory`, `Glob`, `Grep`, opt-in `Write` / `Edit` / `Bash`.\n- **Agent extras**: `TodoWrite`, optional `AskUserQuestion`, web fetch/search, file memory, nested `Task`.\n- **Enforcement**: after a skill with `allowed-tools` activates, other tools are gated; file tools jail to workspace ∪ that skill.\n- **Discovery**: directories, single files, in-memory skills, npm packages, or neutral defaults at `.agents/skills` and `~/.agents/skills`.\n- **Project policy**: hierarchical `AGENTS.md` instructions and root `.aiignore` enforcement with inspectable provenance and diagnostics.\n- **Repository operations**: read-only agent-configuration audits plus deterministic, dry-run-first neutral migration plans and explicit execution.",
+      "content": "- **Progressive disclosure**: discovery embeds `name` + `description`; activation loads the full `SKILL.md` body and base directory.\n- **Builder-first**: `SkillsAgent.builder()` for a `ChatAgent`, `SkillsToolbox.builder()` to attach tools, `SkillsTool.builder()` for `Skill` only.\n- **YAML front matter**: maps, lists, scalars, `|` / `>` blocks; `allowed-tools`, `license`, `compatibility`, `metadata`.\n- **Jailed file tools**: `Read`, `ListDirectory`, `Glob`, `Grep`, opt-in `Write` / `Edit` / `Bash`.\n- **Agent extras**: `TodoWrite`, optional `AskUserQuestion`, web fetch/search, file memory, nested `Task`.\n- **Enforcement**: after a skill with `allowed-tools` activates, other tools are gated; file tools jail to workspace ∪ that skill.\n- **Discovery**: directories, single files, in-memory skills, npm packages, or neutral defaults at `.agents/skills` and `~/.agents/skills`.\n- **Plugins**: discover and validate `.agents/plugins` bundles (`plugin.json`, nested skills, rules, `mcp_config.json`, hooks) without auto-wiring agents or MCP.\n- **Project policy**: hierarchical `AGENTS.md` instructions and root `.aiignore` enforcement with inspectable provenance and diagnostics.\n- **Repository operations**: read-only agent-configuration audits plus deterministic, dry-run-first neutral migration plans and explicit execution.",
       "product": "d",
       "version": "latest"
     },
@@ -257,7 +267,7 @@
       "pageTitle": "Quick start",
       "mainTitle": "Agents",
       "breadcrumbs": "Docs|Agents|Quick start",
-      "content": "```typescript\nimport { OpenAiChatModel } from '@di-framework/ai';\nimport { SkillsAgent } from '@di-framework/ai-utils';\n\nconst agent = SkillsAgent.builder()\n .chatModel(new OpenAiChatModel({ model: 'gpt-4o-mini' }))\n .system('You help with TypeScript code review.')\n .workspace(process.cwd())\n .instructionDiscovery({ workingDirectory: 'src' })\n .aiIgnore('read-write')\n .write()\n .shell()\n .build();\n\nawait agent.chat('Review src/UserController.ts');\n```\n\nAttach the toolbox to an existing client:\n\n```typescript\nimport { ChatClient } from '@di-framework/ai';\nimport { SkillsToolbox } from '@di-framework/ai-utils';\n\nconst tools = SkillsToolbox.builder()\n .workspace(process.cwd())\n .buildTools();\n\nconst client = ChatClient.builder(model).defaultTools(...tools).build();\n```\n\nThe `ai-skills` example has scripted tests (no API key) and a live `bun start` path that reviews `fixtures/sample-user.ts` with `OpenAiChatModel` (`process.env.OPENAI_API_KEY`).",
+      "content": "```typescript\nimport { OpenAiChatModel } from '@di-framework/ai';\nimport { SkillsAgent } from '@di-framework/ai-utils';\n\nconst agent = SkillsAgent.builder()\n .chatModel(new OpenAiChatModel({ model: 'gpt-4o-mini' }))\n .system('You help with TypeScript code review.')\n .workspace(process.cwd())\n .instructionDiscovery({ workingDirectory: 'src' })\n .aiIgnore('read-write')\n .write()\n .shell()\n .build();\n\nawait agent.chat('Review src/UserController.ts');\n```\n\nAttach the toolbox to an existing client:\n\n```typescript\nimport { ChatClient } from '@di-framework/ai';\nimport { SkillsToolbox } from '@di-framework/ai-utils';\n\nconst tools = SkillsToolbox.builder()\n .workspace(process.cwd())\n .buildTools();\n\nconst client = ChatClient.builder(model).defaultTools(...tools).build();\n```\n\nThe `ai-skills` example has scripted tests (no API key) and a live `bun start` path that reviews `fixtures/sample-user.ts` with `OpenAiChatModel` (`process.env.OPENAI_API_KEY`).\n\nThe `ai-plugins` example validates the published `@di-framework/plugin` package, expands `${pluginDir}` in `mcp_config.json`, and electively starts its stdio MCP (no API keys for local tools such as `di_scaffold_provider`).",
       "product": "d",
       "version": "latest"
     },
@@ -352,12 +362,52 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_ai-utils__plugins",
+      "url": "https://docs.di-framework.dev/ai-utils.html#plugins",
+      "pageTitle": "Plugins",
+      "mainTitle": "Agents",
+      "breadcrumbs": "Docs|Agents|Plugins",
+      "content": "Plugins are filesystem bundles under `.agents/plugins/<id>/` (and\n`~/.agents/plugins/<id>/`):\n\n```text\n.agents/plugins/<plugin-id>/\n plugin.json # required; name optional (defaults to directory name)\n mcp_config.json # optional { mcpServers: ... }\n hooks.json # optional object\n skills/ # optional nested SKILL.md trees\n rules/ # optional *.md rule files\n```\n\n`SkillsAgent` / `SkillsToolbox` do **not** load plugins by themselves. Use the\nplugin APIs to discover and validate bundles, then wire pieces electively.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_ai-utils__automatic-discovery-only",
+      "url": "https://docs.di-framework.dev/ai-utils.html#automatic-discovery-only",
+      "pageTitle": "Automatic (discovery only)",
+      "mainTitle": "Agents",
+      "breadcrumbs": "Docs|Agents|Automatic (discovery only)",
+      "content": "Defaults are **`<workspace>/.agents/plugins`** then **`~/.agents/plugins`**.\nExplicit `directories` / `packages` and `sourceMode` work like skill sources.\nA package that publishes `plugin.json` at its own root (for example\n`@di-framework/plugin`) resolves as a single-plugin source. Nested `skills/`\nare validated with the skill catalog rules when you validate a plugin catalog.\n\n```typescript\nimport { resolvePluginSources, validatePluginCatalog } from '@di-framework/ai-utils';\n\nconst resolution = resolvePluginSources({ workspace: process.cwd() });\nconst catalog = validatePluginCatalog({ workspace: process.cwd() });\nconst fromPackage = validatePluginCatalog({\n packages: ['@di-framework/plugin'],\n sourceMode: 'replace',\n});\n```\n\nAutomatic here means **where plugins are found**, not that agents consume them.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_ai-utils__programmatic",
+      "url": "https://docs.di-framework.dev/ai-utils.html#programmatic",
+      "pageTitle": "Programmatic",
+      "mainTitle": "Agents",
+      "breadcrumbs": "Docs|Agents|Programmatic",
+      "content": "```typescript\nimport {\n loadPluginDirectory,\n loadPluginsDirectory,\n validatePluginDirectory,\n} from '@di-framework/ai-utils';\n\nconst plugin = loadPluginDirectory('.agents/plugins/di-framework');\nconst fromRoot = loadPluginsDirectory('.agents/plugins');\nconst one = validatePluginDirectory('.agents/plugins/di-framework');\n```\n\n`AgentPlugin` exposes `skillsDirectory`, `mcpConfig`, `rules`, and `hooks`.\nThis package does not start MCP servers or run hooks.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_ai-utils__elective-opt-into-an-agent",
+      "url": "https://docs.di-framework.dev/ai-utils.html#elective-opt-into-an-agent",
+      "pageTitle": "Elective (opt into an agent)",
+      "mainTitle": "Agents",
+      "breadcrumbs": "Docs|Agents|Elective (opt into an agent)",
+      "content": "Validate the catalog, pass each plugin’s `skills/` root into skill discovery,\nand append rule markdown to system context:\n\n```typescript\nimport {\n SkillsAgent,\n validatePluginCatalog,\n} from '@di-framework/ai-utils';\n\nconst workspace = process.cwd();\nconst catalog = validatePluginCatalog({ workspace });\nif (!catalog.valid) {\n throw new Error(catalog.diagnostics.map((d) => d.message).join('\\n'));\n}\n\nconst pluginSkillDirs = catalog.plugins\n .map((plugin) => plugin.skillsDirectory)\n .filter((path): path is string => path != null);\n\nconst ruleText = catalog.plugins\n .flatMap((plugin) => plugin.rules)\n .map((rule) => rule.content)\n .join('\\n\\n');\n\nconst agent = SkillsAgent.builder()\n .chatModel(model)\n .workspace(workspace)\n .addSkillsDirectories(pluginSkillDirs)\n .system(\n ruleText\n ? `You help with this codebase.\\n\\n${ruleText}`\n : 'You help with this codebase.',\n )\n .build();\n```\n\nMCP is elective the same way: read `plugin.mcpConfig.mcpServers` and register\nthose entries with your MCP client (expand `${pluginDir}` when present). Hooks\nstay data until you interpret `hooks.json`.\n\nSee the `ai-plugins`\nexample for official `@di-framework/plugin` discovery plus elective MCP wiring.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_ai-utils__related",
       "url": "https://docs.di-framework.dev/ai-utils.html#related",
       "pageTitle": "Related",
       "mainTitle": "Agents",
       "breadcrumbs": "Docs|Agents|Related",
-      "content": "- AI — chat, tools, RAG, MCP, and agents (`@di-framework/ai`)\n- Agent configuration — neutral sources, validation, instructions, and `.aiignore`\n- Package README\n- Example",
+      "content": "- AI — chat, tools, RAG, MCP, and agents (`@di-framework/ai`)\n- Agent configuration — neutral sources, validation, instructions, plugins, and `.aiignore`\n- Package README\n- Skills example\n- Plugins example",
       "product": "d",
       "version": "latest"
     },
@@ -377,7 +427,7 @@
       "pageTitle": "Features",
       "mainTitle": "di-framework",
       "breadcrumbs": "Docs|di-framework|Features",
-      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`) and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).",
+      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).",
       "product": "d",
       "version": "latest"
     },
@@ -407,7 +457,7 @@
       "pageTitle": "Next Steps",
       "mainTitle": "di-framework",
       "breadcrumbs": "Docs|di-framework|Next Steps",
-      "content": "- Installation - Set up the framework in your project\n- Quick Start - Learn the basics with simple examples\n- CLI - Complete command tree, output contract, and package ownership\n- Runtime type checks - Emit-time parameter guards (`@di-framework/tsc`; wired by `init`)\n- HTTP Router - Type-safe routes and OpenAPI generation\n- GraphQL - Domain classes as a GraphQL schema\n- Events - Bridge container events to Kafka / NATS / memory\n- Sockets - WebSocket, TCP, UDP with a secure channel (`@di-framework/socket`)\n- RPC - JSON-RPC and per-method gRPC with a typed client (`@di-framework/rpc`)\n- Configuration - Typed config from env, JSON, YAML, and TOML via DI\n- Authentication - Sessions, JWT, OAuth2/OIDC, and passkeys\n- Resource Authorization - Declarative policies and HTTP resource enforcement\n- AI - Chat, tools, RAG, MCP, and agents with `@di-framework/ai`\n- Agent Skills - `SKILL.md`, builders, and jailed tools in `@di-framework/ai-utils`\n- Repositories - Standardized data access with `@di-framework/repo`\n- API Reference - Complete API documentation\n- Advanced Usage - Learn advanced patterns and techniques",
+      "content": "- Installation - Set up the framework in your project\n- Quick Start - Learn the basics with simple examples\n- CLI - Complete command tree, output contract, and package ownership\n- Runtime type checks - Emit-time parameter guards (`@di-framework/tsc`; wired by `init`)\n- HTTP Router - Type-safe routes and OpenAPI generation\n- GraphQL - Domain classes as a GraphQL schema\n- Events - Bridge container events to Kafka / NATS / memory\n- Sockets - WebSocket, TCP, UDP with a secure channel (`@di-framework/socket`)\n- RPC - JSON-RPC and per-method gRPC with a typed client (`@di-framework/rpc`)\n- Configuration - Typed config from env, JSON, YAML, and TOML via DI\n- Authentication - Sessions, JWT, OAuth2/OIDC, and passkeys\n- Resource Authorization - Declarative policies and HTTP resource enforcement\n- AI - Chat, tools, RAG, MCP, and agents with `@di-framework/ai`\n- Agent Skills - `SKILL.md`, plugins, builders, and jailed tools in `@di-framework/ai-utils`\n- Repositories - Standardized data access with `@di-framework/repo`\n- API Reference - Complete API documentation\n- Advanced Usage - Learn advanced patterns and techniques",
       "product": "d",
       "version": "latest"
     },
@@ -927,7 +977,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- HTTP Router - HTTP routing and OpenAPI generation\n- Agent Skills - Skills and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- HTTP Router - HTTP routing and OpenAPI generation\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -2667,7 +2717,7 @@
       "pageTitle": "Optional Packages",
       "mainTitle": "Installation",
       "breadcrumbs": "Docs|Installation|Optional Packages",
-      "content": "The core package stands alone. Companion packages add data access, HTTP, GraphQL, events, sockets, RPC, configuration, authentication, and AI support:\n\n| Package | Docs |\n| --- | --- |\n| `@di-framework/cli` | CLI |\n| `@di-framework/tsc` | Runtime type checks (default in `init`) |\n| `@di-framework/repo` | Repositories |\n| `@di-framework/http` | HTTP Router |\n| `@di-framework/graphql` | GraphQL |\n| `@di-framework/events` | Events |\n| `@di-framework/socket` | Sockets |\n| `@di-framework/rpc` | RPC |\n| `@di-framework/config` | Configuration |\n| `@di-framework/auth` | Authentication |\n| `@di-framework/authz` | Resource Authorization |\n| `@di-framework/ai` | AI |\n| `@di-framework/ai-utils` | Agent Skills — `SKILL.md`, jailed file tools, opt-in Bash |",
+      "content": "The core package stands alone. Companion packages add data access, HTTP, GraphQL, events, sockets, RPC, configuration, authentication, and AI support:\n\n| Package | Docs |\n| --- | --- |\n| `@di-framework/cli` | CLI |\n| `@di-framework/tsc` | Runtime type checks (default in `init`) |\n| `@di-framework/repo` | Repositories |\n| `@di-framework/http` | HTTP Router |\n| `@di-framework/graphql` | GraphQL |\n| `@di-framework/events` | Events |\n| `@di-framework/socket` | Sockets |\n| `@di-framework/rpc` | RPC |\n| `@di-framework/config` | Configuration |\n| `@di-framework/auth` | Authentication |\n| `@di-framework/authz` | Resource Authorization |\n| `@di-framework/ai` | AI |\n| `@di-framework/ai-utils` | Agent Skills — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |",
       "product": "d",
       "version": "latest"
     },
@@ -2807,7 +2857,7 @@
       "pageTitle": "API Reference",
       "mainTitle": "API Reference",
       "breadcrumbs": "Docs|API Reference",
-      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Configuration, Authentication, Resource Authorization, AI, and Agent Skills.",
+      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Configuration, Authentication, Resource Authorization, AI, and Agents.",
       "product": "d",
       "version": "latest"
     },
@@ -3037,7 +3087,7 @@
       "pageTitle": "Features",
       "mainTitle": "AI",
       "breadcrumbs": "Docs|AI|Features",
-      "content": "- **Annotation DX**: `@AiService` / `@Agent` assistants, `@Tool` / `@ToolSet` beans, `@WithMemory` / `@WithRag` / `@WithTools`, workflows (`@Chain`, `@Route`, …).\n- **ChatClient**: fluent prompt / call / stream API with an advisor chain (memory, tools, RAG, logging, observation).\n- **Prototype builder**: inject `AiTokens.CHAT_CLIENT_BUILDER` (fresh per resolve), like Spring’s `ChatClient.Builder`.\n- **Providers**: `OpenAiChatModel` and `AnthropicChatModel` over `fetch` — no official SDKs.\n- **Tools**: `functionToolCallback`, method-level `@Tool` on DI beans, automatic tool-calling loops.\n- **Structured output**: JSON Schema converters and `call().entity(...)`.\n- **Memory / RAG / MCP / agents**: same runtime as the imperative APIs, annotation-friendly.\n- **Agent Skills**: not in this package — see Agent Skills (`@di-framework/ai-utils`).",
+      "content": "- **Annotation DX**: `@AiService` / `@Agent` assistants, `@Tool` / `@ToolSet` beans, `@WithMemory` / `@WithRag` / `@WithTools`, workflows (`@Chain`, `@Route`, …).\n- **ChatClient**: fluent prompt / call / stream API with an advisor chain (memory, tools, RAG, logging, observation).\n- **Prototype builder**: inject `AiTokens.CHAT_CLIENT_BUILDER` (fresh per resolve), like Spring’s `ChatClient.Builder`.\n- **Providers**: `OpenAiChatModel` and `AnthropicChatModel` over `fetch` — no official SDKs.\n- **Tools**: `functionToolCallback`, method-level `@Tool` on DI beans, automatic tool-calling loops.\n- **Structured output**: JSON Schema converters and `call().entity(...)`.\n- **Memory / RAG / MCP / agents**: same runtime as the imperative APIs, annotation-friendly.\n- **Agent Skills / plugins**: not in this package — see Agents (`@di-framework/ai-utils`).",
       "product": "d",
       "version": "latest"
     },
@@ -3187,7 +3237,7 @@
       "pageTitle": "Agent Skills",
       "mainTitle": "AI",
       "breadcrumbs": "Docs|AI|Agent Skills",
-      "content": "Reusable `SKILL.md` folders live in **`@di-framework/ai-utils`**, not this package. Prefer `SkillsAgent.builder()` / `SkillsToolbox.builder()`. For network agent capability advertising, use A2A Agent Card skills on `@Agent({ skills, a2a })`.\n\nSee Agent Skills.",
+      "content": "Reusable `SKILL.md` folders and `.agents/plugins` discovery live in\n**`@di-framework/ai-utils`**, not this package. Prefer `SkillsAgent.builder()` /\n`SkillsToolbox.builder()` for skills, and `validatePluginCatalog` /\n`loadPluginDirectory` for plugins. For network agent capability advertising, use\nA2A Agent Card skills on `@Agent({ skills, a2a })`.\n\nSee Agents.",
       "product": "d",
       "version": "latest"
     },

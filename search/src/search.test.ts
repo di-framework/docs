@@ -209,6 +209,24 @@ describe('EmbeddingService with a Workers AI binding', () => {
     expect(vector).toEqual([1, 2, 3]);
   });
 
+  test('batches embedding requests larger than EMBEDDING_BATCH_SIZE', async () => {
+    const calls: number[] = [];
+    const ai = {
+      run: async (_model: string, opts: { text: string[] }) => {
+        calls.push(opts.text.length);
+        return { data: opts.text.map((_, i) => [i, i + 1]) };
+      },
+    } as unknown as Ai;
+    const service = wireWithAi(ai);
+    const texts = Array.from({ length: 125 }, (_, i) => `doc ${i}`);
+    const vectors = await service.embed(texts);
+
+    expect(calls).toEqual([50, 50, 25]);
+    expect(vectors).toHaveLength(125);
+    expect(vectors[0]).toEqual([0, 1]);
+    expect(vectors[124]).toEqual([24, 25]);
+  });
+
   test('throws when the AI binding returns a mismatched number of vectors', async () => {
     const ai = { run: async () => ({ data: [[1, 2, 3]] }) } as unknown as Ai;
     const service = wireWithAi(ai);

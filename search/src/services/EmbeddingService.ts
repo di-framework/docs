@@ -4,6 +4,9 @@ import type { Env } from '../env';
 /** Default: Google EmbeddingGemma 300M → 768-d (same width as BGE base). */
 export const DEFAULT_EMBEDDING_MODEL = '@cf/google/embeddinggemma-300m';
 
+/** Max texts per Workers AI embedding request. */
+export const EMBEDDING_BATCH_SIZE = 50;
+
 /**
  * Thin wrapper around the Workers AI binding for text embeddings.
  * Model via `EMBEDDING_MODEL` (default EmbeddingGemma 300M, 768-d).
@@ -30,14 +33,19 @@ export class EmbeddingService {
       return input.map((t) => bagOfChars(t, 32));
     }
 
-    const result = (await ai.run(this.model() as Parameters<Ai['run']>[0], {
-      text: input,
-    })) as { data?: number[][] };
+    const results: number[][] = [];
+    for (let i = 0; i < input.length; i += EMBEDDING_BATCH_SIZE) {
+      const batch = input.slice(i, i + EMBEDDING_BATCH_SIZE);
+      const result = (await ai.run(this.model() as Parameters<Ai['run']>[0], {
+        text: batch,
+      })) as { data?: number[][] };
 
-    if (!result?.data || result.data.length !== input.length) {
-      throw new Error('Workers AI embedding response missing data[]');
+      if (!result?.data || result.data.length !== batch.length) {
+        throw new Error('Workers AI embedding response missing data[]');
+      }
+      results.push(...result.data);
     }
-    return result.data;
+    return results;
   }
 
   async embedOne(text: string): Promise<number[]> {
