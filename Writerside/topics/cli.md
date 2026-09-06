@@ -45,16 +45,22 @@ di-framework
 │   ├── init
 │   ├── inspect
 │   └── migrate
-└── mx
-    ├── build
-    ├── test
-    ├── typecheck
-    └── publish
+├── mx
+│   ├── build
+│   ├── test
+│   ├── typecheck
+│   └── publish
+└── extensions
+    ├── install
+    ├── uninstall
+    └── list
 ```
 
-This is the implemented public tree covered here. There are no public command aliases,
+This tree is exhaustive for built-in commands. There are no public command aliases,
 deprecated routes, or package-specific alternatives. In particular, maintainer commands are
-available only below `di-framework mx`.
+available only below `di-framework mx`. The single sanctioned extension point is the
+installed-extension namespace: a top-level token that is not a built-in command may dispatch to an
+installed [CLI extension](#extensions).
 
 | Command | Purpose |
 | --- | --- |
@@ -70,6 +76,7 @@ available only below `di-framework mx`.
 | `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |
 | `agent migrate` | Preview or apply audited migrations into neutral agent paths. |
 | `mx build\|test\|typecheck\|publish` | Run di-framework monorepo maintainer workflows. |
+| `extensions install\|uninstall\|list` | Manage installed CLI extensions. |
 
 The command paths and conventions on this page are the stable public contract.
 
@@ -78,7 +85,9 @@ The command paths and conventions on this page are the stable public contract.
 `@di-framework/cli` publishes one `bin`: `di-framework`. Application builds,
 skill indexing, OpenAPI generation, agent operations, and monorepo maintenance
 all route through the canonical command tree above. Feature packages remain
-programmatic libraries and do not publish package-specific executables.
+programmatic libraries and do not publish package-specific executables. That
+includes CLI extensions: an extension package must not declare a `bin`; its
+commands run through `di-framework <name>`.
 
 Neutral skill discovery uses `.agents/skills` and `~/.agents/skills`. No
 non-neutral path is consulted implicitly.
@@ -345,6 +354,55 @@ di-framework mx publish
 
 Top-level maintainer aliases are not part of the public command tree.
 
+## Extensions
+
+Optional capabilities ship as installable extensions so the core CLI stays lean. Installing an
+extension adds one top-level command named after it:
+
+```bash
+di-framework extensions install wasmcloud
+di-framework wasmcloud doctor
+
+di-framework extensions list
+di-framework extensions uninstall wasmcloud
+```
+
+| Command | Behavior |
+| --- | --- |
+| `extensions install <spec>` | Install an extension package into the user-global store. |
+| `extensions uninstall <name-or-package>` | Remove an installed extension. |
+| `extensions list` | List installed extensions with their package names and versions. |
+
+`<spec>` is an npm package name with an optional version range (`wasmcloud`,
+`@di-framework/cli-plugin-wasmcloud@^5`). A bare `<name>` resolves to the canonical
+`@di-framework/cli-plugin-<name>` package. Extensions are ordinary npm packages named by
+convention:
+
+- `@di-framework/cli-plugin-<name>` — canonical, first-party.
+- `di-framework-cli-plugin-<name>` and `@<scope>/di-framework-cli-plugin-<name>` — third-party.
+
+The store is a private package directory at `~/.di-framework/extensions`, overridden by
+`DI_FRAMEWORK_EXTENSIONS_DIR`. An extension package present in the current project's
+`node_modules` overrides the user-global installation, so projects can pin an exact extension
+version as a normal dependency.
+
+Dispatch rules:
+
+- Built-in commands always win. Extension resolution only runs for top-level tokens that are not
+  in the canonical tree, and installing an extension whose name collides with a built-in command
+  or `help` is rejected.
+- The extension manifest — the package default export, built with `defineExtension` from
+  [`@di-framework/cli-extension`](https://www.npmjs.com/package/@di-framework/cli-extension) — is
+  structurally validated before its command tree is mounted; an invalid or misnamed manifest is
+  rolled back at install time and reported with a stable error code at dispatch time.
+- Mounted extension commands inherit this page's contract in full: help forms, the JSON envelope,
+  and the exit-status table all behave exactly as for built-in commands.
+
+Root help lists installed extensions alongside the built-in tree. The first available extension is
+[wasmCloud deployment](wasmcloud.md); authors of new extensions start from
+`@di-framework/cli-extension`, which provides the manifest contract, the command-node types, and
+`CommandFailure`.
+
 ## Naming and help
 
 - Command names are lowercase English words in `kebab-case`. Groups use nouns and operations use
@@ -431,6 +489,7 @@ typed package API is extended first.
 
 - [Installation](installation.md) - Core package and CLI setup
 - [Quick Start](quick-start.md) - Basics after scaffolding
+- [wasmCloud extension](wasmcloud.md) - Build and deploy apps as WebAssembly components
 - [HTTP Router](http-router.md) - HTTP routing and OpenAPI generation
 - [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`

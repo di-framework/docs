@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T12:08:21.266Z",
+  "generatedAt": "2026-09-06T22:35:46.336Z",
   "docs": [
     {
       "objectID": "docs_agent-foundations",
@@ -807,7 +807,7 @@
       "pageTitle": "Canonical command tree",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Canonical command tree",
-      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n└── mx\n ├── build\n ├── test\n ├── typecheck\n └── publish\n```\n\nThis is the implemented public tree covered here. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n\nThe command paths and conventions on this page are the stable public contract.",
+      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n├── mx\n│ ├── build\n│ ├── test\n│ ├── typecheck\n│ └── publish\n└── extensions\n ├── install\n ├── uninstall\n └── list\n```\n\nThis tree is exhaustive for built-in commands. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`. The single sanctioned extension point is the\ninstalled-extension namespace: a top-level token that is not a built-in command may dispatch to an\ninstalled CLI extension.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n| `extensions install\\|uninstall\\|list` | Manage installed CLI extensions. |\n\nThe command paths and conventions on this page are the stable public contract.",
       "product": "d",
       "version": "latest"
     },
@@ -817,7 +817,7 @@
       "pageTitle": "One executable",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|One executable",
-      "content": "`@di-framework/cli` publishes one `bin`: `di-framework`. Application builds,\nskill indexing, OpenAPI generation, agent operations, and monorepo maintenance\nall route through the canonical command tree above. Feature packages remain\nprogrammatic libraries and do not publish package-specific executables.\n\nNeutral skill discovery uses `.agents/skills` and `~/.agents/skills`. No\nnon-neutral path is consulted implicitly.",
+      "content": "`@di-framework/cli` publishes one `bin`: `di-framework`. Application builds,\nskill indexing, OpenAPI generation, agent operations, and monorepo maintenance\nall route through the canonical command tree above. Feature packages remain\nprogrammatic libraries and do not publish package-specific executables. That\nincludes CLI extensions: an extension package must not declare a `bin`; its\ncommands run through `di-framework <name>`.\n\nNeutral skill discovery uses `.agents/skills` and `~/.agents/skills`. No\nnon-neutral path is consulted implicitly.",
       "product": "d",
       "version": "latest"
     },
@@ -932,6 +932,16 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_cli__extensions",
+      "url": "https://docs.di-framework.dev/cli.html#extensions",
+      "pageTitle": "Extensions",
+      "mainTitle": "CLI",
+      "breadcrumbs": "Docs|CLI|Extensions",
+      "content": "Optional capabilities ship as installable extensions so the core CLI stays lean. Installing an\nextension adds one top-level command named after it:\n\n```bash\ndi-framework extensions install wasmcloud\ndi-framework wasmcloud doctor\n\ndi-framework extensions list\ndi-framework extensions uninstall wasmcloud\n```\n\n| Command | Behavior |\n| --- | --- |\n| `extensions install <spec>` | Install an extension package into the user-global store. |\n| `extensions uninstall <name-or-package>` | Remove an installed extension. |\n| `extensions list` | List installed extensions with their package names and versions. |\n\n`<spec>` is an npm package name with an optional version range (`wasmcloud`,\n`@di-framework/cli-plugin-wasmcloud@^5`). A bare `<name>` resolves to the canonical\n`@di-framework/cli-plugin-<name>` package. Extensions are ordinary npm packages named by\nconvention:\n\n- `@di-framework/cli-plugin-<name>` — canonical, first-party.\n- `di-framework-cli-plugin-<name>` and `@<scope>/di-framework-cli-plugin-<name>` — third-party.\n\nThe store is a private package directory at `~/.di-framework/extensions`, overridden by\n`DI_FRAMEWORK_EXTENSIONS_DIR`. An extension package present in the current project's\n`node_modules` overrides the user-global installation, so projects can pin an exact extension\nversion as a normal dependency.\n\nDispatch rules:\n\n- Built-in commands always win. Extension resolution only runs for top-level tokens that are not\n in the canonical tree, and installing an extension whose name collides with a built-in command\n or `help` is rejected.\n- The extension manifest — the package default export, built with `defineExtension` from\n `@di-framework/cli-extension` — is\n structurally validated before its command tree is mounted; an invalid or misnamed manifest is\n rolled back at install time and reported with a stable error code at dispatch time.\n- Mounted extension commands inherit this page's contract in full: help forms, the JSON envelope,\n and the exit-status table all behave exactly as for built-in commands.\n\nRoot help lists installed extensions alongside the built-in tree. The first available extension is\nwasmCloud deployment; authors of new extensions start from\n`@di-framework/cli-extension`, which provides the manifest contract, the command-node types, and\n`CommandFailure`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_cli__naming-and-help",
       "url": "https://docs.di-framework.dev/cli.html#naming-and-help",
       "pageTitle": "Naming and help",
@@ -977,7 +987,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- HTTP Router - HTTP routing and OpenAPI generation\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud extension - Build and deploy apps as WebAssembly components\n- HTTP Router - HTTP routing and OpenAPI generation\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -2728,6 +2738,66 @@
       "mainTitle": "Installation",
       "breadcrumbs": "Docs|Installation|Next Steps",
       "content": "Now that you have the framework installed, learn how to use it:\n\n- Quick Start - Learn the basics with simple examples\n- CLI - Complete command tree, output contract, and package ownership\n- API Reference - Complete API documentation",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud",
+      "url": "https://docs.di-framework.dev/wasmcloud.html",
+      "pageTitle": "wasmCloud extension",
+      "mainTitle": "wasmCloud extension",
+      "breadcrumbs": "Docs|wasmCloud extension",
+      "content": "`@di-framework/cli-plugin-wasmcloud` is a CLI extension for targeting\nwasmCloud: it builds a DI Framework HTTP application into a WASI 0.2\nWebAssembly component, serves it locally, and deploys it through a Pulumi program.\n\n```bash\ndi-framework extensions install wasmcloud\n```\n\nThe extension mounts one command group:\n\n```text\ndi-framework wasmcloud\n├── build\n├── dev\n├── deploy\n├── destroy\n└── doctor\n```\n\n| Command | Purpose |\n| --- | --- |\n| `build` | Bundle the application entry and componentize it for WASI HTTP. |\n| `dev` | Build, then serve the component locally with `jco serve`. |\n| `deploy` | Build, then deploy via the Pulumi program above the project. |\n| `destroy` | Destroy the deployed Pulumi stack. |\n| `doctor` | Check the project and local toolchain for wasmCloud readiness. |\n\nAs with every extension, the commands follow the CLI contract: the same help forms,\n`--json` envelope, and exit-status table apply.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__project-convention",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#project-convention",
+      "pageTitle": "Project convention",
+      "mainTitle": "wasmCloud extension",
+      "breadcrumbs": "Docs|wasmCloud extension|Project convention",
+      "content": "A component project is marked by `di-framework.config.json` in the project root:\n\n```json\n{\n \"name\": \"my-app\",\n \"entry\": \"src/app.ts\",\n \"output\": \"dist/my-app.wasm\"\n}\n```\n\n`name` and `entry` are required; `output` defaults to `dist/<name>.wasm`. Both paths must stay\ninside the project directory. Commands may run from any directory inside the project; the nearest\n`di-framework.config.json` above the working directory wins.\n\nThe entry module default-exports a Fetch-compatible handler: a\n`(request: Request) => Response | Promise<Response>` function or an object with such a `fetch`\nmethod. A `@di-framework/http` `TypedRouter` works as-is.\n\nThe extension owns the WebAssembly/WASI boundary. `build` bundles the entry behind a\nWASI-HTTP-to-Web-Fetch adapter with vendored WASI 0.2.12 WIT definitions, then componentizes with\n`jco`. Intermediate build state lives in the disposable `.di-framework/` directory; the finished\ncomponent is written to the configured `output` path. JSON `data` contains `application`,\n`component`, `entry`, and `profile`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__local-development",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#local-development",
+      "pageTitle": "Local development",
+      "mainTitle": "wasmCloud extension",
+      "breadcrumbs": "Docs|wasmCloud extension|Local development",
+      "content": "```bash\ndi-framework wasmcloud dev [--host <address>] [--port <port>]\n```\n\n`dev` rebuilds the component and serves it with `jco serve` on `127.0.0.1:8000` by default. Tool\noutput streams directly to the terminal until the server is stopped.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__deploy-and-destroy",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#deploy-and-destroy",
+      "pageTitle": "Deploy and destroy",
+      "mainTitle": "wasmCloud extension",
+      "breadcrumbs": "Docs|wasmCloud extension|Deploy and destroy",
+      "content": "```bash\ndi-framework wasmcloud deploy [--yes]\ndi-framework wasmcloud destroy [--yes]\n```\n\n`deploy` builds the component, then runs `pulumi up` in the infrastructure root: the directory of\nthe nearest `Pulumi.yaml` found above the project directory. The Pulumi program itself is\ninfrastructure code owned outside the application project. `destroy` runs `pulumi destroy` for the\nsame stack. `--yes` skips the Pulumi confirmation prompt. A missing `Pulumi.yaml` reports\n`WASMCLOUD_INFRA_NOT_FOUND` and exits `2`.\n\nPulumi environment defaults, applied without changing the caller's environment:\n\n| Variable | Default | Meaning |\n| --- | --- | --- |\n| `DI_FRAMEWORK_STACK` | `dev` | Pulumi stack name selected for `up` and `destroy`. |\n| `PULUMI_BACKEND_URL` | `file://~` | Local file backend unless a backend is configured. |\n| `PULUMI_CONFIG_PASSPHRASE` | `local-dev` | Local development fallback when unset. |",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__doctor",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#doctor",
+      "pageTitle": "Doctor",
+      "mainTitle": "wasmCloud extension",
+      "breadcrumbs": "Docs|wasmCloud extension|Doctor",
+      "content": "```bash\ndi-framework wasmcloud doctor\n```\n\n`doctor` verifies the project loads and probes the local toolchain: Bun, Node.js,\n`@di-framework/core` and `@di-framework/http` resolvable from the project, Pulumi, Docker, and\nkubectl. JSON `data` lists every check with its result; any failed check exits `1`.\n\nBun runs the CLI, but `jco` itself requires a real Node.js installation on `PATH` — `build`, `dev`,\nand `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi, Docker, and kubectl are only\nneeded for `deploy` and `destroy`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__next-steps",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "wasmCloud extension",
+      "breadcrumbs": "Docs|wasmCloud extension|Next steps",
+      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Installation - Core package and CLI setup",
       "product": "d",
       "version": "latest"
     },
