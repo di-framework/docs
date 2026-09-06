@@ -33,19 +33,25 @@ export class EmbeddingService {
       return input.map((t) => bagOfChars(t, 32));
     }
 
-    const results: number[][] = [];
+    const batches: string[][] = [];
     for (let i = 0; i < input.length; i += EMBEDDING_BATCH_SIZE) {
-      const batch = input.slice(i, i + EMBEDDING_BATCH_SIZE);
-      const result = (await ai.run(this.model() as Parameters<Ai['run']>[0], {
-        text: batch,
-      })) as { data?: number[][] };
-
-      if (!result?.data || result.data.length !== batch.length) {
-        throw new Error('Workers AI embedding response missing data[]');
-      }
-      results.push(...result.data);
+      batches.push(input.slice(i, i + EMBEDDING_BATCH_SIZE));
     }
-    return results;
+
+    const batchResults = await Promise.all(
+      batches.map(async (batch) => {
+        const result = (await ai.run(this.model() as Parameters<Ai['run']>[0], {
+          text: batch,
+        })) as { data?: number[][] };
+
+        if (!result?.data || result.data.length !== batch.length) {
+          throw new Error('Workers AI embedding response missing data[]');
+        }
+        return result.data;
+      }),
+    );
+
+    return batchResults.flat();
   }
 
   async embedOne(text: string): Promise<number[]> {
