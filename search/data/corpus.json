@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T11:56:20.260Z",
+  "generatedAt": "2026-09-06T12:08:21.266Z",
   "docs": [
     {
       "objectID": "docs_agent-foundations",
@@ -622,7 +622,7 @@
       "version": "latest"
     },
     {
-      "objectID": "docs_best-practices__2-use-constructor-injection-for-mandatory-dependencies",
+      "objectID": "docs_best-practices__2-use-constructor-injection-for-mand_720ce3",
       "url": "https://docs.di-framework.dev/best-practices.html#2-use-constructor-injection-for-mandatory-dependencies",
       "pageTitle": "2. Use Constructor Injection for Mandatory Dependencies",
       "mainTitle": "Best Practices",
@@ -652,7 +652,7 @@
       "version": "latest"
     },
     {
-      "objectID": "docs_best-practices__5-separate-service-interfaces-from-implementations",
+      "objectID": "docs_best-practices__5-separate-service-interfaces-from-i_552473",
       "url": "https://docs.di-framework.dev/best-practices.html#5-separate-service-interfaces-from-implementations",
       "pageTitle": "5. Separate Service Interfaces from Implementations",
       "mainTitle": "Best Practices",
@@ -682,7 +682,7 @@
       "version": "latest"
     },
     {
-      "objectID": "docs_best-practices__8-initialize-services-at-application-startup",
+      "objectID": "docs_best-practices__8-initialize-services-at-application_079981",
       "url": "https://docs.di-framework.dev/best-practices.html#8-initialize-services-at-application-startup",
       "pageTitle": "8. Initialize Services at Application Startup",
       "mainTitle": "Best Practices",
@@ -712,7 +712,7 @@
       "version": "latest"
     },
     {
-      "objectID": "docs_best-practices__11-keep-services-focused-single-responsibility",
+      "objectID": "docs_best-practices__11-keep-services-focused-single-resp_bb4995",
       "url": "https://docs.di-framework.dev/best-practices.html#11-keep-services-focused-single-responsibility",
       "pageTitle": "11. Keep Services Focused (Single Responsibility)",
       "mainTitle": "Best Practices",
@@ -2572,7 +2572,7 @@
       "version": "latest"
     },
     {
-      "objectID": "docs_advanced-usage__construct-with-overrides-constructor-pattern",
+      "objectID": "docs_advanced-usage__construct-with-overrides-constructor_c8d0ea",
       "url": "https://docs.di-framework.dev/advanced-usage.html#construct-with-overrides-constructor-pattern",
       "pageTitle": "Construct with Overrides (Constructor Pattern)",
       "mainTitle": "Advanced Usage",
@@ -2992,7 +2992,7 @@
       "version": "latest"
     },
     {
-      "objectID": "docs_api-reference__containeronevent-listener-containeroffevent-listener",
+      "objectID": "docs_api-reference__containeronevent-listener-containerof_b732f0",
       "url": "https://docs.di-framework.dev/api-reference.html#containeronevent-listener-containeroffevent-listener",
       "pageTitle": "container.on(event, listener) / container.off(event, listener)",
       "mainTitle": "API Reference",
@@ -3212,7 +3212,7 @@
       "version": "latest"
     },
     {
-      "objectID": "docs_ai__discovering-and-dispatching-work-via-a2adirectory-and-a2aclient",
+      "objectID": "docs_ai__discovering-and-dispatching-work-via-a2adirector_691608",
       "url": "https://docs.di-framework.dev/ai.html#discovering-and-dispatching-work-via-a2adirectory-and-a2aclient",
       "pageTitle": "Discovering and Dispatching Work via `A2ADirectory` and `A2AClient`",
       "mainTitle": "AI",

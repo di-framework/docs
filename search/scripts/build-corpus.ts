@@ -2,6 +2,7 @@
  * Build data/corpus.json from Writerside markdown topics, chunked by section.
  * Run from package root: `bun run corpus`
  */
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
@@ -132,6 +133,18 @@ export function parseTopicSections(markdown: string): {
   return { topicTitle: topicTitle || 'Documentation', sections };
 }
 
+export function buildObjectId(topicId: string, slug: string, version: string): string {
+  const isRoot = !slug;
+  const verSuffix = version === 'latest' ? '' : `__${version}`;
+  if (isRoot) return `docs_${topicId}${verSuffix}`;
+  const prefix = `docs_${topicId}__`;
+  const maxSlugLen = 64 - prefix.length - verSuffix.length;
+  if (slug.length <= maxSlugLen) return `${prefix}${slug}${verSuffix}`;
+  const hash = createHash('sha256').update(slug).digest('hex').slice(0, 6);
+  const truncatedSlug = slug.slice(0, maxSlugLen - 7);
+  return `${prefix}${truncatedSlug}_${hash}${verSuffix}`;
+}
+
 const files = readdirSync(topicsDir).filter((f) => f.endsWith('.md') && f !== 'starter-topic.md');
 
 const docs = files.flatMap((f) => {
@@ -145,13 +158,7 @@ const docs = files.flatMap((f) => {
     const anchor = isTopicRoot ? '' : `#${section.slug}`;
     const url = `${docsBase.replace(/\/$/, '')}${prefix}/${topicId}.html${anchor}`;
 
-    const objectID = isTopicRoot
-      ? version === 'latest'
-        ? `docs_${topicId}`
-        : `docs_${topicId}__${version}`
-      : version === 'latest'
-        ? `docs_${topicId}__${section.slug}`
-        : `docs_${topicId}__${section.slug}__${version}`;
+    const objectID = buildObjectId(topicId, section.slug, version);
 
     const breadcrumbs = isTopicRoot
       ? `Docs|${topicTitle}`
