@@ -9,7 +9,9 @@
     <toc-element topic="overview.md"/>
     <toc-element topic="installation.md"/>
     <toc-element topic="quick-start.md"/>
-    <toc-element topic="cli.md">
+    <toc-element topic="cli.md"/>
+    <toc-element topic="deployment.md">
+        <toc-element topic="cloudfoundry.md"/>
         <toc-element topic="wasmcloud.md"/>
     </toc-element>
     <toc-element topic="tsc.md"/>

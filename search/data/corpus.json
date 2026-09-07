@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T22:35:46.336Z",
+  "generatedAt": "2026-09-07T10:27:52.130Z",
   "docs": [
     {
       "objectID": "docs_agent-foundations",
@@ -987,7 +987,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud extension - Build and deploy apps as WebAssembly components\n- HTTP Router - HTTP routing and OpenAPI generation\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- HTTP Router - HTTP routing and OpenAPI generation\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -1882,6 +1882,26 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_deployment",
+      "url": "https://docs.di-framework.dev/deployment.html",
+      "pageTitle": "Deployment",
+      "mainTitle": "Deployment",
+      "breadcrumbs": "Docs|Deployment",
+      "content": "DI Framework supports applications deployed to Cloud Foundry and applications compiled to\nWebAssembly components for wasmCloud. Choose the integration that matches the target runtime:\n\n| Target | Integration | Use it for |\n| --- | --- | --- |\n| Cloud Foundry | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |\n| wasmCloud | `@di-framework/cli-plugin-wasmcloud` | Build a DI Framework HTTP application as a WASI 0.2 component, develop locally, and deploy through Pulumi. |\n\nThe Cloud Foundry package configures an application at runtime; the platform CLI and manifest\nremain responsible for pushing it. The wasmCloud extension provides its build, development,\ndeployment, and destroy commands through the main `di-framework` executable.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_deployment__next-steps",
+      "url": "https://docs.di-framework.dev/deployment.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "Deployment",
+      "breadcrumbs": "Docs|Deployment|Next steps",
+      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- CLI - Install extensions and use the canonical command tree",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_auth",
       "url": "https://docs.di-framework.dev/auth.html",
       "pageTitle": "Authentication",
@@ -2288,6 +2308,76 @@
       "mainTitle": "GraphQL",
       "breadcrumbs": "Docs|GraphQL|Example",
       "content": "A three-context worked example — batching, boundaries, entity actions, subscriptions, and GraphiQL — lives in the graphql example package.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_cloudfoundry",
+      "url": "https://docs.di-framework.dev/cloudfoundry.html",
+      "pageTitle": "Cloud Foundry",
+      "mainTitle": "Cloud Foundry",
+      "breadcrumbs": "Docs|Cloud Foundry",
+      "content": "`@di-framework/cloudfoundry` connects a DI Framework application to Cloud Foundry or Tanzu\nApplication Service. It detects the platform environment, parses `VCAP_APPLICATION` and\n`VCAP_SERVICES`, normalizes service credentials into typed models, and makes those models available\nthrough dependency injection.\n\nThe package configures an application after it starts on the platform. Continue to use your Cloud\nFoundry manifest and the `cf` CLI to push and manage the application itself.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_cloudfoundry__installation",
+      "url": "https://docs.di-framework.dev/cloudfoundry.html#installation",
+      "pageTitle": "Installation",
+      "mainTitle": "Cloud Foundry",
+      "breadcrumbs": "Docs|Cloud Foundry|Installation",
+      "content": "```bash\nbun add @di-framework/cloudfoundry @di-framework/core\n```\n\n```bash\nnpm install @di-framework/cloudfoundry @di-framework/core\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_cloudfoundry__dependency-injection",
+      "url": "https://docs.di-framework.dev/cloudfoundry.html#dependency-injection",
+      "pageTitle": "Dependency injection",
+      "mainTitle": "Cloud Foundry",
+      "breadcrumbs": "Docs|Cloud Foundry|Dependency injection",
+      "content": "Enable the connectors on a container, then inject application metadata or a service by its bound\nname:\n\n```typescript\nimport { Container } from '@di-framework/core/decorators';\nimport {\n CloudFoundryService,\n EnableCloudFoundryConnectors,\n VcapApplication,\n type CloudFoundryApplicationInfo,\n type RedisServiceInfo,\n type RelationalServiceInfo,\n} from '@di-framework/cloudfoundry';\n\n@EnableCloudFoundryConnectors()\n@Container()\nexport class ApplicationServices {\n @VcapApplication()\n private application!: CloudFoundryApplicationInfo;\n\n @CloudFoundryService('orders-db')\n private database!: RelationalServiceInfo;\n\n @CloudFoundryService('orders-cache')\n private cache!: RedisServiceInfo;\n}\n```\n\n`@CloudFoundryService` accepts a service name, label, regular expression, or typed filter. By\ndefault a missing service is an error. Use `required: false`, `defaultValue`, or `fallbackEnv` when\nthe binding is optional or has a local equivalent.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_cloudfoundry__programmatic-discovery",
+      "url": "https://docs.di-framework.dev/cloudfoundry.html#programmatic-discovery",
+      "pageTitle": "Programmatic discovery",
+      "mainTitle": "Cloud Foundry",
+      "breadcrumbs": "Docs|Cloud Foundry|Programmatic discovery",
+      "content": "Use `CloudFoundryEnvironment` when application code needs to inspect the environment directly:\n\n```typescript\nimport { CloudFoundryEnvironment } from '@di-framework/cloudfoundry';\n\nconst environment = new CloudFoundryEnvironment();\n\nif (environment.isCloudFoundry()) {\n const application = environment.getApplicationInfo();\n const database = environment.getRelationalServiceInfo();\n const cache = environment.getRedisServiceInfo();\n\n console.log(application?.applicationName, database?.dialect, cache?.host);\n}\n```\n\nApplication metadata includes the application and space identifiers, names, URIs, instance data,\nand resource limits exposed by `VCAP_APPLICATION`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_cloudfoundry__supported-services",
+      "url": "https://docs.di-framework.dev/cloudfoundry.html#supported-services",
+      "pageTitle": "Supported services",
+      "mainTitle": "Cloud Foundry",
+      "breadcrumbs": "Docs|Cloud Foundry|Supported services",
+      "content": "The default creator registry recognizes common platform services and returns a normalized model for\neach category:\n\n| Category | Examples | Model |\n| --- | --- | --- |\n| Relational database | PostgreSQL, MySQL, MariaDB, SQLite | `RelationalServiceInfo` |\n| Cache | Redis, Redis TLS, Redis cluster | `RedisServiceInfo` |\n| Messaging | RabbitMQ, CloudAMQP | `AmqpServiceInfo` |\n| Blob storage | MinIO, Amazon S3, object stores | `BlobStorageServiceInfo` |\n| User-provided service | Services created with `cf cups` | `UserProvidedServiceInfo` |\n\nRegister a `CloudFoundryServiceInfoCreator` with `getDefaultRegistry()` to normalize another\nservice type.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_cloudfoundry__local-fallback",
+      "url": "https://docs.di-framework.dev/cloudfoundry.html#local-fallback",
+      "pageTitle": "Local fallback",
+      "mainTitle": "Cloud Foundry",
+      "breadcrumbs": "Docs|Cloud Foundry|Local fallback",
+      "content": "Local fallback is enabled by default when no Cloud Foundry services are present. The environment\nchecks standard variables including `DATABASE_URL`, `REDIS_URL`, `AMQP_URL`, and `S3_BUCKET` and\nexposes matching service models. Pass `localFallback: false` when constructing\n`CloudFoundryEnvironment` or enabling the connectors to require platform bindings instead.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_cloudfoundry__next-steps",
+      "url": "https://docs.di-framework.dev/cloudfoundry.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "Cloud Foundry",
+      "breadcrumbs": "Docs|Cloud Foundry|Next steps",
+      "content": "- Deployment - Compare deployment targets\n- Configuration - Load typed application configuration\n- Repositories - Connect normalized database credentials to a data layer",
       "product": "d",
       "version": "latest"
     },
@@ -2744,9 +2834,9 @@
     {
       "objectID": "docs_wasmcloud",
       "url": "https://docs.di-framework.dev/wasmcloud.html",
-      "pageTitle": "wasmCloud extension",
-      "mainTitle": "wasmCloud extension",
-      "breadcrumbs": "Docs|wasmCloud extension",
+      "pageTitle": "wasmCloud",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud",
       "content": "`@di-framework/cli-plugin-wasmcloud` is a CLI extension for targeting\nwasmCloud: it builds a DI Framework HTTP application into a WASI 0.2\nWebAssembly component, serves it locally, and deploys it through a Pulumi program.\n\n```bash\ndi-framework extensions install wasmcloud\n```\n\nThe extension mounts one command group:\n\n```text\ndi-framework wasmcloud\n├── build\n├── dev\n├── deploy\n├── destroy\n└── doctor\n```\n\n| Command | Purpose |\n| --- | --- |\n| `build` | Bundle the application entry and componentize it for WASI HTTP. |\n| `dev` | Build, then serve the component locally with `jco serve`. |\n| `deploy` | Build, then deploy via the Pulumi program above the project. |\n| `destroy` | Destroy the deployed Pulumi stack. |\n| `doctor` | Check the project and local toolchain for wasmCloud readiness. |\n\nAs with every extension, the commands follow the CLI contract: the same help forms,\n`--json` envelope, and exit-status table apply.",
       "product": "d",
       "version": "latest"
@@ -2755,8 +2845,8 @@
       "objectID": "docs_wasmcloud__project-convention",
       "url": "https://docs.di-framework.dev/wasmcloud.html#project-convention",
       "pageTitle": "Project convention",
-      "mainTitle": "wasmCloud extension",
-      "breadcrumbs": "Docs|wasmCloud extension|Project convention",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Project convention",
       "content": "A component project is marked by `di-framework.config.json` in the project root:\n\n```json\n{\n \"name\": \"my-app\",\n \"entry\": \"src/app.ts\",\n \"output\": \"dist/my-app.wasm\"\n}\n```\n\n`name` and `entry` are required; `output` defaults to `dist/<name>.wasm`. Both paths must stay\ninside the project directory. Commands may run from any directory inside the project; the nearest\n`di-framework.config.json` above the working directory wins.\n\nThe entry module default-exports a Fetch-compatible handler: a\n`(request: Request) => Response | Promise<Response>` function or an object with such a `fetch`\nmethod. A `@di-framework/http` `TypedRouter` works as-is.\n\nThe extension owns the WebAssembly/WASI boundary. `build` bundles the entry behind a\nWASI-HTTP-to-Web-Fetch adapter with vendored WASI 0.2.12 WIT definitions, then componentizes with\n`jco`. Intermediate build state lives in the disposable `.di-framework/` directory; the finished\ncomponent is written to the configured `output` path. JSON `data` contains `application`,\n`component`, `entry`, and `profile`.",
       "product": "d",
       "version": "latest"
@@ -2765,8 +2855,8 @@
       "objectID": "docs_wasmcloud__local-development",
       "url": "https://docs.di-framework.dev/wasmcloud.html#local-development",
       "pageTitle": "Local development",
-      "mainTitle": "wasmCloud extension",
-      "breadcrumbs": "Docs|wasmCloud extension|Local development",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Local development",
       "content": "```bash\ndi-framework wasmcloud dev [--host <address>] [--port <port>]\n```\n\n`dev` rebuilds the component and serves it with `jco serve` on `127.0.0.1:8000` by default. Tool\noutput streams directly to the terminal until the server is stopped.",
       "product": "d",
       "version": "latest"
@@ -2775,8 +2865,8 @@
       "objectID": "docs_wasmcloud__deploy-and-destroy",
       "url": "https://docs.di-framework.dev/wasmcloud.html#deploy-and-destroy",
       "pageTitle": "Deploy and destroy",
-      "mainTitle": "wasmCloud extension",
-      "breadcrumbs": "Docs|wasmCloud extension|Deploy and destroy",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Deploy and destroy",
       "content": "```bash\ndi-framework wasmcloud deploy [--yes]\ndi-framework wasmcloud destroy [--yes]\n```\n\n`deploy` builds the component, then runs `pulumi up` in the infrastructure root: the directory of\nthe nearest `Pulumi.yaml` found above the project directory. The Pulumi program itself is\ninfrastructure code owned outside the application project. `destroy` runs `pulumi destroy` for the\nsame stack. `--yes` skips the Pulumi confirmation prompt. A missing `Pulumi.yaml` reports\n`WASMCLOUD_INFRA_NOT_FOUND` and exits `2`.\n\nPulumi environment defaults, applied without changing the caller's environment:\n\n| Variable | Default | Meaning |\n| --- | --- | --- |\n| `DI_FRAMEWORK_STACK` | `dev` | Pulumi stack name selected for `up` and `destroy`. |\n| `PULUMI_BACKEND_URL` | `file://~` | Local file backend unless a backend is configured. |\n| `PULUMI_CONFIG_PASSPHRASE` | `local-dev` | Local development fallback when unset. |",
       "product": "d",
       "version": "latest"
@@ -2785,8 +2875,8 @@
       "objectID": "docs_wasmcloud__doctor",
       "url": "https://docs.di-framework.dev/wasmcloud.html#doctor",
       "pageTitle": "Doctor",
-      "mainTitle": "wasmCloud extension",
-      "breadcrumbs": "Docs|wasmCloud extension|Doctor",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Doctor",
       "content": "```bash\ndi-framework wasmcloud doctor\n```\n\n`doctor` verifies the project loads and probes the local toolchain: Bun, Node.js,\n`@di-framework/core` and `@di-framework/http` resolvable from the project, Pulumi, Docker, and\nkubectl. JSON `data` lists every check with its result; any failed check exits `1`.\n\nBun runs the CLI, but `jco` itself requires a real Node.js installation on `PATH` — `build`, `dev`,\nand `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi, Docker, and kubectl are only\nneeded for `deploy` and `destroy`.",
       "product": "d",
       "version": "latest"
@@ -2795,8 +2885,8 @@
       "objectID": "docs_wasmcloud__next-steps",
       "url": "https://docs.di-framework.dev/wasmcloud.html#next-steps",
       "pageTitle": "Next steps",
-      "mainTitle": "wasmCloud extension",
-      "breadcrumbs": "Docs|wasmCloud extension|Next steps",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Next steps",
       "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Installation - Core package and CLI setup",
       "product": "d",
       "version": "latest"

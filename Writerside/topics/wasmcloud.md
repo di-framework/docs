@@ -1,4 +1,4 @@
-# wasmCloud extension
+# wasmCloud
 
 `@di-framework/cli-plugin-wasmcloud` is a [CLI extension](cli.md#extensions) for targeting
 [wasmCloud](https://wasmcloud.com): it builds a DI Framework HTTP application into a WASI 0.2
