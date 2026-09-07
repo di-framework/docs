@@ -11,6 +11,7 @@ endpoint = sys.argv[3].rstrip("/")
 config = site / "config.json"
 cfg = json.loads(config.read_text())
 cfg["productId"] = "d"
+cfg["productVersion"] = version
 cfg["searchService"] = "custom"
 cfg["searchServiceUrl"] = f"{endpoint}/preview-search/Writerside/d/{version}"
 config.write_text(json.dumps(cfg, separators=(",", ":")))

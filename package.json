@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "corpus": "bun run search/scripts/build-corpus.ts",
-    "test": "bun test search/src",
+    "test": "bun test search/src && python3 -m unittest discover -s scripts/tests -p 'test_*.py'",
     "typecheck": "tsc -p search/tsconfig.json --noEmit",
     "check": "bun run corpus && bun run test && bun run typecheck && bun x wrangler deploy --dry-run --config search/wrangler.jsonc"
   },
