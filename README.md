@@ -1,4 +1,4 @@
-# DI Framework documentation
+# di-framework Documentation
 
 This repository owns the source, versioned builds, search Worker, and deployment for [docs.di-framework.dev](https://docs.di-framework.dev).
 
