@@ -72,12 +72,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          path: tooling
+      - uses: actions/checkout@v7
+        with:
           ref: ${{ matrix.docs.ref }}
+          path: source
       - name: Build Writerside
         uses: JetBrains/writerside-github-action@738910d7cf197d67188300d0e0f84b2e708db3cf # v4
         with:
           instance: Writerside/d
-          location: .
+          location: source
           docker-version: 2.1.1479-p3869
           artifact: webHelpD2-all.zip
       - name: Prepare versioned site
@@ -85,9 +89,9 @@ jobs:
           set -euo pipefail
           mkdir -p "built/${{ matrix.docs.version }}"
           unzip -O UTF-8 -qq artifacts/webHelpD2-all.zip -d "built/${{ matrix.docs.version }}"
-          python3 scripts/patch-site.py "built/${{ matrix.docs.version }}" "${{ matrix.docs.version }}" "$SEARCH_URL"
-          cp Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.png"
-          cp Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.ico"
+          python3 tooling/scripts/patch-site.py "built/${{ matrix.docs.version }}" "${{ matrix.docs.version }}" "$SEARCH_URL"
+          cp source/Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.png"
+          cp source/Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.ico"
       - uses: actions/upload-artifact@v4
         with:
           name: site-${{ matrix.docs.version }}
@@ -173,7 +177,10 @@ jobs:
           done
           python3 scripts/assemble-site.py builds site supported-versions.json
           echo docs.di-framework.dev > site/CNAME
-          jq -e 'length == 2 and .[0].version == "latest"' site/versions.json >/dev/null
+          jq -e --slurpfile supported supported-versions.json '
+            map(.version) == ($supported[0] | map(.version)) and
+            ([.[] | select(.isCurrent) | .version] == ["latest"])
+          ' site/versions.json >/dev/null
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
@@ -185,6 +192,7 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - name: Verify navigation, versions, and scoped search
         run: |
           set -euo pipefail
@@ -192,7 +200,15 @@ jobs:
             if curl -fsS https://docs.di-framework.dev/versions.json -o /tmp/versions.json; then break; fi
             sleep 10
           done
-          jq -e 'map(.version) == ["latest", "v5.0"]' /tmp/versions.json >/dev/null
+          jq -e --slurpfile supported supported-versions.json '
+            map(.version) == ($supported[0] | map(.version)) and
+            ([.[] | select(.isCurrent) | .version] == ["latest"])
+          ' /tmp/versions.json >/dev/null
+          while IFS=$'\t' read -r version path; do
+            config_url="https://docs.di-framework.dev${path%/}/config.json"
+            curl -fsS "$config_url" -o "/tmp/config-${version}.json"
+            jq -e --arg version "$version" '.productVersion == $version' "/tmp/config-${version}.json" >/dev/null
+          done < <(jq -r '.[] | [.version,.path] | @tsv' supported-versions.json)
           curl -fsS https://docs.di-framework.dev/overview.html >/dev/null
           curl -fsS https://docs.di-framework.dev/v5.0/overview.html >/dev/null
           curl -fsS "$SEARCH_URL/preview-search/Writerside/d/latest?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null

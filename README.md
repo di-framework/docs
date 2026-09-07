@@ -7,6 +7,7 @@ This repository owns the source, versioned builds, search Worker, and deployment
 - `main` publishes `latest` at `/` and `/latest/`.
 - `docs/vMAJOR.MINOR` publishes a maintained snapshot at `/vMAJOR.MINOR/`.
 - `supported-versions.json` is the deployment source of truth. The version selector is generated only from entries that were built successfully.
+- Keep `supported-versions.json` ordered from oldest to current, with `latest` last. Writerside uses this order to distinguish prior releases from EAP versions.
 
 To correct an older version, branch from its `docs/vMAJOR.MINOR` branch, open a pull request targeting that branch, and merge it. Do not rewrite a framework tag or release asset.
 
