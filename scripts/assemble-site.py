@@ -17,9 +17,18 @@ if version_names.count("latest") != 1:
     raise SystemExit("supported versions must contain exactly one latest entry")
 if version_names[-1] != "latest":
     raise SystemExit(
-        "latest must be the final supported version; Writerside expects versions "
-        "ordered oldest-to-current"
+        "latest must be the final supported version; Writerside expects stable "
+        "versions before the rolling latest build"
     )
+current_indexes = [
+    index for index, item in enumerate(versions) if item.get("isCurrent") is True
+]
+if current_indexes != [len(versions) - 2]:
+    raise SystemExit(
+        "exactly one stable version immediately before latest must set isCurrent=true"
+    )
+if versions[-1].get("isCurrent") is not False:
+    raise SystemExit("the rolling latest build must set isCurrent=false")
 
 entries = []
 for item in versions:
@@ -41,7 +50,7 @@ for item in versions:
     entries.append({
         "version": version,
         "url": item["path"],
-        "isCurrent": version == "latest",
+        "isCurrent": item["isCurrent"],
     })
 (site / "versions.json").write_text(json.dumps(entries, indent=2) + "\n")
 

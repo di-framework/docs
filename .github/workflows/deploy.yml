@@ -9,6 +9,8 @@ on:
         description: Re-embed every document
         type: boolean
         default: false
+  schedule:
+    - cron: '17 * * * *'
   repository_dispatch:
     types: [framework-release, coverage-update]
 
@@ -26,23 +28,117 @@ env:
   OIDC_AUDIENCE: di-framework-docs-search
 
 jobs:
+  sync_release:
+    name: Synchronize the published framework release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      main_sha: ${{ steps.sync.outputs.main_sha }}
+      should_deploy: ${{ steps.sync.outputs.should_deploy }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - id: release
+        name: Resolve the current npm release and matching docs snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(curl -fsSL https://registry.npmjs.org/@di-framework%2Fcore/latest | jq -er .version)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::npm returned a non-stable @di-framework/core version: $version"
+            exit 1
+          fi
+          tag="v$version"
+          released_at="$(gh api "repos/di-framework/di-framework/commits/$tag" --jq .commit.committer.date)"
+          git fetch origin main
+          snapshot_sha="$(git rev-list -1 --before="$released_at" origin/main)"
+          if [[ -z "$snapshot_sha" ]]; then
+            echo "::error::no documentation commit exists before framework release $tag ($released_at)"
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "released_at=$released_at"
+            echo "snapshot_sha=$snapshot_sha"
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved $tag to docs snapshot $snapshot_sha ($released_at)"
+      - id: sync
+        name: Update the managed snapshot and selector manifest
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          VERSION: ${{ steps.release.outputs.version }}
+          SNAPSHOT_SHA: ${{ steps.release.outputs.snapshot_sha }}
+        run: |
+          set -euo pipefail
+          result="$(python3 scripts/sync-supported-version.py supported-versions.json "$VERSION")"
+          branch="$(jq -r .branch <<<"$result")"
+          remote_sha="$(git ls-remote --heads origin "refs/heads/$branch" | awk '{print $1}')"
+          changed=false
+
+          if [[ "$remote_sha" != "$SNAPSHOT_SHA" ]]; then
+            if [[ -n "$remote_sha" ]]; then
+              git push --force-with-lease="refs/heads/$branch:$remote_sha" \
+                origin "$SNAPSHOT_SHA:refs/heads/$branch"
+            else
+              git push --force-with-lease="refs/heads/$branch:" \
+                origin "$SNAPSHOT_SHA:refs/heads/$branch"
+            fi
+            changed=true
+          fi
+
+          if ! git diff --quiet -- supported-versions.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add supported-versions.json
+            git commit -m "chore(docs): track framework v$VERSION"
+            git push origin HEAD:main
+            changed=true
+          fi
+
+          main_sha="$(git rev-parse HEAD)"
+          should_deploy=true
+          if [[ "$EVENT_NAME" == "schedule" && "$changed" == "false" ]]; then
+            should_deploy=false
+          fi
+          echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+          echo "should_deploy=$should_deploy" >> "$GITHUB_OUTPUT"
+          echo "Managed $branch at $SNAPSHOT_SHA; main is $main_sha; changed=$changed"
+
   versions:
+    needs: sync_release
+    if: needs.sync_release.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
+      main_sha: ${{ steps.versions.outputs.main_sha }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.sync_release.outputs.main_sha }}
       - id: versions
-        run: echo "matrix=$(jq -c . supported-versions.json)" >> "$GITHUB_OUTPUT"
+        env:
+          MAIN_SHA: ${{ needs.sync_release.outputs.main_sha }}
+        run: |
+          echo "matrix=$(jq -c . supported-versions.json)" >> "$GITHUB_OUTPUT"
+          echo "main_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
 
   worker:
     name: Deploy or validate search Worker
+    needs: sync_release
+    if: needs.sync_release.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.sync_release.outputs.main_sha }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun install --frozen-lockfile
       - name: Build Worker bundle
@@ -72,10 +168,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.versions.outputs.main_sha }}
           path: tooling
       - uses: actions/checkout@v7
         with:
-          ref: ${{ matrix.docs.ref }}
+          ref: ${{ matrix.docs.ref == 'main' && needs.versions.outputs.main_sha || matrix.docs.ref }}
           path: source
       - name: Build Writerside
         uses: JetBrains/writerside-github-action@738910d7cf197d67188300d0e0f84b2e708db3cf # v4
@@ -105,17 +202,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.versions.outputs.main_sha }}
           fetch-depth: 0
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun install --frozen-lockfile
       - name: Build combined corpus from maintained branches
+        env:
+          MAIN_SHA: ${{ needs.versions.outputs.main_sha }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/docs-corpora /tmp/docs-sources
           while IFS=$'\t' read -r version ref; do
             safe="${version//\//-}"
             mkdir -p "/tmp/docs-sources/$safe"
-            git archive "origin/$ref" Writerside | tar -x -C "/tmp/docs-sources/$safe"
+            archive_ref="origin/$ref"
+            test "$ref" = main && archive_ref="$MAIN_SHA"
+            git archive "$archive_ref" Writerside | tar -x -C "/tmp/docs-sources/$safe"
             DOCS_VERSION="$version" TOPICS_DIR="/tmp/docs-sources/$safe/Writerside/topics" \
               CORPUS_OUT="/tmp/docs-corpora/$safe.json" bun run corpus
           done < <(jq -r '.[] | [.version,.ref] | @tsv' supported-versions.json)
@@ -157,6 +259,8 @@ jobs:
       url: ${{ steps.pages.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.versions.outputs.main_sha }}
       - uses: actions/download-artifact@v8
         with:
           pattern: site-*
@@ -178,8 +282,7 @@ jobs:
           python3 scripts/assemble-site.py builds site supported-versions.json
           echo docs.di-framework.dev > site/CNAME
           jq -e --slurpfile supported supported-versions.json '
-            map(.version) == ($supported[0] | map(.version)) and
-            ([.[] | select(.isCurrent) | .version] == ["latest"])
+            map({version, isCurrent}) == ($supported[0] | map({version, isCurrent}))
           ' site/versions.json >/dev/null
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -189,28 +292,27 @@ jobs:
 
   smoke:
     name: Production smoke tests
-    needs: deploy
+    needs: [versions, deploy]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.versions.outputs.main_sha }}
       - name: Verify navigation, versions, and scoped search
         run: |
           set -euo pipefail
-          for attempt in 1 2 3 4 5 6; do
+          for _ in 1 2 3 4 5 6; do
             if curl -fsS https://docs.di-framework.dev/versions.json -o /tmp/versions.json; then break; fi
             sleep 10
           done
           jq -e --slurpfile supported supported-versions.json '
-            map(.version) == ($supported[0] | map(.version)) and
-            ([.[] | select(.isCurrent) | .version] == ["latest"])
+            map({version, isCurrent}) == ($supported[0] | map({version, isCurrent}))
           ' /tmp/versions.json >/dev/null
           while IFS=$'\t' read -r version path; do
             config_url="https://docs.di-framework.dev${path%/}/config.json"
             curl -fsS "$config_url" -o "/tmp/config-${version}.json"
             jq -e --arg version "$version" '.productVersion == $version' "/tmp/config-${version}.json" >/dev/null
+            curl -fsS "https://docs.di-framework.dev${path%/}/overview.html" >/dev/null
+            curl -fsS "$SEARCH_URL/preview-search/Writerside/d/$version?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
           done < <(jq -r '.[] | [.version,.path] | @tsv' supported-versions.json)
-          curl -fsS https://docs.di-framework.dev/overview.html >/dev/null
-          curl -fsS https://docs.di-framework.dev/v5.0/overview.html >/dev/null
-          curl -fsS "$SEARCH_URL/preview-search/Writerside/d/latest?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
-          curl -fsS "$SEARCH_URL/preview-search/Writerside/d/v5.0?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
           curl -fsS https://docs.di-framework.dev/coverage/core.json | jq -e '.label == "line coverage" and .color == "brightgreen"' >/dev/null

@@ -23,3 +23,5 @@ jobs:
       - run: bun run typecheck
       - name: Validate Cloudflare bundle
         run: bun x wrangler deploy --dry-run --config search/wrangler.jsonc
+      - name: Validate GitHub Actions workflows
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
