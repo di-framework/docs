@@ -1,6 +1,6 @@
 # Cloud Foundry
 
-`@di-framework/cloudfoundry` connects a DI Framework application to Cloud Foundry or Tanzu
+`@di-framework/cloudfoundry` connects a di-framework application to Cloud Foundry or Tanzu
 Application Service. It detects the platform environment, parses `VCAP_APPLICATION` and
 `VCAP_SERVICES`, normalizes service credentials into typed models, and makes those models available
 through dependency injection.

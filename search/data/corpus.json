@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07T10:27:52.130Z",
+  "generatedAt": "2026-09-07T13:02:34.560Z",
   "docs": [
     {
       "objectID": "docs_agent-foundations",
@@ -1887,7 +1887,7 @@
       "pageTitle": "Deployment",
       "mainTitle": "Deployment",
       "breadcrumbs": "Docs|Deployment",
-      "content": "DI Framework supports applications deployed to Cloud Foundry and applications compiled to\nWebAssembly components for wasmCloud. Choose the integration that matches the target runtime:\n\n| Target | Integration | Use it for |\n| --- | --- | --- |\n| Cloud Foundry | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |\n| wasmCloud | `@di-framework/cli-plugin-wasmcloud` | Build a DI Framework HTTP application as a WASI 0.2 component, develop locally, and deploy through Pulumi. |\n\nThe Cloud Foundry package configures an application at runtime; the platform CLI and manifest\nremain responsible for pushing it. The wasmCloud extension provides its build, development,\ndeployment, and destroy commands through the main `di-framework` executable.",
+      "content": "di-framework supports applications deployed to Cloud Foundry and applications compiled to\nWebAssembly components for wasmCloud. Choose the integration that matches the target runtime:\n\n| Target | Integration | Use it for |\n| --- | --- | --- |\n| Cloud Foundry | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |\n| wasmCloud | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.2 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |\n\nThe Cloud Foundry package configures an application at runtime; the platform CLI and manifest\nremain responsible for pushing it. The wasmCloud extension provides its build, development,\napplication deploy and destroy, and managed-platform commands through the main `di-framework`\nexecutable. Application deploy never runs Pulumi; Pulumi is used only for explicit\n`wasmcloud platform` lifecycle of a managed target.",
       "product": "d",
       "version": "latest"
     },
@@ -2317,7 +2317,7 @@
       "pageTitle": "Cloud Foundry",
       "mainTitle": "Cloud Foundry",
       "breadcrumbs": "Docs|Cloud Foundry",
-      "content": "`@di-framework/cloudfoundry` connects a DI Framework application to Cloud Foundry or Tanzu\nApplication Service. It detects the platform environment, parses `VCAP_APPLICATION` and\n`VCAP_SERVICES`, normalizes service credentials into typed models, and makes those models available\nthrough dependency injection.\n\nThe package configures an application after it starts on the platform. Continue to use your Cloud\nFoundry manifest and the `cf` CLI to push and manage the application itself.",
+      "content": "`@di-framework/cloudfoundry` connects a di-framework application to Cloud Foundry or Tanzu\nApplication Service. It detects the platform environment, parses `VCAP_APPLICATION` and\n`VCAP_SERVICES`, normalizes service credentials into typed models, and makes those models available\nthrough dependency injection.\n\nThe package configures an application after it starts on the platform. Continue to use your Cloud\nFoundry manifest and the `cf` CLI to push and manage the application itself.",
       "product": "d",
       "version": "latest"
     },
@@ -2837,7 +2837,7 @@
       "pageTitle": "wasmCloud",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud",
-      "content": "`@di-framework/cli-plugin-wasmcloud` is a CLI extension for targeting\nwasmCloud: it builds a DI Framework HTTP application into a WASI 0.2\nWebAssembly component, serves it locally, and deploys it through a Pulumi program.\n\n```bash\ndi-framework extensions install wasmcloud\n```\n\nThe extension mounts one command group:\n\n```text\ndi-framework wasmcloud\n├── build\n├── dev\n├── deploy\n├── destroy\n└── doctor\n```\n\n| Command | Purpose |\n| --- | --- |\n| `build` | Bundle the application entry and componentize it for WASI HTTP. |\n| `dev` | Build, then serve the component locally with `jco serve`. |\n| `deploy` | Build, then deploy via the Pulumi program above the project. |\n| `destroy` | Destroy the deployed Pulumi stack. |\n| `doctor` | Check the project and local toolchain for wasmCloud readiness. |\n\nAs with every extension, the commands follow the CLI contract: the same help forms,\n`--json` envelope, and exit-status table apply.",
+      "content": "`@di-framework/cli-plugin-wasmcloud` is a CLI extension for targeting\nwasmCloud: it builds a di-framework HTTP application into a WASI 0.2\nWebAssembly component, serves it locally, and deploys it from a workspace manifest.\n\n```bash\ndi-framework extensions install wasmcloud\n```\n\nThe extension mounts one command group:\n\n```text\ndi-framework wasmcloud\n├── build\n├── dev\n├── deploy\n├── destroy\n├── platform\n│ ├── init\n│ ├── deploy\n│ └── destroy\n└── doctor\n```\n\n| Command | Purpose |\n| --- | --- |\n| `build` | Bundle the application entry and componentize it for WASI HTTP. |\n| `dev` | Build, then serve the component locally with `jco serve`. |\n| `deploy [name]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project. |\n| `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service`. Never tears down the platform. |\n| `platform init` | Generate `deploy/platform` from extension templates and register it as the default `local` target. |\n| `platform deploy <target>` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator). |\n| `platform destroy <target>` | Tear down a managed platform target (`pulumi destroy`) only. |\n| `doctor` | Check the project and local toolchain for wasmCloud readiness. |\n\nRun these commands directly. Do not wrap them in `package.json` scripts.\n\nAs with every extension, the commands follow the CLI contract: the same help forms,\n`--json` envelope, and exit-status table apply.",
       "product": "d",
       "version": "latest"
     },
@@ -2847,7 +2847,7 @@
       "pageTitle": "Project convention",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Project convention",
-      "content": "A component project is marked by `di-framework.config.json` in the project root:\n\n```json\n{\n \"name\": \"my-app\",\n \"entry\": \"src/app.ts\",\n \"output\": \"dist/my-app.wasm\"\n}\n```\n\n`name` and `entry` are required; `output` defaults to `dist/<name>.wasm`. Both paths must stay\ninside the project directory. Commands may run from any directory inside the project; the nearest\n`di-framework.config.json` above the working directory wins.\n\nThe entry module default-exports a Fetch-compatible handler: a\n`(request: Request) => Response | Promise<Response>` function or an object with such a `fetch`\nmethod. A `@di-framework/http` `TypedRouter` works as-is.\n\nThe extension owns the WebAssembly/WASI boundary. `build` bundles the entry behind a\nWASI-HTTP-to-Web-Fetch adapter with vendored WASI 0.2.12 WIT definitions, then componentizes with\n`jco`. Intermediate build state lives in the disposable `.di-framework/` directory; the finished\ncomponent is written to the configured `output` path. JSON `data` contains `application`,\n`component`, `entry`, and `profile`.",
+      "content": "A component project is marked by `di-framework.config.json` in the project root:\n\n```json\n{\n \"name\": \"my-app\",\n \"entry\": \"src/app.ts\",\n \"output\": \"dist/my-app.wasm\"\n}\n```\n\nThe configured `name` is the only project identity. `name` and `entry` are required; `output`\ndefaults to `dist/<name>.wasm`. Both paths must stay inside the project directory. There is no\n`apps` classifier and no required `apps/` directory — projects may live in any layout.\n\nThe entry module default-exports a Fetch-compatible handler: a\n`(request: Request) => Response | Promise<Response>` function or an object with such a `fetch`\nmethod. A `@di-framework/http` `TypedRouter` works as-is.\n\nThe extension owns the WebAssembly/WASI boundary. `build` bundles the entry behind a\nWASI-HTTP-to-Web-Fetch adapter with vendored WASI 0.2.12 WIT definitions, then componentizes with\n`jco`. Intermediate build state lives in the disposable `.di-framework/` directory; the finished\ncomponent is written to the configured `output` path. JSON `data` contains `application`,\n`component`, `entry`, and `profile`.",
       "product": "d",
       "version": "latest"
     },
@@ -2857,17 +2857,47 @@
       "pageTitle": "Local development",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Local development",
-      "content": "```bash\ndi-framework wasmcloud dev [--host <address>] [--port <port>]\n```\n\n`dev` rebuilds the component and serves it with `jco serve` on `127.0.0.1:8000` by default. Tool\noutput streams directly to the terminal until the server is stopped.",
+      "content": "```bash\ndi-framework wasmcloud dev [--host <address>] [--port <port>]\n```\n\n`dev` rebuilds the component and serves it with `jco serve` on `127.0.0.1:8000` by default. Tool\noutput streams directly to the terminal until the server is stopped. `dev` uses the nearest\n`di-framework.config.json` above the working directory.",
       "product": "d",
       "version": "latest"
     },
     {
-      "objectID": "docs_wasmcloud__deploy-and-destroy",
-      "url": "https://docs.di-framework.dev/wasmcloud.html#deploy-and-destroy",
-      "pageTitle": "Deploy and destroy",
+      "objectID": "docs_wasmcloud__deployment-manifest",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#deployment-manifest",
+      "pageTitle": "Deployment manifest",
       "mainTitle": "wasmCloud",
-      "breadcrumbs": "Docs|wasmCloud|Deploy and destroy",
-      "content": "```bash\ndi-framework wasmcloud deploy [--yes]\ndi-framework wasmcloud destroy [--yes]\n```\n\n`deploy` builds the component, then runs `pulumi up` in the infrastructure root: the directory of\nthe nearest `Pulumi.yaml` found above the project directory. The Pulumi program itself is\ninfrastructure code owned outside the application project. `destroy` runs `pulumi destroy` for the\nsame stack. `--yes` skips the Pulumi confirmation prompt. A missing `Pulumi.yaml` reports\n`WASMCLOUD_INFRA_NOT_FOUND` and exits `2`.\n\nPulumi environment defaults, applied without changing the caller's environment:\n\n| Variable | Default | Meaning |\n| --- | --- | --- |\n| `DI_FRAMEWORK_STACK` | `dev` | Pulumi stack name selected for `up` and `destroy`. |\n| `PULUMI_BACKEND_URL` | `file://~` | Local file backend unless a backend is configured. |\n| `PULUMI_CONFIG_PASSPHRASE` | `local-dev` | Local development fallback when unset. |",
+      "breadcrumbs": "Docs|wasmCloud|Deployment manifest",
+      "content": "Deployment topology lives in `di-framework.deploy.toml` at the workspace root. The CLI finds it by\nwalking upward from the current directory. The file describes **targets**, not applications: it must\nnot declare an `apps` table.\n\n```toml\ndefault-target = \"local\"\n\n[targets.local]\nplatform = \"deploy/platform\"\nstack = \"dev\"\n\n[targets.development]\nkubeconfig = \"${KUBECONFIG}\"\ncontext = \"team-development\"\nnamespace = \"wasmcloud\"\nregistry = \"registry.example.com/team\"\n```\n\n- `di-framework wasmcloud deploy` with no name uses the nearest `di-framework.config.json`.\n- `di-framework wasmcloud deploy greeter` recursively discovers projects under the workspace\n (skipping `.git`, `node_modules`, `.di-framework`, and generated output such as `dist/` and\n `coverage/` by default) and matches the configured `name`. Duplicate names fail with every\n conflicting path (`WASMCLOUD_DUPLICATE_PROJECT`).\n- `--target <name>` selects a declared target; without it the CLI uses `default-target`.\n- `${VAR}` interpolation fails with `WASMCLOUD_ENV_UNSET` if the variable is unset or empty. Do not\n put credentials in the manifest.\n\nOptional `[discovery]` `include` / `exclude` glob lists refine the search. Directories `.git`,\n`node_modules`, and `.di-framework` are always skipped.\n\nA missing or malformed manifest reports `WASMCLOUD_DEPLOY_MANIFEST_NOT_FOUND` or\n`WASMCLOUD_DEPLOY_MANIFEST_INVALID` and exits `2`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__managed-pulumi-target",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#managed-pulumi-target",
+      "pageTitle": "Managed Pulumi target",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Managed Pulumi target",
+      "content": "A managed target has `platform` (a directory inside the workspace that contains `Pulumi.yaml`) and\nan optional `stack` (default `dev`). It must not mix those fields with kubeconfig fields.\n\nFrom the workspace root, generate a self-contained local platform — k0s, a local OCI registry, and\nthe wasmCloud operator — from templates shipped with the extension:\n\n```bash\ndi-framework wasmcloud platform init\ndi-framework wasmcloud platform deploy local --yes\n```\n\n`platform init` writes `deploy/platform` and creates or updates `di-framework.deploy.toml` so\n`local` is a managed target (`platform = \"deploy/platform\"`, `stack = \"dev\"`). Existing files are\nleft alone unless you pass `--force` / `-f`. When it finishes it prints the exact start command:\n\n```text\ndi-framework wasmcloud platform deploy local --yes\n```\n\nThe generated Pulumi project provisions only platform concerns. It must not contain application\nnames, component builds, Kubernetes Services for apps, or `WorkloadDeployment` objects.\n\nk0s and the registry are local Docker resources because they are not Kubernetes objects. Once k0s\nyields a kubeconfig, that value is passed to a Kubernetes provider and the operator is installed\nwith Pulumi `kubernetes.helm.v3.Release` (`oci://ghcr.io/wasmcloud/charts/wasmcloud`) — not by\nshelling out to `helm`.\n\nThe CLI reads a small output contract from `pulumi stack output --json`:\n\n| Output | Required | Meaning |\n| --- | --- | --- |\n| `kubeconfig` | yes | kubeconfig YAML or a filesystem path |\n| `namespace` | yes | Kubernetes namespace for workloads |\n| `registry` | yes | OCI registry prefix |\n| `context` | no | kubectl context |\n| `endpoints.http` / `endpoints.kubernetes` / `endpoints.registry` | no | optional URLs |\n\nProvision and tear down that stack explicitly. Application `destroy` never runs `pulumi destroy`.\n\n```bash\ndi-framework wasmcloud platform deploy local --yes\ndi-framework wasmcloud platform destroy local --yes\n```\n\n`--yes` skips the Pulumi confirmation prompt on platform commands.\n\nPulumi environment defaults, applied without changing the caller's environment:\n\n| Variable | Default | Meaning |\n| --- | --- | --- |\n| `PULUMI_BACKEND_URL` | `file://~` | Local file backend unless a backend is configured. |\n| `PULUMI_CONFIG_PASSPHRASE` | `local-dev` | Local development fallback when unset. |\n\nA managed target whose platform directory has no `Pulumi.yaml` reports `WASMCLOUD_PLATFORM_NOT_FOUND`.\nA stack that has not been deployed, or whose outputs do not match the contract, reports\n`WASMCLOUD_PLATFORM_NOT_READY` or `WASMCLOUD_PLATFORM_OUTPUT_INVALID`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__existing-cluster",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#existing-cluster",
+      "pageTitle": "Existing cluster",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Existing cluster",
+      "content": "When kubeconfig and a registry are already available, declare an **external** target with only\naccess information: `kubeconfig`, `namespace`, and `registry`, plus optional `context`. Deploy:\n\n```bash\nexport KUBECONFIG=\"$HOME/.kube/config\"\ndi-framework wasmcloud deploy greeter --target development\n```\n\nExternal and managed fields are mutually exclusive. An incomplete target reports\n`WASMCLOUD_DEPLOY_MANIFEST_INVALID`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__application-deploy-and-destroy",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#application-deploy-and-destroy",
+      "pageTitle": "Application deploy and destroy",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Application deploy and destroy",
+      "content": "```bash\ndi-framework wasmcloud deploy [name] [--target <name>] [--yes]\ndi-framework wasmcloud destroy [name] [--target <name>] [--yes]\n```\n\nFor the selected project the extension:\n\n1. Builds the component.\n2. Publishes it with `oras` under an immutable content-derived reference\n (`<registry>/<wit-name>:sha256-<digest>`).\n3. Derives a wasmCloud `WorkloadDeployment` and Kubernetes `Service` (written under\n `.di-framework/deploy/`, not checked in).\n4. Applies them with `kubectl` and waits until the workload is ready.\n\n`destroy` deletes only those generated resources for that application on the selected target. It\nmust never run `pulumi destroy`. `--yes` is accepted for compatibility; application deploy and\ndestroy do not prompt.\n\nThe generated Kubernetes objects are an implementation detail. Do not treat them as application\nconfiguration.",
       "product": "d",
       "version": "latest"
     },
@@ -2877,7 +2907,7 @@
       "pageTitle": "Doctor",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Doctor",
-      "content": "```bash\ndi-framework wasmcloud doctor\n```\n\n`doctor` verifies the project loads and probes the local toolchain: Bun, Node.js,\n`@di-framework/core` and `@di-framework/http` resolvable from the project, Pulumi, Docker, and\nkubectl. JSON `data` lists every check with its result; any failed check exits `1`.\n\nBun runs the CLI, but `jco` itself requires a real Node.js installation on `PATH` — `build`, `dev`,\nand `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi, Docker, and kubectl are only\nneeded for `deploy` and `destroy`.",
+      "content": "```bash\ndi-framework wasmcloud doctor\n```\n\n`doctor` verifies the project loads and probes the local toolchain: Bun, Node.js,\n`@di-framework/core` and `@di-framework/http` resolvable from the project, Pulumi, Docker, kubectl,\nand oras. JSON `data` lists every check with its result; any failed check exits `1`.\n\nBun runs the CLI, but `jco` itself requires a real Node.js installation on `PATH` — `build`, `dev`,\nand `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are needed for\n`platform deploy` and `platform destroy`. kubectl and oras are needed for application `deploy` and\n`destroy`.",
       "product": "d",
       "version": "latest"
     },
