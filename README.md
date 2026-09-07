@@ -2,14 +2,15 @@
 
 This repository owns the source, versioned builds, search Worker, and deployment for [docs.di-framework.dev](https://docs.di-framework.dev).
 
-## Version model
+## Automated version model
 
-- `main` publishes `latest` at `/` and `/latest/`.
-- `docs/vMAJOR.MINOR` publishes a maintained snapshot at `/vMAJOR.MINOR/`.
-- `supported-versions.json` is the deployment source of truth. The version selector is generated only from entries that were built successfully.
-- Keep `supported-versions.json` ordered from oldest to current, with `latest` last. Writerside uses this order to distinguish prior releases from EAP versions.
+- `main` publishes the rolling `latest` documentation at `/` and `/latest/`.
+- The latest stable `@di-framework/core` minor publishes at `/vMAJOR.MINOR/` from an automatically managed `docs/vMAJOR.MINOR` snapshot branch.
+- Every deployment checks npm for the current stable framework version. An hourly schedule repairs missed cross-repository release notifications without human intervention.
+- A new release updates `supported-versions.json` and snapshots the newest docs commit that existed when the framework tag was created. This keeps unreleased documentation out of the stable version.
+- The version selector is generated only after every listed version builds successfully. Do not edit `supported-versions.json` or its snapshot branch by hand.
 
-To correct an older version, branch from its `docs/vMAJOR.MINOR` branch, open a pull request targeting that branch, and merge it. Do not rewrite a framework tag or release asset.
+`latest` appears as EAP in the selector; the npm-derived minor is marked as the current stable version.
 
 ## Local checks
 
@@ -26,8 +27,8 @@ The Writerside site can be previewed from the `Writerside` project. Search lives
 
 Worker source changes require `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets. The token should be limited to this Worker, Workers AI, Vectorize, and KV. Reindexing uses GitHub OIDC and does not expose Cloudflare credentials.
 
-Rollback by reverting the offending commit. For version-specific content, revert on the corresponding docs branch. Pages deployments are also retained in the GitHub environment deployment history.
+Rollback by reverting the offending `main` commit. Correct stable documentation on `main`; the next framework patch release snapshots that correction automatically. Pages deployments are also retained in the GitHub environment deployment history.
 
 ## Adding a framework release
 
-The framework repository sends a `framework-release` dispatch containing the tag. Create the corresponding maintenance branch when a new minor is introduced, add it to `supported-versions.json`, and merge that change before removing an older supported branch.
+The framework repository may send a `framework-release` dispatch for an immediate update. The scheduled synchronizer is the fallback and uses the public npm package plus the corresponding GitHub tag, so a missing dispatch credential cannot leave the selector stale.

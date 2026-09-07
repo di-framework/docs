@@ -1,4 +1,15 @@
 [
-  { "version": "v5.0", "ref": "docs/v5.0", "path": "/v5.0/" },
-  { "version": "latest", "ref": "main", "path": "/" }
+  {
+    "version": "v5.2",
+    "ref": "docs/v5.2",
+    "path": "/v5.2/",
+    "release": "v5.2.3",
+    "isCurrent": true
+  },
+  {
+    "version": "latest",
+    "ref": "main",
+    "path": "/",
+    "isCurrent": false
+  }
 ]
