@@ -1,9 +1,9 @@
 [
   {
-    "version": "v5.2",
-    "ref": "docs/v5.2",
-    "path": "/v5.2/",
-    "release": "v5.2.13",
+    "version": "v5.3",
+    "ref": "docs/v5.3",
+    "path": "/v5.3/",
+    "release": "v5.3.0",
     "isCurrent": true
   },
   {
