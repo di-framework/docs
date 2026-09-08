@@ -1,7 +1,7 @@
 # wasmCloud
 
 `@di-framework/cli-plugin-wasmcloud` is a [CLI extension](cli.md#extensions) for targeting
-[wasmCloud](https://wasmcloud.com): it builds a di-framework HTTP application into a WASI 0.2
+[wasmCloud](https://wasmcloud.com): it builds a di-framework HTTP application into a WASI 0.3
 WebAssembly component, serves it locally, and deploys it from a workspace manifest.
 
 ```bash
@@ -26,7 +26,7 @@ di-framework wasmcloud
 | Command | Purpose |
 | --- | --- |
 | `build` | Bundle the application entry and componentize it for WASI HTTP. |
-| `dev` | Build, then serve the component locally with `jco serve`. |
+| `dev` | Build, then serve locally with wasmtime, wash, or jco. |
 | `deploy [name]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project. |
 | `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service`. Never tears down the platform. |
 | `platform init` | Generate `deploy/platform` from extension templates and register it as the default `local` target. |
@@ -60,10 +60,128 @@ The entry module default-exports a Fetch-compatible handler: a
 method. A `@di-framework/http` `TypedRouter` works as-is.
 
 The extension owns the WebAssembly/WASI boundary. `build` bundles the entry behind a
-WASI-HTTP-to-Web-Fetch adapter with vendored WASI 0.2.12 WIT definitions, then componentizes with
-`jco`. Intermediate build state lives in the disposable `.di-framework/` directory; the finished
+WASI-HTTP-to-Web-Fetch adapter exporting `wasi:http/handler@0.3.0`. It generates the guest world
+and `wit.lock.json` from the application's WIT requirements, then componentizes with
+`@di-framework/componentize-qjs`. This wasmtime-48 fork supports the imported async functions
+used by native service bindings. Set `DI_FRAMEWORK_COMPONENTIZE_QJS` to override the resolved CLI.
+Intermediate build state lives in the disposable `.di-framework/` directory; the finished
 component is written to the configured `output` path. JSON `data` contains `application`,
 `component`, `entry`, and `profile`.
+
+## Native service bindings
+
+Install `@di-framework/wasmcloud` alongside core and HTTP, keeping the packages and the CLI
+extension on the same framework release. The kube examples pin them to **5.3.0**.
+Declare exported binding classes in `src/bindings.ts`, or select another file with
+`"bindings": "src/services/bindings.ts"` in the project configuration:
+
+```typescript
+import { Container } from '@di-framework/core/decorators';
+import { Config, Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';
+
+@WasmCloudBinding('orders-database', {
+  config: { database: 'orders' },
+  secretFrom: 'orders-database-binding',
+})
+@Container()
+export class OrdersDatabase extends Postgres {}
+
+@WasmCloudBinding('app-config', {
+  config: { greeting: 'Hello' },
+  configFrom: 'orders-config',
+})
+@Container()
+export class AppConfig extends Config {}
+```
+
+Resolve these classes through `useContainer().resolve(...)` or inject them with `@Component`.
+The build discovers the declarations statically, creates real WIT imports in
+`.di-framework/guests.js`, and initializes those guests before application evaluation. This
+includes services resolved at module startup.
+
+| Class | WIT capability | Version |
+| --- | --- | --- |
+| `Postgres` | `wasmcloud:postgres` | `0.2.0` |
+| `KeyValue` | `wasmcloud:keyvalue` | `0.2.0` |
+| `Blobstore` | `wasmcloud:blobstore` | `0.1.0` |
+| `Messaging` | `wasmcloud:messaging` | `0.3.0` |
+| `Config` | `wasi:config` | `0.2.0-rc.1` |
+| `Secrets` | `wasmcloud:secrets` | `2.1.0` |
+| `OutgoingHttp` | `wasi:http/client` | `0.3.0` |
+
+These WIT package versions are independent of both the framework version and the WASI 0.3
+component-model preview. The bindings consume services; your infrastructure must provision the
+database, Redis, NATS, ConfigMaps, Secrets, and host configuration. `configFrom` references a
+ConfigMap and `secretFrom` references a Kubernetes Secret. For capabilities that use a Secret,
+an omitted `secretFrom` defaults to `<application>-<binding>`. Keep credentials out of inline
+`config` and project files.
+
+For PostgreSQL, configure the native host's connection through `WASH_POSTGRES_URL` and select
+the database with the binding's `config.database`. A Secret reference on the binding alone
+does not configure that host connection. See the [working PostgreSQL example](kube.md#postgresql-binding)
+for provisioning and verification.
+
+### Binding changes in 5.3.0
+
+QuickJS emits unlabeled WIT imports. The extension now omits `hostInterfaces[].name` for
+PostgreSQL, key-value, blobstore, messaging, and secrets so the host selects the provider route
+that can link those imports. Binding names still select the guest and configuration overlay.
+Unnamed config and outgoing HTTP requirements also retain their class's `config`, `configFrom`,
+and `secretFrom` overlays.
+
+HTTP ingress and outgoing requirements share one unnamed host declaration per WIT version.
+The runtime links HTTP `client` and key-value `types` internally, so they remain in guest WIT
+imports but are omitted from host discovery. These changes and the binding startup fix are
+included in 5.3.0; consumers no longer need the earlier Bun compatibility patch.
+
+The kube examples verify one binding of each kind. Multiple labeled, independently
+credentialed backends are outside that verification; the QuickJS PostgreSQL path uses the
+host connection and does not support separate credentials per named binding.
+
+## Node compatibility and permissions
+
+The plugin uses unenv plus WASI-backed implementations for the Node APIs below. This is a
+compatibility layer inside QuickJS, with a different filesystem and process model from Node.
+
+| API | Guest behavior |
+| --- | --- |
+| `node:path`, `Buffer` | Provided through the Node compatibility preset. |
+| `node:fs` | In-memory filesystem; missing files report `ENOENT`. Selected project config files are seeded at build time. Writes do not establish durable storage. |
+| `process`, `node:module` | Guest-shaped environment and working directory; `createRequire` reports `MODULE_NOT_FOUND`. |
+| `node:net`, `node:dgram` | TCP, UDP, and name lookup over WASI 0.3 sockets. |
+| `node:http` | HTTP/1.1 over the TCP implementation, including chunked request and response bodies and upgrade support. |
+| `node:crypto` | WASI randomness, hashes, HMAC, and a Web Crypto subset including HKDF, AES-GCM, and ECDH P-256. |
+| `node:timers`, global timers | WASI monotonic clock; cancellation, refresh, and ref/unref flags. Flags do not control process lifetime in a component. |
+| `node:async_hooks` | AsyncLocalStorage context scopes and binding; transformed Promise continuations and timer callbacks retain context. |
+| `node:tls`, `node:https`, `node:child_process` | Remain unenv mocks. |
+
+Text encoding and Fetch globals initialize before application imports. The fixes carried
+forward from 5.2.13 cover startup, async context, timers, and chunked HTTP. The bundler lowers
+async functions and `for await` loops to instrumented Promise continuations; native
+async-generator bodies and dynamically evaluated async code are not instrumented.
+
+The filesystem seed includes `.json`, `.yaml`, `.yml`, `.toml`, and `.env` files from the
+project, subject to size limits and excluded directories. These become component content:
+use runtime bindings for secrets. Markdown skill files are not automatically seeded.
+
+WASI DNS lookups require an explicit project allowlist:
+
+```json
+{
+  "name": "socket-app",
+  "entry": "src/app.ts",
+  "allowedIpNameLookups": ["echo.wasmcloud.svc.cluster.local"]
+}
+```
+
+The deployer writes this list to the component's `localResources.allowedIpNameLookups`.
+Omission leaves the host's default denial in place. Socket, clock, and randomness imports
+are runtime WASI capabilities, not wasmCloud `hostInterfaces`.
+
+Native `OutgoingHttp` requests separately require the destination in the workload component's
+`localResources.allowedHosts`. The binding does not grant egress access. Framework project
+configuration does not yet expose that field; the [kube deployment helper](kube.md#outgoing-http-permissions)
+applies an endpoint-specific grant after deployment.
 
 ## Local development
 
@@ -71,9 +189,17 @@ component is written to the configured `output` path. JSON `data` contains `appl
 di-framework wasmcloud dev [--host <address>] [--port <port>]
 ```
 
-`dev` rebuilds the component and serves it with `jco serve` on `127.0.0.1:8000` by default. Tool
-output streams directly to the terminal until the server is stopped. `dev` uses the nearest
+`dev` rebuilds the component and listens on `127.0.0.1:8000` by default. It selects wasmtime
+from PATH first, then wash, then jco. Use wasmtime 46+ for this path. Set
+`DI_FRAMEWORK_WASMCLOUD_DEV_RUNNER` to `wasmtime`, `wash`, or `jco` to select a runner explicitly.
+Tool output streams to the terminal until the server stops. The command uses the nearest
 `di-framework.config.json` above the working directory.
+
+The wasmtime runner uses `serve -S cli -S p3 -S config`, supporting WASI HTTP and unlabeled
+`wasi:config`. wasmCloud-only imports such as PostgreSQL require wash or a wasmCloud host.
+For wash, the extension writes `.di-framework/wash-dev.yaml` with the address, host interfaces,
+and async component proposal, then invokes `wash dev --user-config`.
+`WASMCLOUD_POSTGRES_URL` supplies `dev.postgres_url` for that local runner.
 
 ## Deployment manifest
 
@@ -92,7 +218,11 @@ stack = "dev"
 kubeconfig = "${KUBECONFIG}"
 context = "team-development"
 namespace = "wasmcloud"
-registry = "registry.example.com/team"
+
+[targets.development.registry]
+push = "https://registry.example.com/team"
+pull = "registry.internal.example.com/team"
+insecure = false
 ```
 
 - `di-framework wasmcloud deploy` with no name uses the nearest `di-framework.config.json`.
@@ -131,6 +261,10 @@ left alone unless you pass `--force` / `-f`. When it finishes it prints the exac
 di-framework wasmcloud platform deploy local --yes
 ```
 
+Platform deploy runs `pulumi install` automatically for the generated project. Its default
+loopback ports are Kubernetes `26443`, registry `25000`, and HTTP `28180`; configure `apiPort`,
+`registryPort`, or `httpPort` in the generated Pulumi stack to choose different ports.
+
 The generated Pulumi project provisions only platform concerns. It must not contain application
 names, component builds, Kubernetes Services for apps, or `WorkloadDeployment` objects.
 
@@ -145,7 +279,7 @@ The CLI reads a small output contract from `pulumi stack output --json`:
 | --- | --- | --- |
 | `kubeconfig` | yes | kubeconfig YAML or a filesystem path |
 | `namespace` | yes | Kubernetes namespace for workloads |
-| `registry` | yes | OCI registry prefix |
+| `registry` | yes | OCI registry prefix, or `{ push, pull, insecure }` transport object |
 | `context` | no | kubectl context |
 | `endpoints.http` / `endpoints.kubernetes` / `endpoints.registry` | no | optional URLs |
 
@@ -182,6 +316,11 @@ di-framework wasmcloud deploy greeter --target development
 External and managed fields are mutually exclusive. An incomplete target reports
 `WASMCLOUD_DEPLOY_MANIFEST_INVALID`.
 
+The registry object separates the address used by ORAS to push from the address used by the
+cluster to pull. A string registry remains supported. An `http://` push URL or `insecure = true`
+enables ORAS plain HTTP for that target. See [Kubernetes with di-framework-kube](kube.md) for
+an external-target workflow using a loopback publisher and an in-cluster registry service.
+
 ## Application deploy and destroy
 
 ```bash
@@ -192,11 +331,18 @@ di-framework wasmcloud destroy [name] [--target <name>] [--yes]
 For the selected project the extension:
 
 1. Builds the component.
-2. Publishes it with `oras` under an immutable content-derived reference
-   (`<registry>/<wit-name>:sha256-<digest>`).
+2. Publishes it with `oras` under a stable reference derived from canonical build and deployment
+   inputs (`<registry>/<wit-name>:sha256-<deployment-digest>`). The component-byte digest is reported
+   separately because componentization snapshots can vary for identical inputs.
 3. Derives a wasmCloud `WorkloadDeployment` and Kubernetes `Service` (written under
    `.di-framework/deploy/`, not checked in).
-4. Applies them with `kubectl` and waits until the workload is ready.
+4. Configures HTTP ingress with the project name as its Host value, applies the resources with
+   `kubectl`, and waits until the workload is ready.
+
+For the generated Pulumi platform, call an app with
+`curl -H 'Host: greeter' http://127.0.0.1:28180/`. The kube platform uses port `28080` by default.
+Readiness does not prove a service binding works: follow deployment with requests that exercise
+the actual backend, as in the [kube smoke checks](kube.md#verification).
 
 `destroy` deletes only those generated resources for that application on the selected target. It
 must never run `pulumi destroy`. `--yes` is accepted for compatibility; application deploy and
@@ -225,3 +371,4 @@ and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are 
 - [CLI](cli.md) - The canonical command tree and the extensions mechanism
 - [HTTP Router](http-router.md) - Fetch-compatible routing that runs unchanged in a component
 - [Installation](installation.md) - Core package and CLI setup
+- [Kubernetes with di-framework-kube](kube.md) - Local cluster and verified service-binding examples

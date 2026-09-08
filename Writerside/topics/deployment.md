@@ -6,7 +6,8 @@ WebAssembly components for wasmCloud. Choose the integration that matches the ta
 | Target | Integration | Use it for |
 | --- | --- | --- |
 | [Cloud Foundry](cloudfoundry.md) | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |
-| [wasmCloud](wasmcloud.md) | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.2 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |
+| [wasmCloud](wasmcloud.md) | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |
+| [Kubernetes with di-framework-kube](kube.md) | `di-framework-kube` and the wasmCloud extension | Create a local Kubesolo cluster with the wasmCloud operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |
 
 The Cloud Foundry package configures an application at runtime; the platform CLI and manifest
 remain responsible for pushing it. The wasmCloud extension provides its build, development,
@@ -14,8 +15,15 @@ application deploy and destroy, and managed-platform commands through the main `
 executable. Application deploy never runs Pulumi; Pulumi is used only for explicit
 `wasmcloud platform` lifecycle of a managed target.
 
+The kube CLI manages Kubesolo and the operator directly, with an embedded Helm client.
+Its example workspace uses an external deployment target and pins the framework to 5.3.0.
+Native services are consumed through `@di-framework/wasmcloud`; the platform and example
+helpers provision their backends and credentials. See [native service bindings](wasmcloud.md#native-service-bindings)
+for the build and runtime contract.
+
 ## Next steps
 
 - [Cloud Foundry](cloudfoundry.md) - Connect an application to platform metadata and bound services
 - [wasmCloud](wasmcloud.md) - Build and deploy WebAssembly components
+- [Kubernetes with di-framework-kube](kube.md) - Deploy examples and verify real service bindings
 - [CLI](cli.md) - Install extensions and use the canonical command tree
