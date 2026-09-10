@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:21:07.824Z",
+  "generatedAt": "2026-09-10T14:21:59.720Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -1727,7 +1727,7 @@
       "pageTitle": "Actors",
       "mainTitle": "Testing",
       "breadcrumbs": "Docs|Testing|Actors",
-      "content": "Register actor classes explicitly on an `ActorRuntime`. Default storage is in-memory. Direct\ncalls on a plain instance skip the mailbox and storage transaction; runtime tests go through\n`runtime.get(...)`. Import `@di-framework/actors/testing` only from tests (`bun:test`).\n\n```typescript\nconst runtime = new ActorRuntime();\nruntime.register(CounterActor);\nconst counter = runtime.get(CounterActor, 'test');\nawait counter.increment(1);\nawait runtime.clear();\n```\n\nSee Actors.",
+      "content": "Register actor classes explicitly on an `ActorRuntime`. Default storage is in-memory. Direct\ncalls on a plain instance skip the mailbox and storage transaction; runtime tests go through\n`runtime.get(...)`. Import `@di-framework/actors/testing` only from tests (`bun:test`).\n\n```typescript\nconst runtime = new ActorRuntime();\nruntime.register(CounterActor);\nconst counter = runtime.get(CounterActor, 'test');\nawait counter.increment(1);\nawait runtime.clear();\n```\n\nSee Actors. For SQLite, use `SqliteActorStorage.temporary()` or\n`{ inMemory: true }` and `await storage.close()` after `runtime.clear()`.",
       "product": "d",
       "version": "latest"
     },
@@ -1927,7 +1927,7 @@
       "pageTitle": "Actors",
       "mainTitle": "Actors",
       "breadcrumbs": "Docs|Actors",
-      "content": "`@di-framework/actors` is a local virtual-actor runtime: decorated classes, typed references,\nserialized mailboxes per actor identity, and concurrent execution across identities. The package\nruns on Bun with no Wasm toolchain and no wasmCloud host.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #415, closing\ndi-framework#407).\nThey are documented here on **latest** (EAP). `@di-framework/actors` is not on npm as of that\ntag and is not in the frozen `/v5.3/` snapshot.\n\nThis page is the actors entry topic. Persistence, local tooling, remote invocation, and wasmCloud\ndeployment extend it rather than introducing a second getting-started path.",
+      "content": "`@di-framework/actors` is a local virtual-actor runtime: decorated classes, typed references,\nserialized mailboxes per actor identity, and concurrent execution across identities. The package\nruns on Bun with no Wasm toolchain and no wasmCloud host.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #415, closing\ndi-framework#407).\nThey are documented here on **latest** (EAP). `@di-framework/actors` is not on npm as of that\ntag and is not in the frozen `/v5.3/` snapshot.\n\nThis page is the actors entry topic. Persistence, local tooling, remote invocation, and wasmCloud\ndeployment extend it rather than introducing a second getting-started path.\n\nSQLite persistence and per-actor migrations are covered below.",
       "product": "d",
       "version": "latest"
     },
@@ -1982,12 +1982,52 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_actors__sqlite-persistence",
+      "url": "https://docs.di-framework.dev/actors.html#sqlite-persistence",
+      "pageTitle": "SQLite persistence",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|SQLite persistence",
+      "content": "Persistence landed in PR #418\n(closing di-framework#408), after\nthe v5.3.0 tag.\n\n```typescript\nimport { ActorRuntime, SqliteActorStorage } from '@di-framework/actors';\n\nconst storage = new SqliteActorStorage({ baseDir: './.actors' });\nconst runtime = new ActorRuntime({ storage, namespace: 'examples' });\nruntime.register(CounterActor);\n\nconst counter = runtime.get(CounterActor, 'primary');\nawait counter.increment(1);\nawait runtime.clear();\n\nconst restarted = new ActorRuntime({\n storage: new SqliteActorStorage({ baseDir: './.actors' }),\n namespace: 'examples',\n});\nrestarted.register(CounterActor);\nconsole.log(await restarted.get(CounterActor, 'primary').getCount()); // 1\n```\n\n`SqliteActorStorage` options: `baseDir` (default `.actors`), `inMemory`, `temp`,\n`maxConnections` (default 50 — cached connections, not retained databases), `idleTimeoutMs`\n(default 30000), `fileLocking` (default `!inMemory`). `SqliteActorStorage.temporary()` creates a\ntemp directory and `close()` removes it.\n\nEach actor identity maps to `{baseDir}/{namespace}/{actorName}/{safePrefix}_{hash}.db`. Path\ntraversal throws. Databases open lazily. WAL + `BEGIN IMMEDIATE` on commit. Instance fields are\nstill not durable — only `ctx.storage` (and optional SQL through `ctx.database` / migration\n`ctx.run`).\n\nA second process that holds `{path}.lock` cannot open the same actor DB (`ActorLockError`).\n`lockTimeoutMs` does not expire a live lock. This is local file locking, not distributed\nownership.\n\nCommitted state survives deactivation and process restart against the same directory. Host-loss\nrecovery is a storage/volume concern; losing the files loses the actor.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__transactions",
+      "url": "https://docs.di-framework.dev/actors.html#transactions",
+      "pageTitle": "Transactions",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Transactions",
+      "content": "Each method runs in a storage transaction. Success commits; a thrown error rolls back. The\ncounter-actor `failingAction` example writes then throws — the increment is discarded.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__tests",
+      "url": "https://docs.di-framework.dev/actors.html#tests",
+      "pageTitle": "Tests",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Tests",
+      "content": "```typescript\nconst storage = SqliteActorStorage.temporary();\nconst runtime = new ActorRuntime({ storage });\nruntime.register(CounterActor);\n// ...\nawait runtime.clear();\nawait storage.close();\n```\n\n`{ inMemory: true }` keeps one SQLite database per actor until `close()`, including actors\nevicted from the connection cache. Close test storage after use; use file-backed storage for\nlong-lived deployments with many actor IDs.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__actor-migrations",
+      "url": "https://docs.di-framework.dev/actors.html#actor-migrations",
+      "pageTitle": "Actor migrations",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Actor migrations",
+      "content": "Migrations run **before** the first activation processes calls. Failed migrations throw\n`ActorMigrationError` and block activation.\n\nSources, first-wins on version:\n\n1. `@Actor({ migrations })` / `register(..., { migrations })`\n2. `@ActorMigration({ actor, version, description })`\n3. `@di-framework/repo` `@Migration` classes whose `binding === actorType`\n\nOn SQLite adapters the runner is `MigrationRunner` against\n**that actor's database**, with history in `_migrations`. In-memory storage runs `up` without SQL\n(`db` is null; `sql`/`run` are no-ops).\n\n```typescript\n@Actor({\n name: 'CounterActor',\n namespace: 'examples',\n migrations: [\n {\n version: '1',\n description: 'Initialize counter schema',\n up: async (ctx) => {\n if (ctx.db) {\n await ctx.db.run(`CREATE TABLE IF NOT EXISTS counter_stats (\n id TEXT PRIMARY KEY,\n total INTEGER NOT NULL\n );`);\n }\n },\n },\n ],\n})\nclass CounterActor {}\n```\n\n`ActorMigrationContext` includes `actorId`, `actorType`, `actorKey`, `version`, `description`,\n`db`, `sql`, `run`, and `storage`. Inactive actors upgrade on next activation. Rolling back\napplication code does not undo schema (`down` is stored and not executed).",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_actors__next-steps",
       "url": "https://docs.di-framework.dev/actors.html#next-steps",
       "pageTitle": "Next steps",
       "mainTitle": "Actors",
       "breadcrumbs": "Docs|Actors|Next steps",
-      "content": "- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
+      "content": "- Repositories - Shared `MigrationRunner`\n- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
       "product": "d",
       "version": "latest"
     },

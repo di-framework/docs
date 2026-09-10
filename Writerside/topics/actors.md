@@ -14,6 +14,8 @@ runs on Bun with no Wasm toolchain and no wasmCloud host.
 This page is the actors entry topic. Persistence, local tooling, remote invocation, and wasmCloud
 deployment extend it rather than introducing a second getting-started path.
 
+SQLite persistence and per-actor migrations are covered [below](#sqlite-persistence).
+
 ## Installation
 
 ```bash
@@ -171,8 +173,112 @@ That entry also exports `ContractCounterActor` and `ContractFailingMigrationActo
 tests (calling `increment` on a plain instance) skip the mailbox and storage transaction; runtime
 tests go through `runtime.get(...)`.
 
+## SQLite persistence
+
+> Persistence landed in [PR #418](https://github.com/di-framework/di-framework/pull/418)
+> (closing [di-framework#408](https://github.com/di-framework/di-framework/issues/408)), after
+> the v5.3.0 tag.
+
+```typescript
+import { ActorRuntime, SqliteActorStorage } from '@di-framework/actors';
+
+const storage = new SqliteActorStorage({ baseDir: './.actors' });
+const runtime = new ActorRuntime({ storage, namespace: 'examples' });
+runtime.register(CounterActor);
+
+const counter = runtime.get(CounterActor, 'primary');
+await counter.increment(1);
+await runtime.clear();
+
+const restarted = new ActorRuntime({
+  storage: new SqliteActorStorage({ baseDir: './.actors' }),
+  namespace: 'examples',
+});
+restarted.register(CounterActor);
+console.log(await restarted.get(CounterActor, 'primary').getCount()); // 1
+```
+
+`SqliteActorStorage` options: `baseDir` (default `.actors`), `inMemory`, `temp`,
+`maxConnections` (default 50 — cached connections, not retained databases), `idleTimeoutMs`
+(default 30000), `fileLocking` (default `!inMemory`). `SqliteActorStorage.temporary()` creates a
+temp directory and `close()` removes it.
+
+Each actor identity maps to `{baseDir}/{namespace}/{actorName}/{safePrefix}_{hash}.db`. Path
+traversal throws. Databases open lazily. WAL + `BEGIN IMMEDIATE` on commit. Instance fields are
+still not durable — only `ctx.storage` (and optional SQL through `ctx.database` / migration
+`ctx.run`).
+
+A second process that holds `{path}.lock` cannot open the same actor DB (`ActorLockError`).
+`lockTimeoutMs` does not expire a live lock. This is local file locking, not distributed
+ownership.
+
+Committed state survives deactivation and process restart against the same directory. Host-loss
+recovery is a storage/volume concern; losing the files loses the actor.
+
+### Transactions
+
+Each method runs in a storage transaction. Success commits; a thrown error rolls back. The
+counter-actor `failingAction` example writes then throws — the increment is discarded.
+
+### Tests
+
+```typescript
+const storage = SqliteActorStorage.temporary();
+const runtime = new ActorRuntime({ storage });
+runtime.register(CounterActor);
+// ...
+await runtime.clear();
+await storage.close();
+```
+
+`{ inMemory: true }` keeps one SQLite database per actor until `close()`, including actors
+evicted from the connection cache. Close test storage after use; use file-backed storage for
+long-lived deployments with many actor IDs.
+
+## Actor migrations
+
+Migrations run **before** the first activation processes calls. Failed migrations throw
+`ActorMigrationError` and block activation.
+
+Sources, first-wins on version:
+
+1. `@Actor({ migrations })` / `register(..., { migrations })`
+2. `@ActorMigration({ actor, version, description })`
+3. `@di-framework/repo` `@Migration` classes whose `binding === actorType`
+
+On SQLite adapters the runner is [`MigrationRunner`](repositories.md#database-migrations) against
+**that actor's database**, with history in `_migrations`. In-memory storage runs `up` without SQL
+(`db` is null; `sql`/`run` are no-ops).
+
+```typescript
+@Actor({
+  name: 'CounterActor',
+  namespace: 'examples',
+  migrations: [
+    {
+      version: '1',
+      description: 'Initialize counter schema',
+      up: async (ctx) => {
+        if (ctx.db) {
+          await ctx.db.run(`CREATE TABLE IF NOT EXISTS counter_stats (
+            id TEXT PRIMARY KEY,
+            total INTEGER NOT NULL
+          );`);
+        }
+      },
+    },
+  ],
+})
+class CounterActor {}
+```
+
+`ActorMigrationContext` includes `actorId`, `actorType`, `actorKey`, `version`, `description`,
+`db`, `sql`, `run`, and `storage`. Inactive actors upgrade on next activation. Rolling back
+application code does not undo schema (`down` is stored and not executed).
+
 ## Next steps
 
+- [Repositories](repositories.md#database-migrations) - Shared `MigrationRunner`
 - [Installation](installation.md) - Companion packages
 - [Testing](testing.md) - Isolated containers alongside actor runtimes
 - [API Reference](api-reference.md) - Core container API
