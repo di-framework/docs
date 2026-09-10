@@ -45,6 +45,11 @@ di-framework
 │   ├── init
 │   ├── inspect
 │   └── migrate
+├── actor
+│   ├── list
+│   ├── inspect
+│   ├── reset
+│   └── clean
 ├── mx
 │   ├── build
 │   ├── test
@@ -82,6 +87,7 @@ installed [CLI extension](#extensions).
 | `agent init` | Preview or create requested neutral agent-configuration assets. |
 | `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |
 | `agent migrate` | Preview or apply audited migrations into neutral agent paths. |
+| `actor list\|inspect\|reset\|clean` | List, inspect, or reset local actor activations and SQLite files. |
 | `mx build\|test\|typecheck\|publish` | Run di-framework monorepo maintainer workflows. |
 | `migrations status\|execute` | Show or apply decorator, SQL, and manifest database migrations. |
 | `queue list\|inspect\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |
@@ -349,6 +355,38 @@ and `.aiignore`. Source vendor files remain in place for deliberate cleanup
 after the neutral result is verified; no legacy or vendor-specific destination
 is generated.
 
+## Actor commands
+
+`actor` inspects and resets local [`@di-framework/actors`](actors.md#local-development-discovery-reload-and-inspection)
+SQLite storage. It does not start a runtime.
+
+```bash
+di-framework actor list [--namespace <name>] [--dir <path>] [--active]
+di-framework actor inspect <actorType|identity> [--key <key>] [--namespace <name>] [--dir <path>] [--show-state]
+di-framework actor reset --actor <name> [--key <key>] [--namespace <name>] [--dir <path>]
+di-framework actor reset --all
+di-framework actor clean [same flags as reset]
+```
+
+| Option | Description |
+| --- | --- |
+| `--namespace <name>` | Restrict to this namespace. |
+| `--dir <path>` | Storage root; default `.actors`. `--base-dir` is accepted as an alias. |
+| `--active` | List only active activations. |
+| `--key <key>` | Actor key (inspect; reset requires `--actor`). |
+| `--show-state` | Include committed private state (inspect). |
+| `--all` | Reset every actor under `--dir`. |
+
+`inspect` requires a positional type or identity (exit 2 if missing). `reset` / `clean` require
+`--actor`, `--namespace`, or `--all`. Missing `@di-framework/actors` exits `3`
+(`ACTORS_PACKAGE_UNAVAILABLE`). Not found exits `1` (`ACTOR_NOT_FOUND`).
+
+JSON `data`:
+
+- **list:** `{ namespace, baseDir, total, actors: [{ actorId, namespace, actorType, actorKey, status, runningCalls, pendingCalls, storagePath, failedMigration }] }`
+- **inspect:** the same identity fields plus `methods`, `failedMigration`, and `state` only with `--show-state`
+- **reset/clean:** `{ scope, deactivatedCount, deletedFiles, success }`
+
 ## Database migration commands
 
 `migrations` delegates discovery and execution to [`@di-framework/repo`](repositories.md#database-migrations).
@@ -552,6 +590,6 @@ typed package API is extended first.
 - [Scheduling](scheduling.md) - `@Cron` (discovered by `wasmcloud build`, no `cron` group)
 - [Queues](queues.md) - Durable jobs and `queue list` / `inspect` / `retry`
 - [Repositories](repositories.md#database-migrations) - Decorator, SQL, and manifest migrations
-- [Actors](actors.md) - Local virtual-actor runtime
+- [Actors](actors.md) - Local runtime, persistence, and `actor` commands
 - [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`
