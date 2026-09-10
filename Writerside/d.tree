@@ -22,6 +22,7 @@
     <toc-element topic="events.md"/>
     <toc-element topic="socket.md"/>
     <toc-element topic="rpc.md"/>
+    <toc-element topic="service-bindings.md"/>
     <toc-element topic="config.md"/>
     <toc-element topic="auth.md"/>
     <toc-element topic="authorization.md"/>

@@ -94,6 +94,11 @@ export class OrdersDatabase extends Postgres {}
 export class AppConfig extends Config {}
 ```
 
+These host capabilities are not [private service bindings](service-bindings.md)
+(`@ExportService` / `@ServiceBinding`). Application-authored bindings are an in-process DI
+contract inside one component; native bindings are WIT imports generated from `@WasmCloudBinding`
+classes.
+
 Resolve these classes through `useContainer().resolve(...)` or inject them with `@Component`.
 The build discovers the declarations statically, creates real WIT imports in
 `.di-framework/guests.js`, and initializes those guests before application evaluation. This
@@ -370,5 +375,6 @@ and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are 
 
 - [CLI](cli.md) - The canonical command tree and the extensions mechanism
 - [HTTP Router](http-router.md) - Fetch-compatible routing that runs unchanged in a component
+- [Private service bindings](service-bindings.md) - In-process named contracts, not host WIT imports
 - [Installation](installation.md) - Core package and CLI setup
 - [Kubernetes with di-framework-kube](kube.md) - Local cluster and verified service-binding examples
