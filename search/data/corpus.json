@@ -1,6 +1,136 @@
 {
-  "generatedAt": "2026-09-10T14:15:51.287Z",
+  "generatedAt": "2026-09-10T14:17:28.618Z",
   "docs": [
+    {
+      "objectID": "docs_scheduling",
+      "url": "https://docs.di-framework.dev/scheduling.html",
+      "pageTitle": "Scheduling",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling",
+      "content": "`@Cron` marks a DI-managed async method to run on a schedule. The application-facing decorator is\nthe same in local processes and wasmCloud deployments. Locally, the container starts in-process\ntimers when the service is resolved. In a wasmCloud deployment the plugin disables those timers\nand Kubernetes CronJobs privately invoke the method.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #419, closing\ndi-framework#403).\nThey are documented here on **latest** (EAP) and are not in the frozen `/v5.3/` snapshot.\n\nThere is no `di-framework cron` command. Discovery, invoker generation, and CronJob manifests are\npart of `di-framework wasmcloud build` / `deploy`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__installation",
+      "url": "https://docs.di-framework.dev/scheduling.html#installation",
+      "pageTitle": "Installation",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Installation",
+      "content": "```bash\nbun add @di-framework/core\n```\n\n```typescript\nimport { Component, Container, Cron } from '@di-framework/core/decorators';\n```\n\n`Cron` is also exported from `@di-framework/core/cron` and `@di-framework/core`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__declare-a-scheduled-method",
+      "url": "https://docs.di-framework.dev/scheduling.html#declare-a-scheduled-method",
+      "pageTitle": "Declare a scheduled method",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Declare a scheduled method",
+      "content": "```typescript\n@Container()\nexport class MaintenanceService {\n @Component(DatabaseRepository)\n public db!: DatabaseRepository;\n\n @Cron('0 2 * * *', {\n name: 'nightly-prune',\n description: 'Purges expired database session records nightly',\n allowConcurrent: false,\n timeoutMs: 10000,\n })\n public async purgeExpiredSessions(): Promise<{ pruned: number }> {\n const summary = await this.db.deleteExpiredRecords();\n return { pruned: summary.deletedCount };\n }\n\n @Cron(30000, { name: 'health-heartbeat' })\n public async heartbeat(): Promise<void> {\n await this.db.ping();\n }\n}\n```\n\nThe scheduled-worker example\nruns two jobs (`nightly-prune` at 02:00 and `partition-rebalance` every 15 minutes) with\n`\"ingress\": false` in `di-framework.config.json`.\n\n```bash\nbun test examples/scheduled-worker/tests/\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__schedule-expressions",
+      "url": "https://docs.di-framework.dev/scheduling.html#schedule-expressions",
+      "pageTitle": "Schedule expressions",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Schedule expressions",
+      "content": "`@Cron(schedule, options?)` accepts:\n\n- A **5-field cron string**: `minute hour dayOfMonth month dayOfWeek`\n- A **numeric interval in milliseconds**\n\nSupported field syntax: `*`, `*/N`, `N,M`, `N-M`, and exact `N`. Anything other than five\nspace-separated fields throws:\n\n```text\nInvalid cron expression \"...\": expected 5 fields (minute hour dayOfMonth month dayOfWeek)\n```\n\nNot supported: seconds / 6–7 fields, `@hourly` / `@daily`, `?`, month or day names (`MON`),\n`CRON_TZ=…`, Sunday-as-7.\n\nThere is **no `timeZone` option**. In-process matching uses the process local `Date` fields, not\nUTC and not an IANA zone. Generated Kubernetes CronJobs use the cluster controller timezone.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__options",
+      "url": "https://docs.di-framework.dev/scheduling.html#options",
+      "pageTitle": "Options",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Options",
+      "content": "| Field | Default | Behavior |\n| --- | --- | --- |\n| `name` | `` `${className}.${methodName}` `` | Stable job id used by `invokeCronJob` and wasmCloud CronJobs |\n| `allowConcurrent` | `false` | Overlapping `invokeCronJob` calls skip (or throw with `throwOnError`) |\n| `description` | — | Human-readable only; unused at runtime |\n| `timeoutMs` | — | Max wait on **`invokeCronJob`**. Does not cancel the running method |\n\nJobs register when the owning service is **resolved**. `allowConcurrent` and `timeoutMs` apply to\nthe invoke path, not to in-process `setInterval` / `setTimeout` timers.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__numeric-intervals-in-deployment",
+      "url": "https://docs.di-framework.dev/scheduling.html#numeric-intervals-in-deployment",
+      "pageTitle": "Numeric intervals in deployment",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Numeric intervals in deployment",
+      "content": "Locally, `@Cron(30000)` is a 30-second `setInterval`. For external schedulers the expression is\nnormalized to whole minutes:\n\n```text\nmins = max(1, round(schedule / 60000))\n1 minute → * * * * *\nN minutes → */N * * * *\n```\n\nSub-minute intervals are rounded, not rejected. `@Cron(30000)` becomes every minute on wasmCloud.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__in-process-versus-external-mode",
+      "url": "https://docs.di-framework.dev/scheduling.html#in-process-versus-external-mode",
+      "pageTitle": "In-process versus external mode",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|In-process versus external mode",
+      "content": "`CronMode` is `'in-process' | 'external'`.\n\n- Default: `process.env.DI_CRON_MODE === 'external' ? 'external' : 'in-process'`\n- `container.setCronMode(mode)` must run **before** `resolve`, or timers already started\n- `container.getCronMode()` / `container.isExternalCron()`\n\n**In-process:** numeric schedules use `setInterval`; cron strings chain `setTimeout` (next fire is\nat least one minute after now). Errors log `[Cron] Class.method threw` and the schedule continues.\nMultiple processes or replicas each fire independently.\n\n**External:** the job is still registered, but no in-component timers start. wasmCloud sets\n`DI_CRON_MODE=external` on the workload whenever jobs are discovered, and the generated invoker\ncalls `container.setCronMode('external')` before `invokeCronJob`.\n\nExactly-once execution is not promised. External mode is “Kubernetes fires, the component runs\nthe method if reachable,” plus skip-on-overlap when `allowConcurrent` is false.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__manual-invocation-and-tests",
+      "url": "https://docs.di-framework.dev/scheduling.html#manual-invocation-and-tests",
+      "pageTitle": "Manual invocation and tests",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Manual invocation and tests",
+      "content": "There is no controllable cron clock. Tests call `invokeCronJob` instead of waiting for timers.\n`CronRuntime` is a process singleton; tests should call `CronRuntime.reset()` in\n`beforeEach` / `afterEach`.\n\n```typescript\nconst result = await container.invokeCronJob<MaintenanceReport>('nightly-prune');\nconsole.log(result.success, result.durationMs, result.status);\n```\n\n`CronExecutionResult` fields: `jobId`, `status` (`success` | `failure` | `skipped`), `success`,\n`startedAt`, `completedAt`, `durationMs`, optional `result` / `error` / `reason`.\n\n- Default: failures return `status: 'failure'` (no throw)\n- `{ throwOnError: true }` throws `CronExecutionError` or `CronConcurrencyError`\n- Unknown id always throws `CronJobNotFoundError` (lists available ids)\n- Concurrent invoke with `allowConcurrent: false` returns `status: 'skipped'`\n\nThe scheduled method is always called with **zero arguments**. `CronInvocationContext`\n(`timestamp`, `source`, `metadata`) is unused by the runtime.\n\nAlso available: `container.getCronJobs()`, `container.stopCronJobs()`,\n`CronRuntime.current.getStatusReports()`. `container.clear()` stops timers and drops\nregistrations (the tested reload path). `ApplicationContext.stop()` calls `stopCronJobs()`.\n\nThere is no runtime API to change a schedule. Edit `@Cron`, rebuild, and redeploy.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__scheduled-only-applications",
+      "url": "https://docs.di-framework.dev/scheduling.html#scheduled-only-applications",
+      "pageTitle": "Scheduled-only applications",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Scheduled-only applications",
+      "content": "```json\n{\n \"name\": \"scheduled-worker\",\n \"entry\": \"src/index.ts\",\n \"ingress\": false\n}\n```\n\n`http: false` is treated the same as `ingress: false`.\n\nWhen jobs exist, the wasmCloud plugin still exports `wasi:http/handler@0.3.0` and still emits a\n**ClusterIP Service** on port 80 so CronJobs can POST to `/_di/cron/{jobId}/invoke`. Public\ningress (HTTP URL/host in the deploy result) is omitted. The application `fetch` handler is not\nrequired for scheduling; control routes are intercepted before the app handler.\n\nThe default export must expose the DI container:\n\n```typescript\nexport { container };\n// or\nexport default { container };\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__wasmcloud-cronjobs",
+      "url": "https://docs.di-framework.dev/scheduling.html#wasmcloud-cronjobs",
+      "pageTitle": "wasmCloud CronJobs",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|wasmCloud CronJobs",
+      "content": "`di-framework wasmcloud build` discovers `@Cron(...)` calls with a **string or numeric literal**\nunder `src/` (otherwise the project root). Dynamic schedules are skipped. Duplicate `jobId`\nvalues keep the first file.\n\nDeploy applies one Kubernetes `batch/v1` CronJob per job:\n\n- Name `{witName}-{kebab-job-id}`\n- `concurrencyPolicy: Forbid` or `Allow` from `allowConcurrent`\n- `curl` POST to `http://{name}.{ns}.svc.cluster.local/_di/cron/{jobId}/invoke`\n- Default invoke timeout 30s when `timeoutMs` is omitted\n- Workload `spec.replicas: 1`\n\n`di-framework wasmcloud destroy` deletes `WorkloadDeployment,service,cronjob` labeled\n`app.kubernetes.io/name=<witName>`. Redeploy `kubectl apply`s the regenerated manifest; jobs\nremoved from source are not pruned except via destroy.\n\nControl HTTP authorizes with `DI_CONTROL_TOKEN` / `DI_CONTROL_IDENTITIES`. If those are unset,\nanonymous invoke is allowed. Provision a control token before exposing the ClusterIP beyond a\ntrusted cluster.\n\n`di-framework wasmcloud dev` serves locally and does **not** generate Kubernetes CronJobs.\n`doctor` does not check cron configuration.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__overlap-retries-missed-runs",
+      "url": "https://docs.di-framework.dev/scheduling.html#overlap-retries-missed-runs",
+      "pageTitle": "Overlap, retries, missed runs",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Overlap, retries, missed runs",
+      "content": "| Concern | Implemented behavior |\n| --- | --- |\n| Application-wide vs per-replica | Generated workloads use `replicas: 1`. External CronJobs are cluster-wide. In-process mode is per resolved instance. |\n| Overlap | `allowConcurrent: false` skips a second `invokeCronJob`. In-process timers ignore this flag. |\n| Timeouts | `timeoutMs` races the invoke; the running method is not cancelled. |\n| Retries | No application-level retry option. Kubernetes Job `restartPolicy: OnFailure` restarts the curl pod. |\n| Missed runs | No catch-up. In-process next fire is computed from **now**. |\n| Restart | After a skipped overlap, a later invoke succeeds. |",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__troubleshooting",
+      "url": "https://docs.di-framework.dev/scheduling.html#troubleshooting",
+      "pageTitle": "Troubleshooting",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Troubleshooting",
+      "content": "| Symptom | Cause |\n| --- | --- |\n| Job never fires locally | Service not resolved; or `DI_CRON_MODE=external` |\n| Duplicate fires in deployment | In-process timers still running; confirm `DI_CRON_MODE=external` |\n| `CronJobNotFoundError` | `name` / `` Class.method `` mismatch; or the service was never resolved |\n| Invalid cron expression | Not five fields |\n| wasmCloud skips a job | Non-literal `@Cron` argument |\n| HTTP `ok: true` but job failed | Control HTTP reports that invoke did not throw; inspect `CronExecutionResult.success` |",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_scheduling__next-steps",
+      "url": "https://docs.di-framework.dev/scheduling.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "Scheduling",
+      "breadcrumbs": "Docs|Scheduling|Next steps",
+      "content": "- Advanced Usage - Container patterns used by scheduled services\n- Testing - Isolated containers and `CronRuntime.reset()`\n- wasmCloud - Build and deploy the generated CronJobs\n- CLI - Canonical command tree (cron is not a built-in group)",
+      "product": "d",
+      "version": "latest"
+    },
     {
       "objectID": "docs_agent-foundations",
       "url": "https://docs.di-framework.dev/agent-foundations.html",
@@ -427,7 +557,7 @@
       "pageTitle": "Features",
       "mainTitle": "di-framework",
       "breadcrumbs": "Docs|di-framework|Features",
-      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
+      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
       "product": "d",
       "version": "latest"
     },
@@ -987,7 +1117,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -1478,6 +1608,16 @@
       "mainTitle": "Testing",
       "breadcrumbs": "Docs|Testing|Private service bindings",
       "content": "Substitute a bound dependency without changing caller code. Register a mock on\n`serviceBindingToken`, or use `LocalServiceDevManager.substituteMock`. Authorization still\napplies locally: `bind(..., { grantAccess: false })` is how tests prove unbound callers are\nrejected with `UnboundCallerError`.\n\n```typescript\nimport { serviceBindingToken } from '@di-framework/core/service-bindings';\n\ntestContainer.registerValue(serviceBindingToken('inventory'), {\n reserve: async () => ({ reservationId: 'mock' }),\n release: async () => ({ released: true }),\n checkStock: async () => 99,\n});\n```\n\nSee Private service bindings.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_testing__scheduled-methods",
+      "url": "https://docs.di-framework.dev/testing.html#scheduled-methods",
+      "pageTitle": "Scheduled methods",
+      "mainTitle": "Testing",
+      "breadcrumbs": "Docs|Testing|Scheduled methods",
+      "content": "There is no fake cron clock. Call `container.invokeCronJob(jobId)` instead of waiting for\nin-process timers. `CronRuntime` is a process singleton — call `CronRuntime.reset()` in\n`beforeEach` / `afterEach`. Overlap tests use a second `invokeCronJob` while the first is still\nrunning.\n\nSee Scheduling.",
       "product": "d",
       "version": "latest"
     },
@@ -2967,7 +3107,7 @@
       "pageTitle": "Next Steps",
       "mainTitle": "Advanced Usage",
       "breadcrumbs": "Docs|Advanced Usage|Next Steps",
-      "content": "- Error Handling - Learn how to handle errors in your DI setup\n- Best Practices - Follow recommended patterns\n- Testing - Test your services effectively",
+      "content": "- Scheduling - `@Cron` locally and as wasmCloud CronJobs\n- Error Handling - Learn how to handle errors in your DI setup\n- Best Practices - Follow recommended patterns\n- Testing - Test your services effectively",
       "product": "d",
       "version": "latest"
     },
@@ -3172,6 +3312,16 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_wasmcloud__scheduled-jobs",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#scheduled-jobs",
+      "pageTitle": "Scheduled jobs",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Scheduled jobs",
+      "content": "`di-framework wasmcloud build` discovers `@Cron(...)` methods with a string or numeric literal\nand writes `.di-framework/cron.json` plus an invoker. Deploy applies one Kubernetes\n`batch/v1` CronJob per job. The workload sets `DI_CRON_MODE=external` so in-component timers do\nnot fire. Generated workloads use `replicas: 1`.\n\nScheduled-only projects (`\"ingress\": false`) still export `wasi:http/handler` and still get a\nClusterIP Service so CronJobs can POST to `/_di/cron/{jobId}/invoke`. Public ingress is omitted.\nThe default export must expose the DI container (`export { container }` or\n`export default { container }`).\n\n`destroy` deletes `WorkloadDeployment,service,cronjob` labeled\n`app.kubernetes.io/name=<witName>`. `dev` and `doctor` do not generate or check CronJobs.\n\nSee Scheduling for expressions, overlap, and `invokeCronJob`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_wasmcloud__application-deploy-and-destroy",
       "url": "https://docs.di-framework.dev/wasmcloud.html#application-deploy-and-destroy",
       "pageTitle": "Application deploy and destroy",
@@ -3197,7 +3347,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Next steps",
-      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
+      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Scheduling - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
       "product": "d",
       "version": "latest"
     },
@@ -3327,7 +3477,7 @@
       "pageTitle": "API Reference",
       "mainTitle": "API Reference",
       "breadcrumbs": "Docs|API Reference",
-      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Configuration, Authentication, Resource Authorization, AI, and Agents.",
+      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Scheduling, Configuration, Authentication, Resource Authorization, AI, and Agents.",
       "product": "d",
       "version": "latest"
     },

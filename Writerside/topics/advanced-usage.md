@@ -449,6 +449,7 @@ export class BusinessLogicLayer {
 
 ## Next Steps
 
+- [Scheduling](scheduling.md) - `@Cron` locally and as wasmCloud CronJobs
 - [Error Handling](error-handling.md) - Learn how to handle errors in your DI setup
 - [Best Practices](best-practices.md) - Follow recommended patterns
 - [Testing](testing.md) - Test your services effectively
