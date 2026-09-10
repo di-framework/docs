@@ -32,4 +32,5 @@ independently deployed components by the CLI.
 - [wasmCloud](wasmcloud.md) - Build and deploy WebAssembly components
 - [Kubernetes with di-framework-kube](kube.md) - Deploy examples and verify real service bindings
 - [Private service bindings](service-bindings.md) - Named in-process contracts without URLs
+- [Remote actors](actors-distributed.md) - Cross-process actor RPC independent of wasmCloud
 - [CLI](cli.md) - Install extensions and use the canonical command tree

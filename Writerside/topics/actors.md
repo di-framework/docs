@@ -347,6 +347,7 @@ or `SqliteActorStorage.temporary()`.
 
 ## Next steps
 
+- [Remote actors and ownership](actors-distributed.md) - RPC, fencing, and recovery
 - [CLI](cli.md#actor-commands) - `actor list` / `inspect` / `reset` / `clean`
 - [Repositories](repositories.md#database-migrations) - Shared `MigrationRunner`
 - [Installation](installation.md) - Companion packages
