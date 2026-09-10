@@ -276,8 +276,78 @@ class CounterActor {}
 `db`, `sql`, `run`, and `storage`. Inactive actors upgrade on next activation. Rolling back
 application code does not undo schema (`down` is stored and not executed).
 
+## Local development: discovery, reload, and inspection
+
+> Tooling landed in [PR #420](https://github.com/di-framework/di-framework/pull/420)
+> (closing [di-framework#409](https://github.com/di-framework/di-framework/issues/409)), after
+> the v5.3.0 tag. No external services or Wasm tooling are required.
+
+### Discovery
+
+```typescript
+import { discoverActorClasses, generateActorRegistration } from '@di-framework/actors';
+
+const actors = await discoverActorClasses({ rootDir: 'src' });
+const registrationCode = generateActorRegistration(actors);
+```
+
+The walker reads `.ts` / `.js` (skips `.d.ts`, `.test.ts`, `.spec.ts`, `node_modules`, `dist`,
+`.git`, `build`). A file must mention `@Actor` or `@di-framework/actors` before it is imported.
+`patterns` on `ActorDiscoveryOptions` is unused. Tests still register classes explicitly.
+
+`runtime.discoverAndRegister(options?)` and `ActorDevManager.discoverAndRegister` wrap the same
+walk. Namespaces isolate applications: two `ActorRuntime` instances with `namespace: 'app-a'`
+and `'app-b'` can both register `CounterActor`.
+
+### Reload
+
+```typescript
+await runtime.reload({
+  policy: 'drain', // or 'fail'
+  timeoutMs: 5000,
+  actors: [UpdatedActorClass],
+});
+```
+
+Sequence: stop admission → drain or fail unstarted work → `onDeactivate` → release SQLite
+connections and file locks → optional re-register → **clear the migration cache** so new
+migrations run before the next call.
+
+| Policy | Queued work |
+| --- | --- |
+| `drain` (default) | Pending invocations complete |
+| `fail` | Unstarted queued tasks reject with `ActorReloadError` |
+
+**Preserved:** committed SQLite files / in-memory committed keys. **Not preserved:** in-memory
+activations, mailboxes, uncommitted staged writes. Startup and reload **never delete**
+persistent state. A reload timeout aborts reload and restores admission without closing an
+active transaction.
+
+### CLI
+
+```text
+di-framework actor list [--namespace <name>] [--dir <path>] [--active]
+di-framework actor inspect <actorType|identity> [--key <key>] [--namespace <name>] [--dir <path>] [--show-state]
+di-framework actor reset --actor <name> [--key <key>] [--namespace <name>] [--dir <path>]
+di-framework actor reset --all
+di-framework actor clean …   # alias for reset
+```
+
+Default `--dir` is `.actors`. Inspect does not dump private state unless `--show-state`. Reset
+requires `--actor`, `--namespace`, or `--all` (exit 2 otherwise).
+
+The [counter-actor example](https://github.com/di-framework/di-framework/tree/main/examples/packages/counter-actor)
+walks concurrent calls, persistence across restart, and these commands with `--namespace examples`.
+
+Programmatic equivalents: `runtime.listActors`, `runtime.inspect(..., { showState })`,
+`runtime.reset({ namespace?, actorName?, actorKey?, all?, baseDir? })`.
+
+There is no public `fixtures/` package. Tests use `@di-framework/actors/testing` contract actors
+or `SqliteActorStorage.temporary()`.
+
 ## Next steps
 
+- [CLI](cli.md#actor-commands) - `actor list` / `inspect` / `reset` / `clean`
 - [Repositories](repositories.md#database-migrations) - Shared `MigrationRunner`
 - [Installation](installation.md) - Companion packages
 - [Testing](testing.md) - Isolated containers alongside actor runtimes

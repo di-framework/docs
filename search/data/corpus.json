@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:21:59.720Z",
+  "generatedAt": "2026-09-10T14:22:56.895Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -997,7 +997,7 @@
       "pageTitle": "Canonical command tree",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Canonical command tree",
-      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n├── mx\n│ ├── build\n│ ├── test\n│ ├── typecheck\n│ └── publish\n├── migrations\n│ ├── status\n│ └── execute\n├── queue\n│ ├── list\n│ ├── inspect\n│ └── retry\n└── extensions\n ├── install\n ├── uninstall\n └── list\n```\n\nThis tree is exhaustive for built-in commands. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`. The single sanctioned extension point is the\ninstalled-extension namespace: a top-level token that is not a built-in command may dispatch to an\ninstalled CLI extension.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n| `migrations status\\|execute` | Show or apply decorator, SQL, and manifest database migrations. |\n| `queue list\\|inspect\\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |\n| `extensions install\\|uninstall\\|list` | Manage installed CLI extensions. |\n\nThe command paths and conventions on this page are the stable public contract.",
+      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n├── actor\n│ ├── list\n│ ├── inspect\n│ ├── reset\n│ └── clean\n├── mx\n│ ├── build\n│ ├── test\n│ ├── typecheck\n│ └── publish\n├── migrations\n│ ├── status\n│ └── execute\n├── queue\n│ ├── list\n│ ├── inspect\n│ └── retry\n└── extensions\n ├── install\n ├── uninstall\n └── list\n```\n\nThis tree is exhaustive for built-in commands. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`. The single sanctioned extension point is the\ninstalled-extension namespace: a top-level token that is not a built-in command may dispatch to an\ninstalled CLI extension.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `actor list\\|inspect\\|reset\\|clean` | List, inspect, or reset local actor activations and SQLite files. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n| `migrations status\\|execute` | Show or apply decorator, SQL, and manifest database migrations. |\n| `queue list\\|inspect\\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |\n| `extensions install\\|uninstall\\|list` | Manage installed CLI extensions. |\n\nThe command paths and conventions on this page are the stable public contract.",
       "product": "d",
       "version": "latest"
     },
@@ -1112,6 +1112,16 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_cli__actor-commands",
+      "url": "https://docs.di-framework.dev/cli.html#actor-commands",
+      "pageTitle": "Actor commands",
+      "mainTitle": "CLI",
+      "breadcrumbs": "Docs|CLI|Actor commands",
+      "content": "`actor` inspects and resets local `@di-framework/actors`\nSQLite storage. It does not start a runtime.\n\n```bash\ndi-framework actor list [--namespace <name>] [--dir <path>] [--active]\ndi-framework actor inspect <actorType|identity> [--key <key>] [--namespace <name>] [--dir <path>] [--show-state]\ndi-framework actor reset --actor <name> [--key <key>] [--namespace <name>] [--dir <path>]\ndi-framework actor reset --all\ndi-framework actor clean [same flags as reset]\n```\n\n| Option | Description |\n| --- | --- |\n| `--namespace <name>` | Restrict to this namespace. |\n| `--dir <path>` | Storage root; default `.actors`. `--base-dir` is accepted as an alias. |\n| `--active` | List only active activations. |\n| `--key <key>` | Actor key (inspect; reset requires `--actor`). |\n| `--show-state` | Include committed private state (inspect). |\n| `--all` | Reset every actor under `--dir`. |\n\n`inspect` requires a positional type or identity (exit 2 if missing). `reset` / `clean` require\n`--actor`, `--namespace`, or `--all`. Missing `@di-framework/actors` exits `3`\n(`ACTORS_PACKAGE_UNAVAILABLE`). Not found exits `1` (`ACTOR_NOT_FOUND`).\n\nJSON `data`:\n\n- **list:** `{ namespace, baseDir, total, actors: [{ actorId, namespace, actorType, actorKey, status, runningCalls, pendingCalls, storagePath, failedMigration }] }`\n- **inspect:** the same identity fields plus `methods`, `failedMigration`, and `state` only with `--show-state`\n- **reset/clean:** `{ scope, deactivatedCount, deletedFiles, success }`",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_cli__database-migration-commands",
       "url": "https://docs.di-framework.dev/cli.html#database-migration-commands",
       "pageTitle": "Database migration commands",
@@ -1197,7 +1207,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Repositories - Decorator, SQL, and manifest migrations\n- Actors - Local virtual-actor runtime\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Repositories - Decorator, SQL, and manifest migrations\n- Actors - Local runtime, persistence, and `actor` commands\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -1727,7 +1737,7 @@
       "pageTitle": "Actors",
       "mainTitle": "Testing",
       "breadcrumbs": "Docs|Testing|Actors",
-      "content": "Register actor classes explicitly on an `ActorRuntime`. Default storage is in-memory. Direct\ncalls on a plain instance skip the mailbox and storage transaction; runtime tests go through\n`runtime.get(...)`. Import `@di-framework/actors/testing` only from tests (`bun:test`).\n\n```typescript\nconst runtime = new ActorRuntime();\nruntime.register(CounterActor);\nconst counter = runtime.get(CounterActor, 'test');\nawait counter.increment(1);\nawait runtime.clear();\n```\n\nSee Actors. For SQLite, use `SqliteActorStorage.temporary()` or\n`{ inMemory: true }` and `await storage.close()` after `runtime.clear()`.",
+      "content": "Register actor classes explicitly on an `ActorRuntime`. Default storage is in-memory. Direct\ncalls on a plain instance skip the mailbox and storage transaction; runtime tests go through\n`runtime.get(...)`. Import `@di-framework/actors/testing` only from tests (`bun:test`).\n\n```typescript\nconst runtime = new ActorRuntime();\nruntime.register(CounterActor);\nconst counter = runtime.get(CounterActor, 'test');\nawait counter.increment(1);\nawait runtime.clear();\n```\n\nSee Actors. For SQLite, use `SqliteActorStorage.temporary()` or\n`{ inMemory: true }` and `await storage.close()` after `runtime.clear()`. Discovery is for\napplication source trees; tests should keep calling `runtime.register(...)`. Reload tests use\n`runtime.reload({ policy: 'drain' | 'fail' })` — startup and reload never delete databases.",
       "product": "d",
       "version": "latest"
     },
@@ -2022,12 +2032,52 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_actors__local-development-discovery-reload-and-inspection",
+      "url": "https://docs.di-framework.dev/actors.html#local-development-discovery-reload-and-inspection",
+      "pageTitle": "Local development: discovery, reload, and inspection",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Local development: discovery, reload, and inspection",
+      "content": "Tooling landed in PR #420\n(closing di-framework#409), after\nthe v5.3.0 tag. No external services or Wasm tooling are required.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__discovery",
+      "url": "https://docs.di-framework.dev/actors.html#discovery",
+      "pageTitle": "Discovery",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Discovery",
+      "content": "```typescript\nimport { discoverActorClasses, generateActorRegistration } from '@di-framework/actors';\n\nconst actors = await discoverActorClasses({ rootDir: 'src' });\nconst registrationCode = generateActorRegistration(actors);\n```\n\nThe walker reads `.ts` / `.js` (skips `.d.ts`, `.test.ts`, `.spec.ts`, `node_modules`, `dist`,\n`.git`, `build`). A file must mention `@Actor` or `@di-framework/actors` before it is imported.\n`patterns` on `ActorDiscoveryOptions` is unused. Tests still register classes explicitly.\n\n`runtime.discoverAndRegister(options?)` and `ActorDevManager.discoverAndRegister` wrap the same\nwalk. Namespaces isolate applications: two `ActorRuntime` instances with `namespace: 'app-a'`\nand `'app-b'` can both register `CounterActor`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__reload",
+      "url": "https://docs.di-framework.dev/actors.html#reload",
+      "pageTitle": "Reload",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Reload",
+      "content": "```typescript\nawait runtime.reload({\n policy: 'drain', // or 'fail'\n timeoutMs: 5000,\n actors: [UpdatedActorClass],\n});\n```\n\nSequence: stop admission → drain or fail unstarted work → `onDeactivate` → release SQLite\nconnections and file locks → optional re-register → **clear the migration cache** so new\nmigrations run before the next call.\n\n| Policy | Queued work |\n| --- | --- |\n| `drain` (default) | Pending invocations complete |\n| `fail` | Unstarted queued tasks reject with `ActorReloadError` |\n\n**Preserved:** committed SQLite files / in-memory committed keys. **Not preserved:** in-memory\nactivations, mailboxes, uncommitted staged writes. Startup and reload **never delete**\npersistent state. A reload timeout aborts reload and restores admission without closing an\nactive transaction.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__cli",
+      "url": "https://docs.di-framework.dev/actors.html#cli",
+      "pageTitle": "CLI",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|CLI",
+      "content": "```text\ndi-framework actor list [--namespace <name>] [--dir <path>] [--active]\ndi-framework actor inspect <actorType|identity> [--key <key>] [--namespace <name>] [--dir <path>] [--show-state]\ndi-framework actor reset --actor <name> [--key <key>] [--namespace <name>] [--dir <path>]\ndi-framework actor reset --all\ndi-framework actor clean … # alias for reset\n```\n\nDefault `--dir` is `.actors`. Inspect does not dump private state unless `--show-state`. Reset\nrequires `--actor`, `--namespace`, or `--all` (exit 2 otherwise).\n\nThe counter-actor example\nwalks concurrent calls, persistence across restart, and these commands with `--namespace examples`.\n\nProgrammatic equivalents: `runtime.listActors`, `runtime.inspect(..., { showState })`,\n`runtime.reset({ namespace?, actorName?, actorKey?, all?, baseDir? })`.\n\nThere is no public `fixtures/` package. Tests use `@di-framework/actors/testing` contract actors\nor `SqliteActorStorage.temporary()`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_actors__next-steps",
       "url": "https://docs.di-framework.dev/actors.html#next-steps",
       "pageTitle": "Next steps",
       "mainTitle": "Actors",
       "breadcrumbs": "Docs|Actors|Next steps",
-      "content": "- Repositories - Shared `MigrationRunner`\n- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
+      "content": "- CLI - `actor list` / `inspect` / `reset` / `clean`\n- Repositories - Shared `MigrationRunner`\n- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
       "product": "d",
       "version": "latest"
     },

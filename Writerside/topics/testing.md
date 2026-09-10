@@ -553,7 +553,9 @@ await runtime.clear();
 ```
 
 See [Actors](actors.md#testing). For SQLite, use `SqliteActorStorage.temporary()` or
-`{ inMemory: true }` and `await storage.close()` after `runtime.clear()`.
+`{ inMemory: true }` and `await storage.close()` after `runtime.clear()`. Discovery is for
+application source trees; tests should keep calling `runtime.register(...)`. Reload tests use
+`runtime.reload({ policy: 'drain' | 'fail' })` — startup and reload never delete databases.
 
 ## Next Steps
 
