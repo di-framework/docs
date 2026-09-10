@@ -530,6 +530,14 @@ await memory.step('receipts', (job) => dispatcher.dispatch(job));
 
 See [Queues](queues.md#testing-with-the-in-memory-backend).
 
+## Database migrations
+
+Pass an explicit `MigrationRunner({ db, migrations })` in tests. `autoApply()` runs only when
+`NODE_ENV` is `development` or `test` (or `enabled: true`). Failed `up` methods leave no history
+row. There is no rollback command — drop the test database instead.
+
+See [Repositories](repositories.md#database-migrations).
+
 ## Next Steps
 
 - [Best Practices](best-practices.md) - Review recommended patterns

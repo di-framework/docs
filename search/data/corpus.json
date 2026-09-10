@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:18:54.084Z",
+  "generatedAt": "2026-09-10T14:20:09.338Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -362,6 +362,66 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_repositories__database-migrations",
+      "url": "https://docs.di-framework.dev/repositories.html#database-migrations",
+      "pageTitle": "Database migrations",
+      "mainTitle": "Repositories",
+      "breadcrumbs": "Docs|Repositories|Database migrations",
+      "content": "`@di-framework/repo` discovers and applies SQLite schema migrations from decorated classes, SQL\nfiles, and a JSON manifest. The three sources **merge**; they are not mutually exclusive.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #414, closing\ndi-framework#405).\nThey are documented here on **latest** (EAP) and are not in the frozen `/v5.3/` snapshot.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_repositories__decorator",
+      "url": "https://docs.di-framework.dev/repositories.html#decorator",
+      "pageTitle": "Decorator",
+      "mainTitle": "Repositories",
+      "breadcrumbs": "Docs|Repositories|Decorator",
+      "content": "```typescript\nimport { Migration, type MigrationExecutionContext } from '@di-framework/repo';\n\n@Migration({\n version: 1,\n description: 'create users table',\n binding: 'default',\n})\nexport class CreateUsersTable {\n async up(ctx: MigrationExecutionContext): Promise<void> {\n await ctx.sql(\n 'CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)',\n );\n }\n\n async down(ctx: MigrationExecutionContext): Promise<void> {\n await ctx.sql('DROP TABLE users');\n }\n}\n```\n\n`@Migration` requires `version` and `description`. `binding` defaults to `'default'`.\nRegistration happens at **import time**. The runner constructs `new target()` with no arguments —\nconstructor DI is not used. `up` is required at execution; `execute` / `run` are accepted aliases.\n`down` is stored on the definition but **`MigrationRunner.execute()` never calls it**. There is\nno rollback CLI.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_repositories__sql-files-and-json-manifests",
+      "url": "https://docs.di-framework.dev/repositories.html#sql-files-and-json-manifests",
+      "pageTitle": "SQL files and JSON manifests",
+      "mainTitle": "Repositories",
+      "breadcrumbs": "Docs|Repositories|SQL files and JSON manifests",
+      "content": "SQL discovery (`discoverSqlMigrations(dir)`): `*.sql` except `*.down.sql`. Version and\ndescription come from header comments or the filename (`001_create_users.sql`,\n`V2__add_index.sql`). Split bodies with `-- migrate:up` / `-- migrate:down`.\n\n```sql\n-- migration:version 10\n-- migration:description create posts table\n-- migration:binding default\n-- migrate:up\nCREATE TABLE posts (id INTEGER PRIMARY KEY, title TEXT);\n-- migrate:down\nDROP TABLE posts;\n```\n\nManifest discovery (`discoverManifestMigrations`) reads JSON only (not TOML):\n\n```json\n{\n \"binding\": \"ecommerce\",\n \"migrations\": [\n { \"version\": \"1.0\", \"description\": \"orders table\", \"file\": \"schema.sql\" },\n { \"version\": \"1.1\", \"description\": \"inline\", \"sql\": \"CREATE TABLE items (id INT);\" }\n ]\n}\n```\n\n`entry.file` is resolved relative to the manifest directory. Optional `directory` merges SQL\nfiles; the same `(version, binding)` from the directory is skipped.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_repositories__runner",
+      "url": "https://docs.di-framework.dev/repositories.html#runner",
+      "pageTitle": "Runner",
+      "mainTitle": "Repositories",
+      "breadcrumbs": "Docs|Repositories|Runner",
+      "content": "```typescript\nimport { MigrationRunner } from '@di-framework/repo';\n\nconst runner = new MigrationRunner({ db, binding: 'accounts' });\nawait runner.execute();\nconst status = await runner.status();\n```\n\nHistory lives in `_migrations` keyed by `(version, binding)`. A lock table\n`_migrations_lock` serializes runners (60s steal timeout). Each successful `up` runs inside\n`db.transaction(...)`; a thrown `up` rolls back and does not write history.\n\nVersions: integers compare numerically; strings with `.`, `_`, or `-` compare by dotted\nsegments (`1.2` < `1.10`). Duplicate versions throw `MigrationIntegrityError`. A pending version\nlower than the latest applied throws `MigrationOrderError`.\n\nChecksums: SQL/manifest use `sha256(upSql)`; decorator checksums use `Class.toString()` (native\nvs minified Wasm output can disagree).\n\n`autoApply()` applies pending migrations only when `NODE_ENV` is `development` or `test`, unless\n`enabled: true`. Nothing in application bootstrap calls it except tests. Actor SQLite databases\nreuse this runner on activation with `binding` equal to the actor type.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_repositories__cli",
+      "url": "https://docs.di-framework.dev/repositories.html#cli",
+      "pageTitle": "CLI",
+      "mainTitle": "Repositories",
+      "breadcrumbs": "Docs|Repositories|CLI",
+      "content": "```text\ndi-framework migrations status [options]\ndi-framework migrations execute [options]\n```\n\n| Flag | Behavior |\n| --- | --- |\n| `--db <path>` | SQLite path. Default: `DATABASE_URL` \\|\\| `DB_PATH` \\|\\| `./dev.db` |\n| `--dir <path>` | SQL directory (default `./migrations` if no manifest) |\n| `--manifest <path>` | JSON manifest (default `migrations.json` if present) |\n| `--binding <name>` | Default `default` |\n| `--module <path>` | Repeatable; import `@Migration` classes |\n| `--step <count>` | Execute only: max pending migrations |\n| `--dry-run` | Execute only: plan, do not apply |\n\nJSON `data`: status `{ binding, isUpToDate, applied[], pending[] }`; execute\n`{ binding, applied[], pending[], dryRun, durationMs }`. Binding mismatch exits `2`. Connect or\nrunner failures exit `1`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_repositories__limitations",
+      "url": "https://docs.di-framework.dev/repositories.html#limitations",
+      "pageTitle": "Limitations",
+      "mainTitle": "Repositories",
+      "breadcrumbs": "Docs|Repositories|Limitations",
+      "content": "- `down` is parsed and stored; it is never executed by the runner or CLI\n- SQLite cannot fully roll back some DDL even inside a transaction\n- No baseline API, no repeatable migrations, no constructor-injected `Database`\n- wasmCloud does not scan `@Migration` classes at build time; actor migrations run in-guest\n before activation",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_ai-utils",
       "url": "https://docs.di-framework.dev/ai-utils.html",
       "pageTitle": "Agents",
@@ -557,7 +617,7 @@
       "pageTitle": "Features",
       "mainTitle": "di-framework",
       "breadcrumbs": "Docs|di-framework|Features",
-      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.\n- **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
+      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access, storage-agnostic repositories, and decorator/SQL/manifest database migrations.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.\n- **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
       "product": "d",
       "version": "latest"
     },
@@ -937,7 +997,7 @@
       "pageTitle": "Canonical command tree",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Canonical command tree",
-      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n├── mx\n│ ├── build\n│ ├── test\n│ ├── typecheck\n│ └── publish\n├── queue\n│ ├── list\n│ ├── inspect\n│ └── retry\n└── extensions\n ├── install\n ├── uninstall\n └── list\n```\n\nThis tree is exhaustive for built-in commands. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`. The single sanctioned extension point is the\ninstalled-extension namespace: a top-level token that is not a built-in command may dispatch to an\ninstalled CLI extension.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n| `queue list\\|inspect\\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |\n| `extensions install\\|uninstall\\|list` | Manage installed CLI extensions. |\n\nThe command paths and conventions on this page are the stable public contract.",
+      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n├── mx\n│ ├── build\n│ ├── test\n│ ├── typecheck\n│ └── publish\n├── migrations\n│ ├── status\n│ └── execute\n├── queue\n│ ├── list\n│ ├── inspect\n│ └── retry\n└── extensions\n ├── install\n ├── uninstall\n └── list\n```\n\nThis tree is exhaustive for built-in commands. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`. The single sanctioned extension point is the\ninstalled-extension namespace: a top-level token that is not a built-in command may dispatch to an\ninstalled CLI extension.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n| `migrations status\\|execute` | Show or apply decorator, SQL, and manifest database migrations. |\n| `queue list\\|inspect\\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |\n| `extensions install\\|uninstall\\|list` | Manage installed CLI extensions. |\n\nThe command paths and conventions on this page are the stable public contract.",
       "product": "d",
       "version": "latest"
     },
@@ -1052,6 +1112,16 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_cli__database-migration-commands",
+      "url": "https://docs.di-framework.dev/cli.html#database-migration-commands",
+      "pageTitle": "Database migration commands",
+      "mainTitle": "CLI",
+      "breadcrumbs": "Docs|CLI|Database migration commands",
+      "content": "`migrations` delegates discovery and execution to `@di-framework/repo`.\n\n```bash\ndi-framework migrations status [options]\ndi-framework migrations execute [options]\n```\n\n| Option | Description |\n| --- | --- |\n| `--db <path>` | SQLite path. Default: `DATABASE_URL` \\|\\| `DB_PATH` \\|\\| `./dev.db`. |\n| `--dir <path>` | SQL directory. Default `./migrations` when no manifest is present. |\n| `--manifest <path>` | JSON manifest. Default `migrations.json` if that file exists. |\n| `--binding <name>` | Binding name; default `default`. |\n| `--module <path>` | Repeatable. Import modules so `@Migration` classes register. |\n| `--step <count>` | Execute only: maximum pending migrations to apply. |\n| `--dry-run` | Execute only: plan without applying. |\n\nJSON `data` is `{ binding, isUpToDate, applied, pending }` for status and\n`{ binding, applied, pending, dryRun, durationMs }` for execute. A requested `--binding` that\ndoes not match discovered migrations exits `2` (`MIGRATION_BINDING_MISMATCH`). Connect and runner\nfailures exit `1`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_cli__durable-queue-commands",
       "url": "https://docs.di-framework.dev/cli.html#durable-queue-commands",
       "pageTitle": "Durable queue commands",
@@ -1127,7 +1197,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Repositories - Decorator, SQL, and manifest migrations\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -1638,6 +1708,16 @@
       "mainTitle": "Testing",
       "breadcrumbs": "Docs|Testing|Durable queues",
       "content": "Use `InMemoryQueueBackend` with `advanceTime`, `step`, and `drain` instead of real sleeps.\nImport handler modules before producing jobs if you rely on `@QueueHandler` enqueue defaults.\n\n```typescript\nconst memory = new InMemoryQueueBackend();\nqueue.setBackend(memory);\nawait queue.get('receipts').enqueue(payload);\nawait memory.step('receipts', (job) => dispatcher.dispatch(job));\n```\n\nSee Queues.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_testing__database-migrations",
+      "url": "https://docs.di-framework.dev/testing.html#database-migrations",
+      "pageTitle": "Database migrations",
+      "mainTitle": "Testing",
+      "breadcrumbs": "Docs|Testing|Database migrations",
+      "content": "Pass an explicit `MigrationRunner({ db, migrations })` in tests. `autoApply()` runs only when\n`NODE_ENV` is `development` or `test` (or `enabled: true`). Failed `up` methods leave no history\nrow. There is no rollback command — drop the test database instead.\n\nSee Repositories.",
       "product": "d",
       "version": "latest"
     },
