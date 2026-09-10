@@ -33,4 +33,5 @@ independently deployed components by the CLI.
 - [Kubernetes with di-framework-kube](kube.md) - Deploy examples and verify real service bindings
 - [Private service bindings](service-bindings.md) - Named in-process contracts without URLs
 - [Remote actors](actors-distributed.md) - Cross-process actor RPC independent of wasmCloud
+- [wasmCloud actors](wasmcloud.md#actors) - Single-host actor workloads and hostPath storage
 - [CLI](cli.md) - Install extensions and use the canonical command tree

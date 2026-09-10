@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:24:06.216Z",
+  "generatedAt": "2026-09-10T14:25:17.434Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -2077,7 +2077,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "Actors",
       "breadcrumbs": "Docs|Actors|Next steps",
-      "content": "- Remote actors and ownership - RPC, fencing, and recovery\n- CLI - `actor list` / `inspect` / `reset` / `clean`\n- Repositories - Shared `MigrationRunner`\n- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
+      "content": "- Remote actors and ownership - RPC, fencing, and recovery\n- wasmCloud - Single-host build and hostPath storage\n- CLI - `actor list` / `inspect` / `reset` / `clean`\n- Repositories - Shared `MigrationRunner`\n- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
       "product": "d",
       "version": "latest"
     },
@@ -2177,7 +2177,7 @@
       "pageTitle": "Remote actors and ownership",
       "mainTitle": "Remote actors and ownership",
       "breadcrumbs": "Docs|Remote actors and ownership",
-      "content": "`@di-framework/actors` can invoke actors across processes through an explicit RPC dispatcher and\na pluggable transport. Ownership generations (fencing tokens) reject stale-owner writes.\nDeduplication caches committed results so a retried `requestId` does not re-run the method.\n\nThis guide is independent of wasmCloud. Multi-host wasmCloud routing is **not** wired to this\nprotocol. Single-host wasmCloud deploy remains `replicas: 1` with a hostPath volume.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #421, closing\ndi-framework#410).\nThey are documented here on **latest** (EAP).\n\nRead the local runtime first.",
+      "content": "`@di-framework/actors` can invoke actors across processes through an explicit RPC dispatcher and\na pluggable transport. Ownership generations (fencing tokens) reject stale-owner writes.\nDeduplication caches committed results so a retried `requestId` does not re-run the method.\n\nThis guide is independent of wasmCloud. Multi-host wasmCloud routing is **not** wired to this\nprotocol. Single-host wasmCloud deploy remains `replicas: 1` with a hostPath volume; see\nActors on wasmCloud.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #421, closing\ndi-framework#410).\nThey are documented here on **latest** (EAP).\n\nRead the local runtime first.",
       "product": "d",
       "version": "latest"
     },
@@ -2547,7 +2547,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "Deployment",
       "breadcrumbs": "Docs|Deployment|Next steps",
-      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- Private service bindings - Named in-process contracts without URLs\n- Remote actors - Cross-process actor RPC independent of wasmCloud\n- CLI - Install extensions and use the canonical command tree",
+      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- Private service bindings - Named in-process contracts without URLs\n- Remote actors - Cross-process actor RPC independent of wasmCloud\n- wasmCloud actors - Single-host actor workloads and hostPath storage\n- CLI - Install extensions and use the canonical command tree",
       "product": "d",
       "version": "latest"
     },
@@ -3832,6 +3832,46 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_wasmcloud__actors",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#actors",
+      "pageTitle": "Actors",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Actors",
+      "content": "Actor wasmCloud integration landed in\nPR #422\n(closing di-framework#411), after\nthe v5.3.0 tag.\n\nCarry a local actor into a **single-host** wasmCloud workload. Mailboxes live in the guest.\nSQLite files live on a hostPath volume. Multi-host relocation is not implemented; see\nremote actors for the out-of-band ownership protocol.\n\nThe wasmcloud-actor-counter example\nsets `\"actors\": true` in `di-framework.config.json` and reuses the local `CounterActor`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__build",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#build",
+      "pageTitle": "Build",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Build",
+      "content": "`di-framework wasmcloud build` scans `@Actor` / `@ActorMethod` and writes `.di-framework/actors.js`:\n\n```javascript\nstorage = new SqliteActorStorage({\n baseDir: resolveStorageDir(), // ACTOR_STORAGE_DIR || DI_STORAGE_DIR || './.actors'\n fileLocking: false,\n});\nruntime = new ActorRuntime({ storage });\nruntime.register(CounterActor, { name, namespace });\nexport async function dispatchActorInvocation(actorType, actorKey, method, args = [])\n```\n\nInside the guest, `SqliteActorStorage` is `WasmSqliteActorStorage` (`wasmcloud` export\ncondition). `fileLocking` is ignored. Exclusive write is a **deployment** constraint\n(`replicas: 1`), not a VFS lock. `DI_SQLITE_BACKEND=wasm`.\n\nMigrations declared on `@Actor({ migrations })` stay on the imported class; there is no separate\nmigration artifact. They still run before activation. A failed migration blocks the actor and\nrejects invocations.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__private-invocation",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#private-invocation",
+      "pageTitle": "Private invocation",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Private invocation",
+      "content": "Control path `POST /_actors/invoke`. Other HTTP routes are not intercepted by actor headers.\nIf `DI_CONTROL_TOKEN` / `DI_CONTROL_IDENTITIES` are unset, local/dev is open (anonymous).\nError JSON uses stable `error.name`; handler text is `'Actor invocation failed'` (no stacks).",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_wasmcloud__deployed-storage",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#deployed-storage",
+      "pageTitle": "Deployed storage",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Deployed storage",
+      "content": "Generated `WorkloadDeployment`:\n\n- `spec.replicas: 1` (any other value throws `WASMCLOUD_STORAGE_REPLICA_CONSTRAINT`)\n- `deployPolicy: Recreate` — drain in-flight calls and release the volume before the new\n version starts (not a Kubernetes `strategy: { type: Recreate }` field)\n- `hostSelector.hostgroup: storage`\n- hostPath `/var/lib/di-framework/storage/<wit-name>` mounted at `/data/actors`\n- Env: `ACTOR_STORAGE_DIR=/data/actors`\n\nThere is no PersistentVolumeClaim. Process restart on the same hostPath keeps SQLite files.\n**Host loss loses the files** unless the operator backs that directory. Multi-replica and\nmulti-host failover are not supported with this storage.\n\n```bash\ndi-framework wasmcloud build\ndi-framework wasmcloud deploy\n```\n\nUpgrade/drain: Recreate waits for the old replica to exit so the new one can open `/data/actors`.\nMigration failure: the actor refuses activation; inspect `failedMigration` locally with\n`di-framework actor inspect` against a copied DB, or read control error names.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_wasmcloud__application-deploy-and-destroy",
       "url": "https://docs.di-framework.dev/wasmcloud.html#application-deploy-and-destroy",
       "pageTitle": "Application deploy and destroy",
@@ -3857,7 +3897,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Next steps",
-      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Scheduling - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`\n- Queues - Durable workers without public ingress\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
+      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Scheduling - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`\n- Queues - Durable workers without public ingress\n- Actors - Local runtime reused by wasmCloud guests\n- Remote actors - Ownership protocol (not wasmCloud multi-host routing)\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
       "product": "d",
       "version": "latest"
     },

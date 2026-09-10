@@ -356,6 +356,73 @@ uses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and
 
 See [Queues](queues.md#wasmcloud-workers).
 
+## Actors
+
+> Actor wasmCloud integration landed in
+> [PR #422](https://github.com/di-framework/di-framework/pull/422)
+> (closing [di-framework#411](https://github.com/di-framework/di-framework/issues/411)), after
+> the v5.3.0 tag.
+
+Carry a local actor into a **single-host** wasmCloud workload. Mailboxes live in the guest.
+SQLite files live on a hostPath volume. Multi-host relocation is not implemented; see
+[remote actors](actors-distributed.md) for the out-of-band ownership protocol.
+
+The [wasmcloud-actor-counter example](https://github.com/di-framework/di-framework/tree/main/examples/wasmcloud-actor-counter)
+sets `"actors": true` in `di-framework.config.json` and reuses the local `CounterActor`.
+
+### Build
+
+`di-framework wasmcloud build` scans `@Actor` / `@ActorMethod` and writes `.di-framework/actors.js`:
+
+```javascript
+storage = new SqliteActorStorage({
+  baseDir: resolveStorageDir(), // ACTOR_STORAGE_DIR || DI_STORAGE_DIR || './.actors'
+  fileLocking: false,
+});
+runtime = new ActorRuntime({ storage });
+runtime.register(CounterActor, { name, namespace });
+export async function dispatchActorInvocation(actorType, actorKey, method, args = [])
+```
+
+Inside the guest, `SqliteActorStorage` is `WasmSqliteActorStorage` (`wasmcloud` export
+condition). `fileLocking` is ignored. Exclusive write is a **deployment** constraint
+(`replicas: 1`), not a VFS lock. `DI_SQLITE_BACKEND=wasm`.
+
+Migrations declared on `@Actor({ migrations })` stay on the imported class; there is no separate
+migration artifact. They still run before activation. A failed migration blocks the actor and
+rejects invocations.
+
+### Private invocation
+
+Control path `POST /_actors/invoke`. Other HTTP routes are not intercepted by actor headers.
+If `DI_CONTROL_TOKEN` / `DI_CONTROL_IDENTITIES` are unset, local/dev is open (anonymous).
+Error JSON uses stable `error.name`; handler text is `'Actor invocation failed'` (no stacks).
+
+### Deployed storage
+
+Generated `WorkloadDeployment`:
+
+- `spec.replicas: 1` (any other value throws `WASMCLOUD_STORAGE_REPLICA_CONSTRAINT`)
+- `deployPolicy: Recreate` — drain in-flight calls and release the volume before the new
+  version starts (not a Kubernetes `strategy: { type: Recreate }` field)
+- `hostSelector.hostgroup: storage`
+- hostPath `/var/lib/di-framework/storage/<wit-name>` mounted at `/data/actors`
+- Env: `ACTOR_STORAGE_DIR=/data/actors`
+
+There is no PersistentVolumeClaim. Process restart on the same hostPath keeps SQLite files.
+**Host loss loses the files** unless the operator backs that directory. Multi-replica and
+multi-host failover are not supported with this storage.
+
+```bash
+di-framework wasmcloud build
+di-framework wasmcloud deploy
+# restart the workload and call the same actor key — count is unchanged if the volume survived
+```
+
+Upgrade/drain: Recreate waits for the old replica to exit so the new one can open `/data/actors`.
+Migration failure: the actor refuses activation; inspect `failedMigration` locally with
+`di-framework actor inspect` against a copied DB, or read control error names.
+
 ## Application deploy and destroy
 
 ```bash
@@ -408,5 +475,7 @@ and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are 
 - [Private service bindings](service-bindings.md) - In-process named contracts, not host WIT imports
 - [Scheduling](scheduling.md) - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`
 - [Queues](queues.md) - Durable workers without public ingress
+- [Actors](actors.md) - Local runtime reused by wasmCloud guests
+- [Remote actors](actors-distributed.md) - Ownership protocol (not wasmCloud multi-host routing)
 - [Installation](installation.md) - Core package and CLI setup
 - [Kubernetes with di-framework-kube](kube.md) - Local cluster and verified service-binding examples
