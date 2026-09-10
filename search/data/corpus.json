@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-08T20:18:23.623Z",
+  "generatedAt": "2026-09-10T14:15:51.287Z",
   "docs": [
     {
       "objectID": "docs_agent-foundations",
@@ -427,7 +427,7 @@
       "pageTitle": "Features",
       "mainTitle": "di-framework",
       "breadcrumbs": "Docs|di-framework|Features",
-      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
+      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
       "product": "d",
       "version": "latest"
     },
@@ -987,7 +987,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -1177,7 +1177,7 @@
       "pageTitle": "Related",
       "mainTitle": "RPC",
       "breadcrumbs": "Docs|RPC|Related",
-      "content": "- Events — in-process bus and broker bridge (fire-and-forget, not request/response)\n- Sockets — the secure wire transport reused by `@di-framework/rpc/socket`\n- HTTP Router — REST + OpenAPI; RPC is method-oriented instead\n- Authentication — identity to enforce inside RPC interceptors",
+      "content": "- Private service bindings — named in-process contracts without a URL or HTTP route\n- Events — in-process bus and broker bridge (fire-and-forget, not request/response)\n- Sockets — the secure wire transport reused by `@di-framework/rpc/socket`\n- HTTP Router — REST + OpenAPI; RPC is method-oriented instead\n- Authentication — identity to enforce inside RPC interceptors",
       "product": "d",
       "version": "latest"
     },
@@ -1472,12 +1472,22 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_testing__private-service-bindings",
+      "url": "https://docs.di-framework.dev/testing.html#private-service-bindings",
+      "pageTitle": "Private service bindings",
+      "mainTitle": "Testing",
+      "breadcrumbs": "Docs|Testing|Private service bindings",
+      "content": "Substitute a bound dependency without changing caller code. Register a mock on\n`serviceBindingToken`, or use `LocalServiceDevManager.substituteMock`. Authorization still\napplies locally: `bind(..., { grantAccess: false })` is how tests prove unbound callers are\nrejected with `UnboundCallerError`.\n\n```typescript\nimport { serviceBindingToken } from '@di-framework/core/service-bindings';\n\ntestContainer.registerValue(serviceBindingToken('inventory'), {\n reserve: async () => ({ reservationId: 'mock' }),\n release: async () => ({ released: true }),\n checkStock: async () => 99,\n});\n```\n\nSee Private service bindings.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_testing__next-steps",
       "url": "https://docs.di-framework.dev/testing.html#next-steps",
       "pageTitle": "Next Steps",
       "mainTitle": "Testing",
       "breadcrumbs": "Docs|Testing|Next Steps",
-      "content": "- Best Practices - Review recommended patterns\n- Error Handling - Learn about error scenarios\n- API Reference - Complete API documentation",
+      "content": "- Best Practices - Review recommended patterns\n- Error Handling - Learn about error scenarios\n- API Reference - Complete API documentation\n- Private service bindings - Grants, mocks, and unbound-caller tests",
       "product": "d",
       "version": "latest"
     },
@@ -1887,7 +1897,7 @@
       "pageTitle": "Deployment",
       "mainTitle": "Deployment",
       "breadcrumbs": "Docs|Deployment",
-      "content": "di-framework supports applications deployed to Cloud Foundry and applications compiled to\nWebAssembly components for wasmCloud. Choose the integration that matches the target runtime:\n\n| Target | Integration | Use it for |\n| --- | --- | --- |\n| Cloud Foundry | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |\n| wasmCloud | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |\n| Kubernetes with di-framework-kube | `di-framework-kube` and the wasmCloud extension | Create a local Kubesolo cluster with the wasmCloud operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |\n\nThe Cloud Foundry package configures an application at runtime; the platform CLI and manifest\nremain responsible for pushing it. The wasmCloud extension provides its build, development,\napplication deploy and destroy, and managed-platform commands through the main `di-framework`\nexecutable. Application deploy never runs Pulumi; Pulumi is used only for explicit\n`wasmcloud platform` lifecycle of a managed target.\n\nThe kube CLI manages Kubesolo and the operator directly, with an embedded Helm client.\nIts example workspace uses an external deployment target and pins the framework to 5.3.0.\nNative services are consumed through `@di-framework/wasmcloud`; the platform and example\nhelpers provision their backends and credentials. See native service bindings\nfor the build and runtime contract.",
+      "content": "di-framework supports applications deployed to Cloud Foundry and applications compiled to\nWebAssembly components for wasmCloud. Choose the integration that matches the target runtime:\n\n| Target | Integration | Use it for |\n| --- | --- | --- |\n| Cloud Foundry | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |\n| wasmCloud | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |\n| Kubernetes with di-framework-kube | `di-framework-kube` and the wasmCloud extension | Create a local Kubesolo cluster with the wasmCloud operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |\n\nThe Cloud Foundry package configures an application at runtime; the platform CLI and manifest\nremain responsible for pushing it. The wasmCloud extension provides its build, development,\napplication deploy and destroy, and managed-platform commands through the main `di-framework`\nexecutable. Application deploy never runs Pulumi; Pulumi is used only for explicit\n`wasmcloud platform` lifecycle of a managed target.\n\nThe kube CLI manages Kubesolo and the operator directly, with an embedded Helm client.\nIts example workspace uses an external deployment target and pins the framework to 5.3.0.\nNative services are consumed through `@di-framework/wasmcloud`; the platform and example\nhelpers provision their backends and credentials. See native service bindings\nfor the build and runtime contract.\n\nApplication-authored private service bindings (`@ExportService` /\n`@ServiceBinding`) are a separate in-process contract: callers receive a named DI proxy and do\nnot configure a URL. They are not wasmCloud host capabilities and are not mapped onto\nindependently deployed components by the CLI.",
       "product": "d",
       "version": "latest"
     },
@@ -1897,7 +1907,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "Deployment",
       "breadcrumbs": "Docs|Deployment|Next steps",
-      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- CLI - Install extensions and use the canonical command tree",
+      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- Private service bindings - Named in-process contracts without URLs\n- CLI - Install extensions and use the canonical command tree",
       "product": "d",
       "version": "latest"
     },
@@ -2622,6 +2632,126 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_service-bindings",
+      "url": "https://docs.di-framework.dev/service-bindings.html",
+      "pageTitle": "Private service bindings",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings",
+      "content": "Independently authored services can export a callable contract and grant named callers access\nthrough DI. Callers invoke operations on a binding name; they do not configure a URL or an\nexposed HTTP endpoint.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #416, closing\ndi-framework#402).\nThey are documented here on **latest** (EAP) and are not in the frozen `/v5.3/` snapshot.\n\nThe runtime is **in-process**. `invoke()` is a same-process method call on a registered export.\nThere is no RPC, HTTP, or wasmCloud hop in this package. Use the same decorator API in local\ndevelopment and tests; map targets with configuration or `LocalServiceDevManager` instead of\nchanging caller code.\n\nThis is distinct from JSON-RPC and gRPC (typed request/response over a transport) and\nfrom wasmCloud native bindings (Postgres, KV, messaging,\nand similar host capabilities).",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__installation",
+      "url": "https://docs.di-framework.dev/service-bindings.html#installation",
+      "pageTitle": "Installation",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|Installation",
+      "content": "```bash\nbun add @di-framework/core\n```\n\nCanonical imports come from `@di-framework/core/service-bindings`. Decorators are also\nre-exported from `@di-framework/core/decorators`.\n\n```typescript\nimport { Container } from '@di-framework/core/decorators';\nimport { useContainer } from '@di-framework/core/container';\nimport {\n ExportService,\n ServiceBinding,\n LocalServiceDevManager,\n serviceBindingToken,\n UnboundCallerError,\n} from '@di-framework/core/service-bindings';\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__checkout-calling-inventory",
+      "url": "https://docs.di-framework.dev/service-bindings.html#checkout-calling-inventory",
+      "pageTitle": "Checkout calling inventory",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|Checkout calling inventory",
+      "content": "The checkout-inventory example\nis the runnable walkthrough.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__1-declare-the-contract",
+      "url": "https://docs.di-framework.dev/service-bindings.html#1-declare-the-contract",
+      "pageTitle": "1. Declare the contract",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|1. Declare the contract",
+      "content": "```typescript\nexport interface ReservationItem {\n sku: string;\n quantity: number;\n}\n\nexport interface InventoryContract {\n reserve(items: ReservationItem[]): Promise<{ reservationId: string }>;\n release(reservationId: string): Promise<{ released: boolean }>;\n checkStock(sku: string): Promise<number>;\n}\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__2-export-operations-on-the-target",
+      "url": "https://docs.di-framework.dev/service-bindings.html#2-export-operations-on-the-target",
+      "pageTitle": "2. Export operations on the target",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|2. Export operations on the target",
+      "content": "```typescript\n@Container()\n@ExportService({\n name: 'inventory-service',\n version: '1.0.0',\n operations: ['reserve', 'release', 'checkStock'],\n description: 'Private inventory management service',\n})\nexport class InventoryService implements InventoryContract {\n async reserve(items: ReservationItem[]) {\n return { reservationId: 'res_1' };\n }\n\n async release(reservationId: string) {\n return { released: true, reservationId };\n }\n\n async checkStock(sku: string) {\n return 0;\n }\n}\n```\n\n`ExportService('inventory-service')` is equivalent to `{ name: 'inventory-service' }`.\n`operations` lists the methods bound callers may invoke. If it is omitted, the runtime discovers\nprototype function names (not instance arrow fields). Declare `operations` explicitly when the\nexport set should be narrower than every method.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__3-inject-a-named-binding-on-the-caller",
+      "url": "https://docs.di-framework.dev/service-bindings.html#3-inject-a-named-binding-on-the-caller",
+      "pageTitle": "3. Inject a named binding on the caller",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|3. Inject a named binding on the caller",
+      "content": "```typescript\n@Container()\nexport class CheckoutService {\n constructor(\n @ServiceBinding('inventory', {\n caller: 'checkout-service',\n target: 'inventory-service',\n expectedOperations: ['reserve', 'release'],\n })\n private readonly inventory: InventoryContract,\n ) {}\n\n async placeOrder(items: ReservationItem[]) {\n const reservation = await this.inventory.reserve(items);\n return reservation.reservationId;\n }\n}\n```\n\nInjection always yields a proxy. Authorization, missing targets, and contract mismatches are\nchecked **at invocation**, not at construction.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__4-grant-access-and-run-both-servic_3b3d9b",
+      "url": "https://docs.di-framework.dev/service-bindings.html#4-grant-access-and-run-both-services-locally",
+      "pageTitle": "4. Grant access and run both services locally",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|4. Grant access and run both services locally",
+      "content": "There is no filesystem auto-discovery. Register exports and grants explicitly:\n\n```typescript\nconst dev = new LocalServiceDevManager();\n\ndev.registerService('inventory-service', new InventoryService(), {\n operations: ['reserve', 'release', 'checkStock'],\n});\n\ndev.bind('checkout-service', 'inventory', 'inventory-service', {\n allowedOperations: ['reserve', 'release', 'checkStock'],\n grantAccess: true,\n});\n\n// Bound in configuration but not granted — invocations throw UnboundCallerError.\ndev.bind('rogue-service', 'inventory', 'inventory-service', {\n grantAccess: false,\n});\n\nconsole.log(dev.formatStatusTable());\n\nconst checkout = useContainer().resolve(CheckoutService);\nawait checkout.placeOrder([{ sku: 'laptop', quantity: 1 }]);\n```\n\nFrom the example package:\n\n```bash\nbun run dev # in-process mesh + demo calls\nbun test\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__configuration-and-target-selection",
+      "url": "https://docs.di-framework.dev/service-bindings.html#configuration-and-target-selection",
+      "pageTitle": "Configuration and target selection",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|Configuration and target selection",
+      "content": "`ServiceBindingRuntime.current.configure()` maps the current service's binding names to targets\nand records grants. Environment can change the target without changing caller code:\n\n```typescript\nimport { ServiceBindingRuntime } from '@di-framework/core/service-bindings';\n\nServiceBindingRuntime.current.configure({\n currentServiceId: 'checkout-service',\n environment: 'production',\n bindings: { inventory: 'inventory-service' },\n grants: [\n {\n caller: 'checkout-service',\n target: 'inventory-service',\n allowedOperations: ['reserve', 'release', 'checkStock'],\n },\n ],\n});\n```\n\n`bindings` may also be `{ inventory: { target, allowedOperations, mock } }`. `callers` maps\n`{ [callerId]: { [bindingName]: CallerBindingConfig } }` when one runtime hosts several callers.\n\nConstructor defaults and environment:\n\n| Variable | Role |\n| --- | --- |\n| `DI_SERVICE_ID` | Current service id (default `default-service`) |\n| `DI_SERVICE_ENV` | Environment (else `NODE_ENV`, else `development`) |\n| `DI_BINDINGS` | JSON object mapping binding names for the **current** service |\n| `DI_SERVICE_GRANTS` | JSON array of grants; entries with `environment` set are skipped when it does not match |\n\nInvalid JSON logs a warning and is ignored. A grant of `caller: '*'` authorizes every caller of\nthat target. `requiresAuthorization: false` on `@ExportService` skips grant checks for that\nexport.\n\n`LocalServiceDevManager` forces `environment = 'development'`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__status-reload-and-mocks",
+      "url": "https://docs.di-framework.dev/service-bindings.html#status-reload-and-mocks",
+      "pageTitle": "Status, reload, and mocks",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|Status, reload, and mocks",
+      "content": "| API | Behavior |\n| --- | --- |\n| `getStatus()` / `formatStatusTable()` | Reports `CONNECTED`, `UNBOUND`, `UNAVAILABLE`, or `MOCKED` |\n| `diagnose()` | Emits `UNBOUND_CALLER` and `TARGET_UNAVAILABLE` diagnostics |\n| `stopService` / `startService` | Flip the export between `stopped` and `running` |\n| `reloadService(name, instance)` | Re-register the export under the same name; existing proxies keep working |\n| `substituteMock(bindingName, mock, caller?)` | Serve a mock without changing caller classes |\n| `reset()` | Clear the manager / `ServiceBindingRuntime.reset()` |\n\nMocks skip grant checks unless `setEnforceAuthorizationOnMocks(true)`.\n\nFor tests, register a mock on the DI token instead of going through the manager:\n\n```typescript\ncontainer.registerValue(serviceBindingToken('inventory'), {\n reserve: async () => ({ reservationId: 'mock' }),\n release: async () => ({ released: true }),\n checkStock: async () => 99,\n});\n```\n\n`serviceBindingToken(bindingName, caller?)` is `service-binding:${caller}:${bindingName}` when a\ncaller is supplied, otherwise `service-binding:${bindingName}`. Values with `$bindingMeta` are\ntreated as real proxies and are not used as mocks.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__errors-and-troubleshooting",
+      "url": "https://docs.di-framework.dev/service-bindings.html#errors-and-troubleshooting",
+      "pageTitle": "Errors and troubleshooting",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|Errors and troubleshooting",
+      "content": "All errors extend `ServiceBindingError` and include a `code` plus `details.remediation`.\n\n| Class | `code` | When |\n| --- | --- | --- |\n| `UnboundCallerError` | `UNBOUND_CALLER` | No grant from caller to target while authorization is on |\n| `MissingBindingError` | `MISSING_BINDING` | Binding is not mapped and no export uses that name |\n| `TargetUnavailableError` | `TARGET_UNAVAILABLE` | Export is missing or `status !== 'running'` |\n| `IncompatibleContractError` | `INCOMPATIBLE_CONTRACT` | Operation is not in the export set, or a mock lacks the method |\n| `UnauthorizedOperationError` | `UNAUTHORIZED_OPERATION` | Grant exists but `allowedOperations` excludes the method |\n\n| Symptom | Likely cause |\n| --- | --- |\n| `UNBOUND_CALLER` | Missing `bind` / `grant` / `configure({ grants })` |\n| `MISSING_BINDING` | Binding name never mapped and no matching `@ExportService` name |\n| `TARGET_UNAVAILABLE` | `stopService`, or the class was never registered |\n| `INCOMPATIBLE_CONTRACT` | Calling a method not listed in `operations` |\n| Mock ignored | Caller-scoped token does not match the invoke caller, or the value is a real proxy |\n\n`expectedOperations` on `@ServiceBinding` and `timeoutMs` / `required` on binding options are\nstored on the decorator; the runtime does not validate or enforce them today.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__local-versus-deployed",
+      "url": "https://docs.di-framework.dev/service-bindings.html#local-versus-deployed",
+      "pageTitle": "Local versus deployed",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|Local versus deployed",
+      "content": "| | Local (`LocalServiceDevManager`) | Deployed as implemented |\n| --- | --- | --- |\n| Process | One Node/Bun process | Same in-process runtime |\n| Grants | `bind` / `grant` | `configure({ grants })` or `DI_SERVICE_GRANTS` |\n| Target selection | `bind(..., target)` | `bindings` / `callers` / `DI_BINDINGS` |\n| Transport | Direct method call | Direct method call |\n| Status / reload | Manager APIs | None beyond `configure()` |\n\nwasmCloud, the CLI, and `@di-framework/rpc` do not map `@ExportService` / `@ServiceBinding` onto\nindependently deployed components. A wasmCloud workload can still use this API **inside** one\ncomponent.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_service-bindings__next-steps",
+      "url": "https://docs.di-framework.dev/service-bindings.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "Private service bindings",
+      "breadcrumbs": "Docs|Private service bindings|Next steps",
+      "content": "- RPC - Typed request/response over memory, HTTP, sockets, and gRPC\n- Testing - Mock substitution and unbound-caller tests\n- wasmCloud - Native host capability bindings (not this API)\n- CLI - Canonical command tree (no dedicated bindings command)",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_advanced-usage",
       "url": "https://docs.di-framework.dev/advanced-usage.html",
       "pageTitle": "Advanced Usage",
@@ -2977,7 +3107,7 @@
       "pageTitle": "Native service bindings",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Native service bindings",
-      "content": "Install `@di-framework/wasmcloud` alongside core and HTTP, keeping the packages and the CLI\nextension on the same framework release. The kube examples pin them to **5.3.0**.\nDeclare exported binding classes in `src/bindings.ts`, or select another file with\n`\"bindings\": \"src/services/bindings.ts\"` in the project configuration:\n\n```typescript\nimport { Container } from '@di-framework/core/decorators';\nimport { Config, Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';\n\n@WasmCloudBinding('orders-database', {\n config: { database: 'orders' },\n secretFrom: 'orders-database-binding',\n})\n@Container()\nexport class OrdersDatabase extends Postgres {}\n\n@WasmCloudBinding('app-config', {\n config: { greeting: 'Hello' },\n configFrom: 'orders-config',\n})\n@Container()\nexport class AppConfig extends Config {}\n```\n\nResolve these classes through `useContainer().resolve(...)` or inject them with `@Component`.\nThe build discovers the declarations statically, creates real WIT imports in\n`.di-framework/guests.js`, and initializes those guests before application evaluation. This\nincludes services resolved at module startup.\n\n| Class | WIT capability | Version |\n| --- | --- | --- |\n| `Postgres` | `wasmcloud:postgres` | `0.2.0` |\n| `KeyValue` | `wasmcloud:keyvalue` | `0.2.0` |\n| `Blobstore` | `wasmcloud:blobstore` | `0.1.0` |\n| `Messaging` | `wasmcloud:messaging` | `0.3.0` |\n| `Config` | `wasi:config` | `0.2.0-rc.1` |\n| `Secrets` | `wasmcloud:secrets` | `2.1.0` |\n| `OutgoingHttp` | `wasi:http/client` | `0.3.0` |\n\nThese WIT package versions are independent of both the framework version and the WASI 0.3\ncomponent-model preview. The bindings consume services; your infrastructure must provision the\ndatabase, Redis, NATS, ConfigMaps, Secrets, and host configuration. `configFrom` references a\nConfigMap and `secretFrom` references a Kubernetes Secret. For capabilities that use a Secret,\nan omitted `secretFrom` defaults to `<application>-<binding>`. Keep credentials out of inline\n`config` and project files.\n\nFor PostgreSQL, configure the native host's connection through `WASH_POSTGRES_URL` and select\nthe database with the binding's `config.database`. A Secret reference on the binding alone\ndoes not configure that host connection. See the working PostgreSQL example\nfor provisioning and verification.",
+      "content": "Install `@di-framework/wasmcloud` alongside core and HTTP, keeping the packages and the CLI\nextension on the same framework release. The kube examples pin them to **5.3.0**.\nDeclare exported binding classes in `src/bindings.ts`, or select another file with\n`\"bindings\": \"src/services/bindings.ts\"` in the project configuration:\n\n```typescript\nimport { Container } from '@di-framework/core/decorators';\nimport { Config, Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';\n\n@WasmCloudBinding('orders-database', {\n config: { database: 'orders' },\n secretFrom: 'orders-database-binding',\n})\n@Container()\nexport class OrdersDatabase extends Postgres {}\n\n@WasmCloudBinding('app-config', {\n config: { greeting: 'Hello' },\n configFrom: 'orders-config',\n})\n@Container()\nexport class AppConfig extends Config {}\n```\n\nThese host capabilities are not private service bindings\n(`@ExportService` / `@ServiceBinding`). Application-authored bindings are an in-process DI\ncontract inside one component; native bindings are WIT imports generated from `@WasmCloudBinding`\nclasses.\n\nResolve these classes through `useContainer().resolve(...)` or inject them with `@Component`.\nThe build discovers the declarations statically, creates real WIT imports in\n`.di-framework/guests.js`, and initializes those guests before application evaluation. This\nincludes services resolved at module startup.\n\n| Class | WIT capability | Version |\n| --- | --- | --- |\n| `Postgres` | `wasmcloud:postgres` | `0.2.0` |\n| `KeyValue` | `wasmcloud:keyvalue` | `0.2.0` |\n| `Blobstore` | `wasmcloud:blobstore` | `0.1.0` |\n| `Messaging` | `wasmcloud:messaging` | `0.3.0` |\n| `Config` | `wasi:config` | `0.2.0-rc.1` |\n| `Secrets` | `wasmcloud:secrets` | `2.1.0` |\n| `OutgoingHttp` | `wasi:http/client` | `0.3.0` |\n\nThese WIT package versions are independent of both the framework version and the WASI 0.3\ncomponent-model preview. The bindings consume services; your infrastructure must provision the\ndatabase, Redis, NATS, ConfigMaps, Secrets, and host configuration. `configFrom` references a\nConfigMap and `secretFrom` references a Kubernetes Secret. For capabilities that use a Secret,\nan omitted `secretFrom` defaults to `<application>-<binding>`. Keep credentials out of inline\n`config` and project files.\n\nFor PostgreSQL, configure the native host's connection through `WASH_POSTGRES_URL` and select\nthe database with the binding's `config.database`. A Secret reference on the binding alone\ndoes not configure that host connection. See the working PostgreSQL example\nfor provisioning and verification.",
       "product": "d",
       "version": "latest"
     },
@@ -3067,7 +3197,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Next steps",
-      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
+      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
       "product": "d",
       "version": "latest"
     },
@@ -3197,7 +3327,7 @@
       "pageTitle": "API Reference",
       "mainTitle": "API Reference",
       "breadcrumbs": "Docs|API Reference",
-      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Configuration, Authentication, Resource Authorization, AI, and Agents.",
+      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Configuration, Authentication, Resource Authorization, AI, and Agents.",
       "product": "d",
       "version": "latest"
     },

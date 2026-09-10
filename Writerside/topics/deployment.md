@@ -21,9 +21,15 @@ Native services are consumed through `@di-framework/wasmcloud`; the platform and
 helpers provision their backends and credentials. See [native service bindings](wasmcloud.md#native-service-bindings)
 for the build and runtime contract.
 
+Application-authored [private service bindings](service-bindings.md) (`@ExportService` /
+`@ServiceBinding`) are a separate in-process contract: callers receive a named DI proxy and do
+not configure a URL. They are not wasmCloud host capabilities and are not mapped onto
+independently deployed components by the CLI.
+
 ## Next steps
 
 - [Cloud Foundry](cloudfoundry.md) - Connect an application to platform metadata and bound services
 - [wasmCloud](wasmcloud.md) - Build and deploy WebAssembly components
 - [Kubernetes with di-framework-kube](kube.md) - Deploy examples and verify real service bindings
+- [Private service bindings](service-bindings.md) - Named in-process contracts without URLs
 - [CLI](cli.md) - Install extensions and use the canonical command tree

@@ -248,6 +248,7 @@ await stopRpcServices();
 
 ## Related
 
+- [Private service bindings](service-bindings.md) — named in-process contracts without a URL or HTTP route
 - [Events](events.md) — in-process bus and broker bridge (fire-and-forget, not request/response)
 - [Sockets](socket.md) — the secure wire transport reused by `@di-framework/rpc/socket`
 - [HTTP Router](http-router.md) — REST + OpenAPI; RPC is method-oriented instead

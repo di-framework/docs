@@ -488,8 +488,28 @@ describe('UserService', () => {
 });
 ```
 
+## Private service bindings
+
+Substitute a bound dependency without changing caller code. Register a mock on
+`serviceBindingToken`, or use `LocalServiceDevManager.substituteMock`. Authorization still
+applies locally: `bind(..., { grantAccess: false })` is how tests prove unbound callers are
+rejected with `UnboundCallerError`.
+
+```typescript
+import { serviceBindingToken } from '@di-framework/core/service-bindings';
+
+testContainer.registerValue(serviceBindingToken('inventory'), {
+  reserve: async () => ({ reservationId: 'mock' }),
+  release: async () => ({ released: true }),
+  checkStock: async () => 99,
+});
+```
+
+See [Private service bindings](service-bindings.md#status-reload-and-mocks).
+
 ## Next Steps
 
 - [Best Practices](best-practices.md) - Review recommended patterns
 - [Error Handling](error-handling.md) - Learn about error scenarios
 - [API Reference](api-reference.md) - Complete API documentation
+- [Private service bindings](service-bindings.md) - Grants, mocks, and unbound-caller tests
