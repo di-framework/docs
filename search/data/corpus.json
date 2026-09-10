@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:22:56.895Z",
+  "generatedAt": "2026-09-10T14:24:06.216Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -1397,7 +1397,7 @@
       "pageTitle": "Related",
       "mainTitle": "RPC",
       "breadcrumbs": "Docs|RPC|Related",
-      "content": "- Private service bindings — named in-process contracts without a URL or HTTP route\n- Events — in-process bus and broker bridge (fire-and-forget, not request/response)\n- Sockets — the secure wire transport reused by `@di-framework/rpc/socket`\n- HTTP Router — REST + OpenAPI; RPC is method-oriented instead\n- Authentication — identity to enforce inside RPC interceptors",
+      "content": "- Private service bindings — named in-process contracts without a URL or HTTP route\n- Remote actors — actor RPC, ownership fencing, and idempotency (not JSON-RPC)\n- Events — in-process bus and broker bridge (fire-and-forget, not request/response)\n- Sockets — the secure wire transport reused by `@di-framework/rpc/socket`\n- HTTP Router — REST + OpenAPI; RPC is method-oriented instead\n- Authentication — identity to enforce inside RPC interceptors",
       "product": "d",
       "version": "latest"
     },
@@ -2077,7 +2077,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "Actors",
       "breadcrumbs": "Docs|Actors|Next steps",
-      "content": "- CLI - `actor list` / `inspect` / `reset` / `clean`\n- Repositories - Shared `MigrationRunner`\n- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
+      "content": "- Remote actors and ownership - RPC, fencing, and recovery\n- CLI - `actor list` / `inspect` / `reset` / `clean`\n- Repositories - Shared `MigrationRunner`\n- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
       "product": "d",
       "version": "latest"
     },
@@ -2168,6 +2168,86 @@
       "mainTitle": "Runtime type checks",
       "breadcrumbs": "Docs|Runtime type checks|Next Steps",
       "content": "- CLI - Complete command tree, output contract, and package ownership\n- Installation - Core package setup\n- Best Practices - Recommended patterns",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed",
+      "url": "https://docs.di-framework.dev/actors-distributed.html",
+      "pageTitle": "Remote actors and ownership",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership",
+      "content": "`@di-framework/actors` can invoke actors across processes through an explicit RPC dispatcher and\na pluggable transport. Ownership generations (fencing tokens) reject stale-owner writes.\nDeduplication caches committed results so a retried `requestId` does not re-run the method.\n\nThis guide is independent of wasmCloud. Multi-host wasmCloud routing is **not** wired to this\nprotocol. Single-host wasmCloud deploy remains `replicas: 1` with a hostPath volume.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #421, closing\ndi-framework#410).\nThey are documented here on **latest** (EAP).\n\nRead the local runtime first.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed__remote-client-and-dispatcher",
+      "url": "https://docs.di-framework.dev/actors-distributed.html#remote-client-and-dispatcher",
+      "pageTitle": "Remote client and dispatcher",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership|Remote client and dispatcher",
+      "content": "```typescript\nimport {\n ActorRpcDispatcher,\n RemoteActorClient,\n MemoryActorTransport,\n ActorRuntime,\n} from '@di-framework/actors';\n\nconst runtime = new ActorRuntime({ actors: [OrderActor] });\nconst dispatcher = new ActorRpcDispatcher({ runtime });\nconst transport = new MemoryActorTransport(dispatcher);\n\nconst client = new RemoteActorClient({\n transport,\n callerId: 'gateway-service',\n timeoutMs: 30000,\n maxRetries: 3,\n retryDelayMs: 50,\n});\n\nconst order = client.get<OrderActor>(OrderActor, 'order-42');\nconst result = await order.placeOrder('ord-1', 100);\n```\n\nEvery request includes `requestId` (client `crypto.randomUUID()`, reused on retry), optional\n`namespace`, `actorType`, `actorKey`, `method`, `args`, optional `callerId`, and optional\n`deadline` (epoch milliseconds).\n\nImplemented transports:\n\n- `MemoryActorTransport` — in-process; test hooks `dropNextResponse()`, `delayNextRequest(ms)`\n- `ChildProcessIpcTransport` — `child.send` or stdin JSON lines\n\nThere is **no** HTTP/TCP/wasmCloud cluster transport in this package. wasmCloud uses a plugin\nadapter at `POST /_actors/invoke`, not `RemoteActorClient`.\n\nThe client retries the same `requestId` unless the error is `ActorAuthorizationError`,\n`StaleOwnerWriteError`, `ActorBackpressureError`, `ActorDeadlineExceededError`, or an\napplication error returned by the actor.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed__authorization",
+      "url": "https://docs.di-framework.dev/actors-distributed.html#authorization",
+      "pageTitle": "Authorization",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership|Authorization",
+      "content": "```typescript\nimport { createActorBindingPolicy, ActorRuntime } from '@di-framework/actors';\n\nconst policy = createActorBindingPolicy({\n allowedCallers: ['web-gateway', 'internal-cron'],\n allowedNamespaces: ['production', 'default'],\n allowedActorTypes: ['OrderActor'],\n allowedMethods: {\n OrderActor: ['getOrder', 'placeOrder'],\n },\n});\n\nconst runtime = new ActorRuntime({\n actors: [OrderActor],\n authorizationPolicy: policy,\n});\n```\n\nUnauthorized requests reject with `ActorAuthorizationError` **before** mailbox admission. Empty\narrays are whitelists; omit a field (leave it `undefined`) for no restriction on that axis.\nThis is actor RPC authorization, not `@ServiceBinding`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed__ownership-and-fencing",
+      "url": "https://docs.di-framework.dev/actors-distributed.html#ownership-and-fencing",
+      "pageTitle": "Ownership and fencing",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership|Ownership and fencing",
+      "content": "Storage records `{ actorId, ownerId, generation, acquiredAt, leaseExpiresAt }`.\n\n```typescript\nawait runtime.acquireActorOwnership(OrderActor, 'order-42', { leaseTtlMs: 30_000 });\n```\n\n- First owner: generation `1`\n- Same owner renews without bump\n- Another owner with a live lease: `ActorOwnershipConflictError`\n- Expired lease or `force: true`: generation `+ 1`\n\nEvery `commit()` with a generation checks `_actor_ownership`. A stale generation or wrong\n`ownerId` throws `StaleOwnerWriteError` and rolls back. Operators do not implement this protocol;\nthe runtime does.\n\n`ActorRuntime({ ownerId, autoAcquireOwnership })` acquires on invoke when `ownerId` is set\n(`autoAcquireOwnership` defaults true in that case). If auto-acquire is off, a non-owner with an\nunexpired lease gets `ActorNotOwnerError`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed__deduplication-deadlines-and-back_1b83c8",
+      "url": "https://docs.di-framework.dev/actors-distributed.html#deduplication-deadlines-and-backpressure",
+      "pageTitle": "Deduplication, deadlines, and backpressure",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership|Deduplication, deadlines, and backpressure",
+      "content": "- `_actor_idempotency` is written in the **same commit** as state\n- A later request with the same `requestId` returns the cached result (`cached: true`) without\n re-running the method\n- In-flight duplicate `requestId`s join the same promise\n- `deadline` is checked before enqueue **and** after dequeue → `ActorDeadlineExceededError`\n- `maxMailboxSize` → `ActorBackpressureError`\n\nTransport is at-least-once. The idempotency cache makes **storage-side** execution once per\n`requestId`. External side effects (HTTP, email) must still be idempotent: a successful commit\ncan precede a lost response (`MemoryActorTransport.dropNextResponse()` tests this). Do not treat\nthat as exactly-once I/O.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed__multi-process-example",
+      "url": "https://docs.di-framework.dev/actors-distributed.html#multi-process-example",
+      "pageTitle": "Multi-process example",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership|Multi-process example",
+      "content": "There is no workspace app for this path. The package tests spawn workers:\n\n- `packages/di-framework-actors/tests/multi-process.test.ts`\n- `tests/harness/worker.ts` (`Bun.spawn`, shared `baseDir`, `fileLocking: false`, `ownerId`)\n- `tests/harness/cluster.ts`\n\nCovered: competing acquire (one generation 1, the other `ActorOwnershipConflictError`), crash +\n`force: true` failover (generation 2, recovered state), expired deadline with no side effects,\nstale-owner commit, and duplicate delivery after a lost response.\n\n```bash\nbun test packages/di-framework-actors/tests/multi-process.test.ts\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed__troubleshooting",
+      "url": "https://docs.di-framework.dev/actors-distributed.html#troubleshooting",
+      "pageTitle": "Troubleshooting",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership|Troubleshooting",
+      "content": "| Symptom | Cause |\n| --- | --- |\n| `ActorAuthorizationError` | Caller, namespace, type, or method not on the policy |\n| `StaleOwnerWriteError` | Another owner took the generation; retry after re-acquire |\n| `ActorOwnershipConflictError` | Live lease on another `ownerId`; wait, expire, or `force` |\n| `ActorDeadlineExceededError` | `deadline` passed before or after mailbox admission |\n| `ActorBackpressureError` | Mailbox deeper than `maxMailboxSize` |\n| Duplicate side effects | Lost response after commit; make I/O idempotent on `requestId` |",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors-distributed__next-steps",
+      "url": "https://docs.di-framework.dev/actors-distributed.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "Remote actors and ownership",
+      "breadcrumbs": "Docs|Remote actors and ownership|Next steps",
+      "content": "- Actors - Local runtime, SQLite, and CLI\n- Private service bindings - In-process named contracts, not actor RPC\n- RPC - JSON-RPC / gRPC for ordinary services\n- Deployment - Target runtimes",
       "product": "d",
       "version": "latest"
     },
@@ -2467,7 +2547,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "Deployment",
       "breadcrumbs": "Docs|Deployment|Next steps",
-      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- Private service bindings - Named in-process contracts without URLs\n- CLI - Install extensions and use the canonical command tree",
+      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- Private service bindings - Named in-process contracts without URLs\n- Remote actors - Cross-process actor RPC independent of wasmCloud\n- CLI - Install extensions and use the canonical command tree",
       "product": "d",
       "version": "latest"
     },
@@ -3307,7 +3387,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "Private service bindings",
       "breadcrumbs": "Docs|Private service bindings|Next steps",
-      "content": "- RPC - Typed request/response over memory, HTTP, sockets, and gRPC\n- Testing - Mock substitution and unbound-caller tests\n- wasmCloud - Native host capability bindings (not this API)\n- CLI - Canonical command tree (no dedicated bindings command)",
+      "content": "- Remote actors - Cross-process actor RPC and ownership (a different API)\n- RPC - Typed request/response over memory, HTTP, sockets, and gRPC\n- Testing - Mock substitution and unbound-caller tests\n- wasmCloud - Native host capability bindings (not this API)\n- CLI - Canonical command tree (no dedicated bindings command)",
       "product": "d",
       "version": "latest"
     },
@@ -3907,7 +3987,7 @@
       "pageTitle": "API Reference",
       "mainTitle": "API Reference",
       "breadcrumbs": "Docs|API Reference",
-      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Scheduling, Queues, Actors, Configuration, Authentication, Resource Authorization, AI, and Agents.",
+      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Scheduling, Queues, Actors, Remote actors, Configuration, Authentication, Resource Authorization, AI, and Agents.",
       "product": "d",
       "version": "latest"
     },

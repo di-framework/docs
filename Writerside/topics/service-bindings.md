@@ -254,6 +254,7 @@ component.
 
 ## Next steps
 
+- [Remote actors](actors-distributed.md) - Cross-process actor RPC and ownership (a different API)
 - [RPC](rpc.md) - Typed request/response over memory, HTTP, sockets, and gRPC
 - [Testing](testing.md) - Mock substitution and unbound-caller tests
 - [wasmCloud](wasmcloud.md) - Native host capability bindings (not this API)
