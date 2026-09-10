@@ -15,7 +15,7 @@ Published docs at [docs.di-framework.dev](https://docs.di-framework.dev) include
 - **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.
 - **Error Detection**: Detects circular dependencies and unregistered services at runtime.
 - **Testing Support**: Easy to test with mock service registration.
-- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.
+- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access, storage-agnostic repositories, and decorator/SQL/manifest database migrations.
 - **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.
 - **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.
 - **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.

@@ -50,6 +50,9 @@ di-framework
 │   ├── test
 │   ├── typecheck
 │   └── publish
+├── migrations
+│   ├── status
+│   └── execute
 ├── queue
 │   ├── list
 │   ├── inspect
@@ -80,6 +83,7 @@ installed [CLI extension](#extensions).
 | `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |
 | `agent migrate` | Preview or apply audited migrations into neutral agent paths. |
 | `mx build\|test\|typecheck\|publish` | Run di-framework monorepo maintainer workflows. |
+| `migrations status\|execute` | Show or apply decorator, SQL, and manifest database migrations. |
 | `queue list\|inspect\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |
 | `extensions install\|uninstall\|list` | Manage installed CLI extensions. |
 
@@ -345,6 +349,30 @@ and `.aiignore`. Source vendor files remain in place for deliberate cleanup
 after the neutral result is verified; no legacy or vendor-specific destination
 is generated.
 
+## Database migration commands
+
+`migrations` delegates discovery and execution to [`@di-framework/repo`](repositories.md#database-migrations).
+
+```bash
+di-framework migrations status [options]
+di-framework migrations execute [options]
+```
+
+| Option | Description |
+| --- | --- |
+| `--db <path>` | SQLite path. Default: `DATABASE_URL` \|\| `DB_PATH` \|\| `./dev.db`. |
+| `--dir <path>` | SQL directory. Default `./migrations` when no manifest is present. |
+| `--manifest <path>` | JSON manifest. Default `migrations.json` if that file exists. |
+| `--binding <name>` | Binding name; default `default`. |
+| `--module <path>` | Repeatable. Import modules so `@Migration` classes register. |
+| `--step <count>` | Execute only: maximum pending migrations to apply. |
+| `--dry-run` | Execute only: plan without applying. |
+
+JSON `data` is `{ binding, isUpToDate, applied, pending }` for status and
+`{ binding, applied, pending, dryRun, durationMs }` for execute. A requested `--binding` that
+does not match discovered migrations exits `2` (`MIGRATION_BINDING_MISMATCH`). Connect and runner
+failures exit `1`.
+
 ## Durable queue commands
 
 `queue` inspects the SQLite job table used by [`@di-framework/queues`](queues.md). It does not
@@ -523,5 +551,6 @@ typed package API is extended first.
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)
 - [Scheduling](scheduling.md) - `@Cron` (discovered by `wasmcloud build`, no `cron` group)
 - [Queues](queues.md) - Durable jobs and `queue list` / `inspect` / `retry`
+- [Repositories](repositories.md#database-migrations) - Decorator, SQL, and manifest migrations
 - [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`
