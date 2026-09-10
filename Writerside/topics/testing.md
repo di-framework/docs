@@ -552,7 +552,8 @@ await counter.increment(1);
 await runtime.clear();
 ```
 
-See [Actors](actors.md#testing).
+See [Actors](actors.md#testing). For SQLite, use `SqliteActorStorage.temporary()` or
+`{ inMemory: true }` and `await storage.close()` after `runtime.clear()`.
 
 ## Next Steps
 
