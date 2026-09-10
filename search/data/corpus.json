@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:17:28.618Z",
+  "generatedAt": "2026-09-10T14:18:54.084Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -557,7 +557,7 @@
       "pageTitle": "Features",
       "mainTitle": "di-framework",
       "breadcrumbs": "Docs|di-framework|Features",
-      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
+      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access and storage-agnostic repositories.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.\n- **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
       "product": "d",
       "version": "latest"
     },
@@ -937,7 +937,7 @@
       "pageTitle": "Canonical command tree",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Canonical command tree",
-      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n├── mx\n│ ├── build\n│ ├── test\n│ ├── typecheck\n│ └── publish\n└── extensions\n ├── install\n ├── uninstall\n └── list\n```\n\nThis tree is exhaustive for built-in commands. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`. The single sanctioned extension point is the\ninstalled-extension namespace: a top-level token that is not a built-in command may dispatch to an\ninstalled CLI extension.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n| `extensions install\\|uninstall\\|list` | Manage installed CLI extensions. |\n\nThe command paths and conventions on this page are the stable public contract.",
+      "content": "```text\ndi-framework\n├── init\n├── build\n├── check\n├── generate\n├── skills\n│ ├── index\n│ │ ├── build\n│ │ ├── inspect\n│ │ ├── validate\n│ │ ├── query\n│ │ └── migrate\n│ └── validate\n├── http\n│ └── openapi\n│ └── generate\n├── agent\n│ ├── audit\n│ ├── init\n│ ├── inspect\n│ └── migrate\n├── mx\n│ ├── build\n│ ├── test\n│ ├── typecheck\n│ └── publish\n├── queue\n│ ├── list\n│ ├── inspect\n│ └── retry\n└── extensions\n ├── install\n ├── uninstall\n └── list\n```\n\nThis tree is exhaustive for built-in commands. There are no public command aliases,\ndeprecated routes, or package-specific alternatives. In particular, maintainer commands are\navailable only below `di-framework mx`. The single sanctioned extension point is the\ninstalled-extension namespace: a top-level token that is not a built-in command may dispatch to an\ninstalled CLI extension.\n\n| Command | Purpose |\n| --- | --- |\n| `init` | Scaffold an application. |\n| `build` | Build an application, including configured runtime type transforms. |\n| `check` | Typecheck an application without emitting output. |\n| `generate` | Generate configured application surfaces. |\n| `skills index build\\|inspect\\|validate\\|query\\|migrate` | Build, examine, validate, search, or migrate the skills index. |\n| `skills validate` | Validate skill catalogs and report diagnostics. |\n| `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |\n| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |\n| `agent init` | Preview or create requested neutral agent-configuration assets. |\n| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |\n| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |\n| `mx build\\|test\\|typecheck\\|publish` | Run di-framework monorepo maintainer workflows. |\n| `queue list\\|inspect\\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |\n| `extensions install\\|uninstall\\|list` | Manage installed CLI extensions. |\n\nThe command paths and conventions on this page are the stable public contract.",
       "product": "d",
       "version": "latest"
     },
@@ -1052,6 +1052,16 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_cli__durable-queue-commands",
+      "url": "https://docs.di-framework.dev/cli.html#durable-queue-commands",
+      "pageTitle": "Durable queue commands",
+      "mainTitle": "CLI",
+      "breadcrumbs": "Docs|CLI|Durable queue commands",
+      "content": "`queue` inspects the SQLite job table used by `@di-framework/queues`. It does not\nstart a worker.\n\n```bash\ndi-framework queue list [--db <path>]\ndi-framework queue inspect <name> [--db <path>] [--status <status>] [--limit <n>]\ndi-framework queue retry <name> [jobId] [--db <path>]\n```\n\n| Option | Description |\n| --- | --- |\n| `--db <path>` | SQLite path; `:memory:` allowed. |\n| `--status <status>` | `pending` \\| `processing` \\| `completed` \\| `dead-letter` (inspect). |\n| `--limit <n>` | Positive integer; default `50` (inspect). |\n| `[jobId]` | Retry one dead-letter job; omit to retry all dead-letter jobs in that queue. |\n\nDatabase path: `--db` → `DI_QUEUE_DB` → existing `.di-framework/queue.db` → existing `queue.db`\n→ else `.di-framework/queue.db`. JSON `data` is `{ queues }` for list, `{ jobs }` for inspect,\nand `{ retried }` for retry. Missing `@di-framework/queues` exits `3`\n(`QUEUES_PACKAGE_UNAVAILABLE`). Invalid options exit `2`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_cli__maintainer-commands",
       "url": "https://docs.di-framework.dev/cli.html#maintainer-commands",
       "pageTitle": "Maintainer commands",
@@ -1117,7 +1127,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -1622,12 +1632,22 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_testing__durable-queues",
+      "url": "https://docs.di-framework.dev/testing.html#durable-queues",
+      "pageTitle": "Durable queues",
+      "mainTitle": "Testing",
+      "breadcrumbs": "Docs|Testing|Durable queues",
+      "content": "Use `InMemoryQueueBackend` with `advanceTime`, `step`, and `drain` instead of real sleeps.\nImport handler modules before producing jobs if you rely on `@QueueHandler` enqueue defaults.\n\n```typescript\nconst memory = new InMemoryQueueBackend();\nqueue.setBackend(memory);\nawait queue.get('receipts').enqueue(payload);\nawait memory.step('receipts', (job) => dispatcher.dispatch(job));\n```\n\nSee Queues.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_testing__next-steps",
       "url": "https://docs.di-framework.dev/testing.html#next-steps",
       "pageTitle": "Next Steps",
       "mainTitle": "Testing",
       "breadcrumbs": "Docs|Testing|Next Steps",
-      "content": "- Best Practices - Review recommended patterns\n- Error Handling - Learn about error scenarios\n- API Reference - Complete API documentation\n- Private service bindings - Grants, mocks, and unbound-caller tests",
+      "content": "- Best Practices - Review recommended patterns\n- Error Handling - Learn about error scenarios\n- API Reference - Complete API documentation\n- Private service bindings - Grants, mocks, and unbound-caller tests\n- Scheduling - `invokeCronJob` without waiting for timers\n- Queues - In-memory `step` / `drain` backends",
       "product": "d",
       "version": "latest"
     },
@@ -2028,6 +2048,156 @@
       "mainTitle": "Configuration",
       "breadcrumbs": "Docs|Configuration|Example",
       "content": "A worked example lives in the config example package.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues",
+      "url": "https://docs.di-framework.dev/queues.html",
+      "pageTitle": "Durable job queues",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues",
+      "content": "`@di-framework/queues` is a durable job queue: producers enqueue work, DI-managed handlers process\nit, and a backend retains jobs across restarts. Enqueue resolves when the backend **accepts** the\njob. The worker acknowledges completion only after awaiting the handler.\n\nThis is not Events. `@Publisher` / `@Subscriber` and `@di-framework/events` move\nmessages on an in-process bus or to a broker. Queues store jobs with leases, retries, timeouts,\nand a dead-letter state.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #423, closing\ndi-framework#404).\nThey are documented here on **latest** (EAP). `@di-framework/queues` is not on npm as of that\ntag and is not in the frozen `/v5.3/` snapshot.\n\nDelivery is **at-least-once**. Use stable job ids or `idempotencyKey` for application-level\nidempotency. Timeouts mark an attempt failed; they do not cancel JavaScript already running in\nthe handler.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__installation",
+      "url": "https://docs.di-framework.dev/queues.html#installation",
+      "pageTitle": "Installation",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Installation",
+      "content": "```bash\nbun add @di-framework/queues @di-framework/core\n```\n\n```typescript\nimport { Container, Component } from '@di-framework/core/decorators';\nimport {\n queue,\n QueueHandler,\n QueueWorker,\n ContainerQueueDispatcher,\n SqliteQueueBackend,\n InMemoryQueueBackend,\n type JobMetadata,\n} from '@di-framework/queues';\n```\n\n`@QueueHandler` is defined in `@di-framework/core` and re-exported here.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__receipt-worker-walkthrough",
+      "url": "https://docs.di-framework.dev/queues.html#receipt-worker-walkthrough",
+      "pageTitle": "Receipt worker walkthrough",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Receipt worker walkthrough",
+      "content": "The receipt-worker example\nis the runnable end-to-end guide.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__producer",
+      "url": "https://docs.di-framework.dev/queues.html#producer",
+      "pageTitle": "Producer",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Producer",
+      "content": "```typescript\nthis.producer = queue.get<ReceiptJobPayload>('receipts');\nreturn this.producer.enqueue(payload, {\n idempotencyKey: idempotencyKey ?? payload.receiptId,\n maxRetries: 3,\n backoffMs: 100,\n});\n```\n\n`queue.get(name)` returns a `QueueProducer<T>`. `enqueue` returns a `Job<T>` after the backend\ninserts it, not after the handler runs.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__handler",
+      "url": "https://docs.di-framework.dev/queues.html#handler",
+      "pageTitle": "Handler",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Handler",
+      "content": "```typescript\n@Container()\nexport class ReceiptProcessor {\n constructor(@Component(AuditLogService) private readonly auditLog: AuditLogService) {}\n\n @QueueHandler('receipts', {\n maxRetries: 3,\n backoffMs: 100,\n timeoutMs: 5000,\n concurrency: 2,\n })\n async processReceipt(payload: ReceiptJobPayload, meta?: JobMetadata): Promise<void> {\n if (!payload?.receiptId || payload.total < 0) {\n throw new Error(`Invalid receipt data for receipt ${payload?.receiptId}`);\n }\n this.auditLog.log('receipt.processed', {\n receiptId: payload.receiptId,\n attempt: meta?.attempts ?? 1,\n });\n }\n}\n```\n\nThe dispatcher calls `instancemethod`. Throw to fail the attempt.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__local-worker",
+      "url": "https://docs.di-framework.dev/queues.html#local-worker",
+      "pageTitle": "Local worker",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Local worker",
+      "content": "```typescript\nconst dbPath = process.env.QUEUE_DB_PATH ?? join(process.cwd(), '.di-framework', 'queues.db');\nconst backend = new SqliteQueueBackend({ path: dbPath });\nqueue.setBackend(backend);\n\nconst worker = new QueueWorker(backend, dispatcher, {\n queues: ['receipts'],\n pollIntervalMs: 500,\n});\nworker.start();\n```\n\n```bash\nbun run dev\nbun test\n```\n\nThe example `di-framework.config.json` sets `\"applicationType\": \"worker\"`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__backends",
+      "url": "https://docs.di-framework.dev/queues.html#backends",
+      "pageTitle": "Backends",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Backends",
+      "content": "| Class | `name` | Use |\n| --- | --- | --- |\n| `InMemoryQueueBackend` | `in-memory` | Tests; virtual clock; `step` / `drain` |\n| `SqliteQueueBackend` | `sqlite` | Local durability via `bun:sqlite` (WAL by default) |\n| `WasmSqliteQueueBackend` | `sqlite-wasm` | WASI SQLite; portable / wasmCloud entry |\n\nThe native package root exports `SqliteQueueBackend`. The `wasmcloud` export condition and\n`@di-framework/queues/portable` export the Wasm backend instead and do not import `bun:sqlite`.\nPortable imports alone do not provide durable Wasm storage; the composed `di-framework:sqlite`\ncapability does.\n\n`queue` is a process-wide `QueueManager`. Default backend is in-memory until `queue.setBackend(...)`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__options-and-defaults",
+      "url": "https://docs.di-framework.dev/queues.html#options-and-defaults",
+      "pageTitle": "Options and defaults",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Options and defaults",
+      "content": "Handler decorator defaults: `maxRetries: 3`, `backoffMs: 1000`, `timeoutMs: 30000`,\n`concurrency: 1`.\n\nEnqueue uses the **first registered handler** for that queue as defaults, then falls back to\nthose same numbers. Explicit enqueue options win. Import handler modules before producing jobs\nif you rely on decorator defaults.\n\nOther enqueue fields: `jobId`, `idempotencyKey`, `delayMs` (default 0), `priority` (default 0).\nDequeue order is `priority DESC, availableAt ASC, enqueuedAt ASC`.\n\nWorker defaults: `pollIntervalMs: 50`, `leaseTimeoutMs: 30000`, `recoveryIntervalMs: 10000`,\n`shutdownTimeoutMs: 5000`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__delivery-retries-and-dead-letters",
+      "url": "https://docs.di-framework.dev/queues.html#delivery-retries-and-dead-letters",
+      "pageTitle": "Delivery, retries, and dead letters",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Delivery, retries, and dead letters",
+      "content": "- **Accept vs complete.** `enqueue` confirms durable insert. `complete` runs only after the\n awaited handler returns.\n- **Job ids.** `options.jobId` or `job_<timestamp>_<seq>_<rand>`. Colliding SQLite primary keys\n throw.\n- **Idempotency.** A matching `(queueName, idempotencyKey)` returns the existing non-dead-letter\n job. Dead-lettered keys can be reused. The index is not unique.\n- **Retries.** `fail` re-queues as `pending` while `attempts < maxRetries`, with backoff\n `min(backoffMs * 2^(attempts-1), 60000)`. Otherwise the job becomes `dead-letter`.\n- **Timeouts.** The dispatcher races `timeoutMs`. The handler is not interrupted and may finish\n after a retry has begun. Make side effects idempotent.\n- **Leases.** Dequeue sets `leaseExpiresAt`. `recoverUnacknowledged` returns expired\n `processing` rows to `pending` or dead-letter.\n- **Dead-letter retry.** `retryJob(queueName, jobId?)` sets matching dead-letter rows back to\n `pending`. It does **not** reset `attempts`.\n\nCompleted and dead-letter jobs are retained; nothing purges them.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__testing-with-the-in-memory-backend",
+      "url": "https://docs.di-framework.dev/queues.html#testing-with-the-in-memory-backend",
+      "pageTitle": "Testing with the in-memory backend",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Testing with the in-memory backend",
+      "content": "```typescript\nconst memory = new InMemoryQueueBackend();\nqueue.setBackend(memory);\n\nawait queue.get('receipts').enqueue({ receiptId: 'r1', total: 10 });\n\nconst processed = await memory.step('receipts', async (job) => {\n await dispatcher.dispatch(job);\n});\n```\n\n- `advanceTime(ms)` moves the virtual clock (no real sleeps for delay/backoff)\n- `step(queueName?)` dequeues one eligible job\n- `drain(queueName?, maxSteps?)` loops `step` until empty\n- `setExecutor(fn)` supplies a default handler for `step`/`drain`\n\n`step` does not apply dispatcher timeouts; call `ContainerQueueDispatcher.dispatch` yourself when\nyou need that path.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__cli",
+      "url": "https://docs.di-framework.dev/queues.html#cli",
+      "pageTitle": "CLI",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|CLI",
+      "content": "```text\ndi-framework queue list [--db <path>]\ndi-framework queue inspect <name> [--db <path>] [--status <status>] [--limit <n>]\ndi-framework queue retry <name> [jobId] [--db <path>]\n```\n\n`--status` is `pending` | `processing` | `completed` | `dead-letter`. Inspect `--limit` defaults\nto 50. Database path: `--db` → `DI_QUEUE_DB` → existing `.di-framework/queue.db` → existing\n`queue.db` → else `.di-framework/queue.db`.\n\nThe receipt-worker local default is `.di-framework/queues.db` (plural). Pass `--db` or\n`DI_QUEUE_DB` to inspect that file.\n\nJSON `data` through the public CLI envelope: `{ queues }` for list, `{ jobs }` for inspect,\n`{ retried }` for retry. Missing `@di-framework/queues` exits `3`\n(`QUEUES_PACKAGE_UNAVAILABLE`).",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__wasmcloud-workers",
+      "url": "https://docs.di-framework.dev/queues.html#wasmcloud-workers",
+      "pageTitle": "wasmCloud workers",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|wasmCloud workers",
+      "content": "Build discovers `@QueueHandler('name', { numeric options })`. A project is a queue worker when\nhandlers exist and either `applicationType` is `\"worker\"` or the sources have no HTTP controller\ndecorators.\n\nImplemented deploy path:\n\n- Guest WIT exports `wasi:http/handler@0.3.0` and imports `di-framework:sqlite`\n- Generated module constructs `WasmSqliteQueueBackend` and **`pump()`s** on control HTTP\n (request-scoped Wasm tasks do not start `setTimeout` poll loops)\n- Control prefix `/_di/queues/` for list, enqueue, inspect, and retry\n- Workload `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, hostPath volume,\n `QUEUE_DB_PATH=/data/queue.db`, `DI_SQLITE_BACKEND=wasm`\n- Public ingress is omitted for workers; a ClusterIP Service still exists for control HTTP\n\nSQLite-backed workloads cannot use more than one replica (WASI VFS has no file locking).\n\nIf `DI_CONTROL_TOKEN` / `DI_CONTROL_IDENTITIES` are unset, control identities are open for\nlocal/dev. Provision a token before exposing the ClusterIP.\n\nYou can still schedule work that enqueues jobs; neither feature requires the\nother.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__events-versus-queues",
+      "url": "https://docs.di-framework.dev/queues.html#events-versus-queues",
+      "pageTitle": "Events versus queues",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Events versus queues",
+      "content": "| | Queues | Events |\n| --- | --- | --- |\n| Role | Durable jobs with persist, lease, retry, DLQ | In-process bus and broker bridge |\n| Produce | `queue.get(name).enqueue` | `@Publisher` / event bridge |\n| Consume | `@QueueHandler` + worker; ack after await | `@Subscriber`; broker `ack` / `nack` |\n| Durability | SQLite or in-memory job table | Broker-specific |\n| Inspect | `di-framework queue …` | Not a job CLI |",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__limitations",
+      "url": "https://docs.di-framework.dev/queues.html#limitations",
+      "pageTitle": "Limitations",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Limitations",
+      "content": "- At-least-once only; overlapping retries are possible after a timeout\n- SQLite/Wasm payloads are JSON; in-memory keeps object references\n- No Redis/Kafka/NATS queue backends\n- `retryJob` does not reset `attempts`\n- Wasm workers process jobs when control HTTP runs `pump()`, not via a host `queueConsumers`\n field",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_queues__next-steps",
+      "url": "https://docs.di-framework.dev/queues.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "Durable job queues",
+      "breadcrumbs": "Docs|Durable job queues|Next steps",
+      "content": "- Events - Broker bridges, not durable jobs\n- Scheduling - Optional `@Cron` that can enqueue work\n- CLI - `queue list` / `inspect` / `retry`\n- Testing - Isolated containers and in-memory backends\n- wasmCloud - Worker deploy without public ingress",
       "product": "d",
       "version": "latest"
     },
@@ -3207,7 +3377,7 @@
       "pageTitle": "Optional Packages",
       "mainTitle": "Installation",
       "breadcrumbs": "Docs|Installation|Optional Packages",
-      "content": "The core package stands alone. Companion packages add data access, HTTP, GraphQL, events, sockets, RPC, configuration, authentication, and AI support:\n\n| Package | Docs |\n| --- | --- |\n| `@di-framework/cli` | CLI |\n| `@di-framework/tsc` | Runtime type checks (default in `init`) |\n| `@di-framework/repo` | Repositories |\n| `@di-framework/http` | HTTP Router |\n| `@di-framework/graphql` | GraphQL |\n| `@di-framework/events` | Events |\n| `@di-framework/socket` | Sockets |\n| `@di-framework/rpc` | RPC |\n| `@di-framework/config` | Configuration |\n| `@di-framework/auth` | Authentication |\n| `@di-framework/authz` | Resource Authorization |\n| `@di-framework/ai` | AI |\n| `@di-framework/ai-utils` | Agent Skills — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |\n| `@di-framework/wasmcloud` | Native service bindings — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |\n| `@di-framework/cli-plugin-wasmcloud` | wasmCloud — WASI 0.3 build, development, and deployment extension |\n\nFor a local Kubernetes platform and live service-binding examples, use the separate\ndi-framework-kube CLI. The example workspace pins the framework packages and\nwasmCloud extension to 5.3.0.",
+      "content": "The core package stands alone. Companion packages add data access, HTTP, GraphQL, events, sockets, RPC, configuration, authentication, and AI support:\n\n| Package | Docs |\n| --- | --- |\n| `@di-framework/cli` | CLI |\n| `@di-framework/tsc` | Runtime type checks (default in `init`) |\n| `@di-framework/repo` | Repositories |\n| `@di-framework/http` | HTTP Router |\n| `@di-framework/graphql` | GraphQL |\n| `@di-framework/events` | Events |\n| `@di-framework/queues` | Queues — durable jobs (latest / EAP) |\n| `@di-framework/socket` | Sockets |\n| `@di-framework/rpc` | RPC |\n| `@di-framework/config` | Configuration |\n| `@di-framework/auth` | Authentication |\n| `@di-framework/authz` | Resource Authorization |\n| `@di-framework/ai` | AI |\n| `@di-framework/ai-utils` | Agent Skills — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |\n| `@di-framework/wasmcloud` | Native service bindings — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |\n| `@di-framework/cli-plugin-wasmcloud` | wasmCloud — WASI 0.3 build, development, and deployment extension |\n\nFor a local Kubernetes platform and live service-binding examples, use the separate\ndi-framework-kube CLI. The example workspace pins the framework packages and\nwasmCloud extension to 5.3.0.",
       "product": "d",
       "version": "latest"
     },
@@ -3322,6 +3492,16 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_wasmcloud__queue-workers",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#queue-workers",
+      "pageTitle": "Queue workers",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Queue workers",
+      "content": "Build discovers `@QueueHandler('name', { numeric options })`. A project is a queue worker when\nhandlers exist and either `applicationType` is `\"worker\"` or the sources have no HTTP controller\ndecorators.\n\nGenerated guests import WASI SQLite, export `wasi:http/handler`, and `pump()` jobs on control\nHTTP (`/_di/queues/`) rather than starting poll loops. Public ingress is omitted. The workload\nuses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and\n`QUEUE_DB_PATH=/data/queue.db`. A ClusterIP Service still exists for control routes.\n\nSee Queues.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_wasmcloud__application-deploy-and-destroy",
       "url": "https://docs.di-framework.dev/wasmcloud.html#application-deploy-and-destroy",
       "pageTitle": "Application deploy and destroy",
@@ -3347,7 +3527,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Next steps",
-      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Scheduling - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
+      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Scheduling - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`\n- Queues - Durable workers without public ingress\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
       "product": "d",
       "version": "latest"
     },
@@ -3447,7 +3627,7 @@
       "pageTitle": "API Reference",
       "mainTitle": "Events",
       "breadcrumbs": "Docs|Events|API Reference",
-      "content": "| Export | Description |\n| --- | --- |\n| `createEventBridge` | Imperative bridge |\n| `memoryTransport` | In-process transport |\n| `JsonCodec` | Default JSON codec |\n| `EventBridge` / `Outbound` / `Inbound` | Route decorators |\n| `startEventBridges` | Resolve + start all registered bridges |\n| `@di-framework/events/kafka` | `kafkaTransport` |\n| `@di-framework/events/nats` | `natsTransport` |",
+      "content": "| Export | Description |\n| --- | --- |\n| `createEventBridge` | Imperative bridge |\n| `memoryTransport` | In-process transport |\n| `JsonCodec` | Default JSON codec |\n| `EventBridge` / `Outbound` / `Inbound` | Route decorators |\n| `startEventBridges` | Resolve + start all registered bridges |\n| `@di-framework/events/kafka` | `kafkaTransport` |\n| `@di-framework/events/nats` | `natsTransport` |\n\nDurable **jobs** with persist, retry, and dead-letter handling belong in\nQueues, not this package. Emitting a container event is not successful job\nprocessing.",
       "product": "d",
       "version": "latest"
     },
@@ -3467,7 +3647,7 @@
       "pageTitle": "Example",
       "mainTitle": "Events",
       "breadcrumbs": "Docs|Events|Example",
-      "content": "A worked example with memory transport lives in the events example package.",
+      "content": "A worked example with memory transport lives in the events example package.\n\nFor durable jobs (leases, retries, dead letters), see Queues.",
       "product": "d",
       "version": "latest"
     },
@@ -3477,7 +3657,7 @@
       "pageTitle": "API Reference",
       "mainTitle": "API Reference",
       "breadcrumbs": "Docs|API Reference",
-      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Scheduling, Configuration, Authentication, Resource Authorization, AI, and Agents.",
+      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Scheduling, Queues, Configuration, Authentication, Resource Authorization, AI, and Agents.",
       "product": "d",
       "version": "latest"
     },

@@ -516,9 +516,25 @@ running.
 
 See [Scheduling](scheduling.md#manual-invocation-and-tests).
 
+## Durable queues
+
+Use `InMemoryQueueBackend` with `advanceTime`, `step`, and `drain` instead of real sleeps.
+Import handler modules before producing jobs if you rely on `@QueueHandler` enqueue defaults.
+
+```typescript
+const memory = new InMemoryQueueBackend();
+queue.setBackend(memory);
+await queue.get('receipts').enqueue(payload);
+await memory.step('receipts', (job) => dispatcher.dispatch(job));
+```
+
+See [Queues](queues.md#testing-with-the-in-memory-backend).
+
 ## Next Steps
 
 - [Best Practices](best-practices.md) - Review recommended patterns
 - [Error Handling](error-handling.md) - Learn about error scenarios
 - [API Reference](api-reference.md) - Complete API documentation
 - [Private service bindings](service-bindings.md) - Grants, mocks, and unbound-caller tests
+- [Scheduling](scheduling.md) - `invokeCronJob` without waiting for timers
+- [Queues](queues.md) - In-memory `step` / `drain` backends

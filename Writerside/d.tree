@@ -20,6 +20,7 @@
     <toc-element topic="http-router.md"/>
     <toc-element topic="graphql.md"/>
     <toc-element topic="events.md"/>
+    <toc-element topic="queues.md"/>
     <toc-element topic="socket.md"/>
     <toc-element topic="rpc.md"/>
     <toc-element topic="service-bindings.md"/>

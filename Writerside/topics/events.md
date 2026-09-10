@@ -174,6 +174,10 @@ When the same process both publishes and consumes the same event/topic pair, inb
 | `@di-framework/events/kafka` | `kafkaTransport` |
 | `@di-framework/events/nats` | `natsTransport` |
 
+Durable **jobs** with persist, retry, and dead-letter handling belong in
+[Queues](queues.md), not this package. Emitting a container event is not successful job
+processing.
+
 ## Non-goals (v1)
 
 Transactional outbox/inbox, schema registry / Avro, request-reply, and additional brokers (Redis Streams, SQS, …). The `EventTransport` interface is the extension point.
@@ -181,3 +185,5 @@ Transactional outbox/inbox, schema registry / Avro, request-reply, and additiona
 ## Example
 
 A worked example with memory transport lives in the [events example package](https://github.com/di-framework/di-framework/tree/main/examples/packages/events).
+
+For durable jobs (leases, retries, dead letters), see [Queues](queues.md).

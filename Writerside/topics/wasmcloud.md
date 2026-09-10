@@ -343,6 +343,19 @@ The default export must expose the DI container (`export { container }` or
 
 See [Scheduling](scheduling.md) for expressions, overlap, and `invokeCronJob`.
 
+## Queue workers
+
+Build discovers `@QueueHandler('name', { numeric options })`. A project is a queue worker when
+handlers exist and either `applicationType` is `"worker"` or the sources have no HTTP controller
+decorators.
+
+Generated guests import WASI SQLite, export `wasi:http/handler`, and `pump()` jobs on control
+HTTP (`/_di/queues/`) rather than starting poll loops. Public ingress is omitted. The workload
+uses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and
+`QUEUE_DB_PATH=/data/queue.db`. A ClusterIP Service still exists for control routes.
+
+See [Queues](queues.md#wasmcloud-workers).
+
 ## Application deploy and destroy
 
 ```bash
@@ -394,5 +407,6 @@ and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are 
 - [HTTP Router](http-router.md) - Fetch-compatible routing that runs unchanged in a component
 - [Private service bindings](service-bindings.md) - In-process named contracts, not host WIT imports
 - [Scheduling](scheduling.md) - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`
+- [Queues](queues.md) - Durable workers without public ingress
 - [Installation](installation.md) - Core package and CLI setup
 - [Kubernetes with di-framework-kube](kube.md) - Local cluster and verified service-binding examples
