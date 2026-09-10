@@ -538,6 +538,22 @@ row. There is no rollback command — drop the test database instead.
 
 See [Repositories](repositories.md#database-migrations).
 
+## Actors
+
+Register actor classes explicitly on an `ActorRuntime`. Default storage is in-memory. Direct
+calls on a plain instance skip the mailbox and storage transaction; runtime tests go through
+`runtime.get(...)`. Import `@di-framework/actors/testing` only from tests (`bun:test`).
+
+```typescript
+const runtime = new ActorRuntime();
+runtime.register(CounterActor);
+const counter = runtime.get(CounterActor, 'test');
+await counter.increment(1);
+await runtime.clear();
+```
+
+See [Actors](actors.md#testing).
+
 ## Next Steps
 
 - [Best Practices](best-practices.md) - Review recommended patterns
@@ -546,3 +562,4 @@ See [Repositories](repositories.md#database-migrations).
 - [Private service bindings](service-bindings.md) - Grants, mocks, and unbound-caller tests
 - [Scheduling](scheduling.md) - `invokeCronJob` without waiting for timers
 - [Queues](queues.md) - In-memory `step` / `drain` backends
+- [Actors](actors.md) - Explicit registration and in-memory runtime tests
