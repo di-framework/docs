@@ -552,5 +552,6 @@ typed package API is extended first.
 - [Scheduling](scheduling.md) - `@Cron` (discovered by `wasmcloud build`, no `cron` group)
 - [Queues](queues.md) - Durable jobs and `queue list` / `inspect` / `retry`
 - [Repositories](repositories.md#database-migrations) - Decorator, SQL, and manifest migrations
+- [Actors](actors.md) - Local virtual-actor runtime
 - [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`

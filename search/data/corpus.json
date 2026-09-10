@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:20:09.338Z",
+  "generatedAt": "2026-09-10T14:21:07.824Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -397,7 +397,7 @@
       "pageTitle": "Runner",
       "mainTitle": "Repositories",
       "breadcrumbs": "Docs|Repositories|Runner",
-      "content": "```typescript\nimport { MigrationRunner } from '@di-framework/repo';\n\nconst runner = new MigrationRunner({ db, binding: 'accounts' });\nawait runner.execute();\nconst status = await runner.status();\n```\n\nHistory lives in `_migrations` keyed by `(version, binding)`. A lock table\n`_migrations_lock` serializes runners (60s steal timeout). Each successful `up` runs inside\n`db.transaction(...)`; a thrown `up` rolls back and does not write history.\n\nVersions: integers compare numerically; strings with `.`, `_`, or `-` compare by dotted\nsegments (`1.2` < `1.10`). Duplicate versions throw `MigrationIntegrityError`. A pending version\nlower than the latest applied throws `MigrationOrderError`.\n\nChecksums: SQL/manifest use `sha256(upSql)`; decorator checksums use `Class.toString()` (native\nvs minified Wasm output can disagree).\n\n`autoApply()` applies pending migrations only when `NODE_ENV` is `development` or `test`, unless\n`enabled: true`. Nothing in application bootstrap calls it except tests. Actor SQLite databases\nreuse this runner on activation with `binding` equal to the actor type.",
+      "content": "```typescript\nimport { MigrationRunner } from '@di-framework/repo';\n\nconst runner = new MigrationRunner({ db, binding: 'accounts' });\nawait runner.execute();\nconst status = await runner.status();\n```\n\nHistory lives in `_migrations` keyed by `(version, binding)`. A lock table\n`_migrations_lock` serializes runners (60s steal timeout). Each successful `up` runs inside\n`db.transaction(...)`; a thrown `up` rolls back and does not write history.\n\nVersions: integers compare numerically; strings with `.`, `_`, or `-` compare by dotted\nsegments (`1.2` < `1.10`). Duplicate versions throw `MigrationIntegrityError`. A pending version\nlower than the latest applied throws `MigrationOrderError`.\n\nChecksums: SQL/manifest use `sha256(upSql)`; decorator checksums use `Class.toString()` (native\nvs minified Wasm output can disagree).\n\n`autoApply()` applies pending migrations only when `NODE_ENV` is `development` or `test`, unless\n`enabled: true`. Nothing in application bootstrap calls it except tests. Actor SQLite databases\nreuse this runner on activation with `binding` equal to the actor type. See Actors.",
       "product": "d",
       "version": "latest"
     },
@@ -617,7 +617,7 @@
       "pageTitle": "Features",
       "mainTitle": "di-framework",
       "breadcrumbs": "Docs|di-framework|Features",
-      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access, storage-agnostic repositories, and decorator/SQL/manifest database migrations.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.\n- **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
+      "content": "- **Zero Dependencies**: No external dependencies required. Works with SWC and TypeScript's native decorator support.\n- **Type-Safe**: Full TypeScript support with type inference for all injected dependencies.\n- **Automatic Resolution**: Dependencies are automatically resolved and injected.\n- **Lifecycle Management**: Built-in support for singleton and transient service lifecycles.\n- **Factory Functions**: Register services using factory functions for complex initialization.\n- **Event-Driven**: Decouple service communication with `@Publisher` and `@Subscriber` decorators.\n- **Telemetry**: Built-in support for method tracking and monitoring with `@Telemetry` and `@TelemetryListener`.\n- **Error Detection**: Detects circular dependencies and unregistered services at runtime.\n- **Testing Support**: Easy to test with mock service registration.\n- **Repository Abstraction**: Includes `@di-framework/repo` for standardized data access, storage-agnostic repositories, and decorator/SQL/manifest database migrations.\n- **HTTP Routing & OpenAPI**: Type-safe HTTP routing and build-time OpenAPI 3.1 generation with `@di-framework/http`.\n- **GraphQL**: Object-oriented, decorator-driven GraphQL with `@di-framework/graphql` — domain classes become the schema.\n- **Events**: Bridge `@Publisher` / `@Subscriber` to Kafka, NATS, or in-memory transports with `@di-framework/events`.\n- **Configuration**: Typed, validated config from env, JSON, YAML, and TOML files injected via DI with `@di-framework/config`, including `{profile}.config.{ext}` overlays via `@WithProfile`.\n- **Authentication**: Sessions, JWT, OAuth2/OIDC, and WebAuthn passkeys on WebCrypto with `@di-framework/auth` — zero runtime dependencies.\n- **Resource Authorization**: Decorator-authored policies, EBNF interchange, DI resource providers, and fail-closed HTTP controller bindings with `@di-framework/authz`.\n- **Sockets**: Security-first WebSocket, TCP, and UDP with a WebCrypto secure channel via `@di-framework/socket` (network I/O — distinct from the in-process event bus).\n- **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.\n- **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.\n- **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.\n- **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.\n- **Actors**: `@di-framework/actors` provides a local virtual-actor runtime with serialized mailboxes and typed references. No Wasm host is required for local use.\n- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.\n- **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.\n- **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).\n- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The kube platform provides a local cluster and live verification examples.",
       "product": "d",
       "version": "latest"
     },
@@ -1197,7 +1197,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Repositories - Decorator, SQL, and manifest migrations\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Repositories - Decorator, SQL, and manifest migrations\n- Actors - Local virtual-actor runtime\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -1722,12 +1722,22 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_testing__actors",
+      "url": "https://docs.di-framework.dev/testing.html#actors",
+      "pageTitle": "Actors",
+      "mainTitle": "Testing",
+      "breadcrumbs": "Docs|Testing|Actors",
+      "content": "Register actor classes explicitly on an `ActorRuntime`. Default storage is in-memory. Direct\ncalls on a plain instance skip the mailbox and storage transaction; runtime tests go through\n`runtime.get(...)`. Import `@di-framework/actors/testing` only from tests (`bun:test`).\n\n```typescript\nconst runtime = new ActorRuntime();\nruntime.register(CounterActor);\nconst counter = runtime.get(CounterActor, 'test');\nawait counter.increment(1);\nawait runtime.clear();\n```\n\nSee Actors.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_testing__next-steps",
       "url": "https://docs.di-framework.dev/testing.html#next-steps",
       "pageTitle": "Next Steps",
       "mainTitle": "Testing",
       "breadcrumbs": "Docs|Testing|Next Steps",
-      "content": "- Best Practices - Review recommended patterns\n- Error Handling - Learn about error scenarios\n- API Reference - Complete API documentation\n- Private service bindings - Grants, mocks, and unbound-caller tests\n- Scheduling - `invokeCronJob` without waiting for timers\n- Queues - In-memory `step` / `drain` backends",
+      "content": "- Best Practices - Review recommended patterns\n- Error Handling - Learn about error scenarios\n- API Reference - Complete API documentation\n- Private service bindings - Grants, mocks, and unbound-caller tests\n- Scheduling - `invokeCronJob` without waiting for timers\n- Queues - In-memory `step` / `drain` backends\n- Actors - Explicit registration and in-memory runtime tests",
       "product": "d",
       "version": "latest"
     },
@@ -1908,6 +1918,76 @@
       "mainTitle": "Sockets",
       "breadcrumbs": "Docs|Sockets|Related",
       "content": "- Events — broker bridge for the in-process bus\n- GraphQL — schema and `subscribe`; sockets own the subscription transport\n- Authentication — identity; compose with WebSocket `connection_init`\n- HTTP Router — request/response; upgrade path is socket’s job",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors",
+      "url": "https://docs.di-framework.dev/actors.html",
+      "pageTitle": "Actors",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors",
+      "content": "`@di-framework/actors` is a local virtual-actor runtime: decorated classes, typed references,\nserialized mailboxes per actor identity, and concurrent execution across identities. The package\nruns on Bun with no Wasm toolchain and no wasmCloud host.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #415, closing\ndi-framework#407).\nThey are documented here on **latest** (EAP). `@di-framework/actors` is not on npm as of that\ntag and is not in the frozen `/v5.3/` snapshot.\n\nThis page is the actors entry topic. Persistence, local tooling, remote invocation, and wasmCloud\ndeployment extend it rather than introducing a second getting-started path.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__installation",
+      "url": "https://docs.di-framework.dev/actors.html#installation",
+      "pageTitle": "Installation",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Installation",
+      "content": "```bash\nbun add @di-framework/actors @di-framework/core\n```\n\nThe default entry re-exports `SqliteActorStorage`, which imports `bun:sqlite`. Tests in this\npackage run under **Bun**. There is no `engines` field and no Node-only default entry that omits\n`bun:sqlite`. For a graph without `bun:sqlite`, import `@di-framework/actors/portable` and use\nin-memory storage.\n\n`@di-framework/actors/testing` imports `bun:test`. Do not import it from production code.\n\n```typescript\nimport {\n Actor,\n ActorMethod,\n ActorContext,\n ActorRuntime,\n} from '@di-framework/actors';\n```",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__define-an-actor",
+      "url": "https://docs.di-framework.dev/actors.html#define-an-actor",
+      "pageTitle": "Define an actor",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Define an actor",
+      "content": "```typescript\n@Actor({ name: 'CounterActor', namespace: 'examples' })\nclass CounterActor {\n @ActorContext()\n private ctx!: ActorContext;\n\n private scratch = 0; // instance field — not durable storage\n\n async onActivate(): Promise<void> {}\n async onDeactivate(): Promise<void> {}\n\n @ActorMethod()\n async increment(step = 1): Promise<number> {\n const current = (await this.ctx.storage.get<number>('count')) ?? 0;\n const next = current + step;\n await this.ctx.storage.set('count', next);\n return next;\n }\n\n @ActorMethod()\n async getCount(): Promise<number> {\n return (await this.ctx.storage.get<number>('count')) ?? 0;\n }\n}\n```\n\n`@Actor` accepts `@Actor`, `@Actor()`, `@Actor('Name')`, or\n`@Actor({ name?, namespace?, description?, migrations? })`. Default name is the class name.\n\n`@ActorMethod` / `@ActorMethod({ name?, timeout? })` exposes a mailbox method. `timeout` is\nmilliseconds; on timeout the invocation rejects with\n`Actor method '<type>.<method>' timed out after <n>ms.`\n\n`ActorContext` injects as a property decorator (`@ActorContext` / `@ActorContext()`) or via\n`ActorContext.current()`. Fields: `actorId`, `actorKey`, `actorType`, `storage`, `actors`,\noptional `database`.\n\nIdentity:\n\n- with a namespace: `` `${namespace}:${name}:${actorKey}` ``\n- without: `` `${name}:${actorKey}` ``\n\nDefault metadata namespace is `'default'`, but the runtime only prefixes identity when a\nnamespace is set on the decorator, `register()`, or `ActorRuntime({ namespace })`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__register-and-call",
+      "url": "https://docs.di-framework.dev/actors.html#register-and-call",
+      "pageTitle": "Register and call",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Register and call",
+      "content": "There is no implicit DI activation. Register classes on an `ActorRuntime` (or the process\nsingleton `actors`):\n\n```typescript\nconst runtime = new ActorRuntime(); // default: InMemoryActorStorage\nruntime.register(CounterActor);\n\nconst counter = runtime.get(CounterActor, 'primary');\nawait counter.increment(1);\nconsole.log(await counter.getCount());\n```\n\n`runtime.get(ActorClass | string, actorKey)` returns a typed `ActorRef<T>`. Obtaining a ref does\nnot activate; the first method call does.\n\nLookups accept the class constructor, a short name, or a qualified `'namespace:actorName'`.\nDuplicate short names throw `ActorAmbiguityError`. Missing registration throws\n`ActorNotRegisteredError`. Missing methods throw `ActorMethodNotFoundError`.\n\n```typescript\nruntime.invoke(CounterActor, 'primary', 'increment', [1]);\nawait runtime.deactivate(CounterActor, 'primary');\nawait runtime.clear();\n```\n\nThe counter-actor example\nis the runnable local walkthrough (`bun run index.ts` / `bun test`).",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__mailbox-concurrency-and-errors",
+      "url": "https://docs.di-framework.dev/actors.html#mailbox-concurrency-and-errors",
+      "pageTitle": "Mailbox, concurrency, and errors",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Mailbox, concurrency, and errors",
+      "content": "- Invocations on one identity run **one-by-one**, including inner `await`s.\n- Distinct identities run **concurrently**.\n- Calling the same actor through a reference from an active invocation throws a reentrancy error.\n Call `this.otherMethod()` to share the current invocation and transaction. Indirect cycles\n such as A→B→A also reject while the earlier invocation remains active.\n- `maxMailboxSize` rejects excess work with `ActorBackpressureError`.\n- Closed admission (reload/deactivation) rejects new enqueues with `ActorAdmissionClosedError`.\n- Clearing a mailbox rejects queued calls.\n- A method timeout rolls back the storage transaction and **does not cancel** JavaScript already\n running in the method. Late storage access rejects. A failed activating call or a timeout\n **evicts** the instance so the next call can activate again.\n\nInstance fields are not actor storage. Only `ctx.storage` participates in the transaction\n(commit on success, rollback on throw). The default in-memory adapter keeps that state until\n`runtime.clear()` / process exit; it is not a durable log and is not a substitute for message\ndelivery guarantees.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__testing",
+      "url": "https://docs.di-framework.dev/actors.html#testing",
+      "pageTitle": "Testing",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Testing",
+      "content": "Register explicitly. Use the default in-memory storage, or see persistence for temporary SQLite.\n\n```typescript\nimport { describe, it, expect, afterEach } from 'bun:test';\nimport { ActorRuntime } from '@di-framework/actors';\n\ndescribe('CounterActor', () => {\n const runtime = new ActorRuntime();\n runtime.register(CounterActor);\n\n afterEach(async () => {\n await runtime.clear();\n });\n\n it('increments', async () => {\n const counter = runtime.get(CounterActor, 'test');\n expect(await counter.increment(2)).toBe(2);\n expect(await counter.getCount()).toBe(2);\n });\n});\n```\n\nContract helpers live in `@di-framework/actors/testing`:\n\n```typescript\nimport { defineActorContractSuite } from '@di-framework/actors/testing';\n\ndefineActorContractSuite({\n name: 'in-memory',\n createAdapter: async () => ({ storage: /* ActorStorage */ }),\n});\n```\n\nThat entry also exports `ContractCounterActor` and `ContractFailingMigrationActor`. Direct method\ntests (calling `increment` on a plain instance) skip the mailbox and storage transaction; runtime\ntests go through `runtime.get(...)`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_actors__next-steps",
+      "url": "https://docs.di-framework.dev/actors.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "Actors",
+      "breadcrumbs": "Docs|Actors|Next steps",
+      "content": "- Installation - Companion packages\n- Testing - Isolated containers alongside actor runtimes\n- API Reference - Core container API\n- CLI - Canonical command tree",
       "product": "d",
       "version": "latest"
     },
@@ -3457,7 +3537,7 @@
       "pageTitle": "Optional Packages",
       "mainTitle": "Installation",
       "breadcrumbs": "Docs|Installation|Optional Packages",
-      "content": "The core package stands alone. Companion packages add data access, HTTP, GraphQL, events, sockets, RPC, configuration, authentication, and AI support:\n\n| Package | Docs |\n| --- | --- |\n| `@di-framework/cli` | CLI |\n| `@di-framework/tsc` | Runtime type checks (default in `init`) |\n| `@di-framework/repo` | Repositories |\n| `@di-framework/http` | HTTP Router |\n| `@di-framework/graphql` | GraphQL |\n| `@di-framework/events` | Events |\n| `@di-framework/queues` | Queues — durable jobs (latest / EAP) |\n| `@di-framework/socket` | Sockets |\n| `@di-framework/rpc` | RPC |\n| `@di-framework/config` | Configuration |\n| `@di-framework/auth` | Authentication |\n| `@di-framework/authz` | Resource Authorization |\n| `@di-framework/ai` | AI |\n| `@di-framework/ai-utils` | Agent Skills — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |\n| `@di-framework/wasmcloud` | Native service bindings — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |\n| `@di-framework/cli-plugin-wasmcloud` | wasmCloud — WASI 0.3 build, development, and deployment extension |\n\nFor a local Kubernetes platform and live service-binding examples, use the separate\ndi-framework-kube CLI. The example workspace pins the framework packages and\nwasmCloud extension to 5.3.0.",
+      "content": "The core package stands alone. Companion packages add data access, HTTP, GraphQL, events, sockets, RPC, configuration, authentication, and AI support:\n\n| Package | Docs |\n| --- | --- |\n| `@di-framework/cli` | CLI |\n| `@di-framework/tsc` | Runtime type checks (default in `init`) |\n| `@di-framework/repo` | Repositories |\n| `@di-framework/http` | HTTP Router |\n| `@di-framework/graphql` | GraphQL |\n| `@di-framework/events` | Events |\n| `@di-framework/queues` | Queues — durable jobs (latest / EAP) |\n| `@di-framework/actors` | Actors — local virtual actors (latest / EAP) |\n| `@di-framework/socket` | Sockets |\n| `@di-framework/rpc` | RPC |\n| `@di-framework/config` | Configuration |\n| `@di-framework/auth` | Authentication |\n| `@di-framework/authz` | Resource Authorization |\n| `@di-framework/ai` | AI |\n| `@di-framework/ai-utils` | Agent Skills — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |\n| `@di-framework/wasmcloud` | Native service bindings — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |\n| `@di-framework/cli-plugin-wasmcloud` | wasmCloud — WASI 0.3 build, development, and deployment extension |\n\nFor a local Kubernetes platform and live service-binding examples, use the separate\ndi-framework-kube CLI. The example workspace pins the framework packages and\nwasmCloud extension to 5.3.0.",
       "product": "d",
       "version": "latest"
     },
@@ -3737,7 +3817,7 @@
       "pageTitle": "API Reference",
       "mainTitle": "API Reference",
       "breadcrumbs": "Docs|API Reference",
-      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Scheduling, Queues, Configuration, Authentication, Resource Authorization, AI, and Agents.",
+      "content": "Reference for the container and decorators provided by `@di-framework/core`. For package-specific APIs, see Repositories, HTTP Router, GraphQL, Events, Sockets, RPC, Private service bindings, Scheduling, Queues, Actors, Configuration, Authentication, Resource Authorization, AI, and Agents.",
       "product": "d",
       "version": "latest"
     },

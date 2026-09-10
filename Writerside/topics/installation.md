@@ -136,6 +136,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/graphql` | [GraphQL](graphql.md) |
 | `@di-framework/events` | [Events](events.md) |
 | `@di-framework/queues` | [Queues](queues.md) — durable jobs (latest / EAP) |
+| `@di-framework/actors` | [Actors](actors.md) — local virtual actors (latest / EAP) |
 | `@di-framework/socket` | [Sockets](socket.md) |
 | `@di-framework/rpc` | [RPC](rpc.md) |
 | `@di-framework/config` | [Configuration](config.md) |

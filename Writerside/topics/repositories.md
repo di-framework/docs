@@ -227,7 +227,7 @@ vs minified Wasm output can disagree).
 
 `autoApply()` applies pending migrations only when `NODE_ENV` is `development` or `test`, unless
 `enabled: true`. Nothing in application bootstrap calls it except tests. Actor SQLite databases
-reuse this runner on activation with `binding` equal to the actor type.
+reuse this runner on activation with `binding` equal to the actor type. See [Actors](actors.md).
 
 ### CLI
 
