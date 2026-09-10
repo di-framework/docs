@@ -31,6 +31,7 @@
         <toc-element topic="agent-foundations.md"/>
     </toc-element>
     <toc-element topic="api-reference.md"/>
+    <toc-element topic="scheduling.md"/>
     <toc-element topic="advanced-usage.md"/>
     <toc-element topic="error-handling.md"/>
     <toc-element topic="best-practices.md"/>

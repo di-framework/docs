@@ -507,6 +507,15 @@ testContainer.registerValue(serviceBindingToken('inventory'), {
 
 See [Private service bindings](service-bindings.md#status-reload-and-mocks).
 
+## Scheduled methods
+
+There is no fake cron clock. Call `container.invokeCronJob(jobId)` instead of waiting for
+in-process timers. `CronRuntime` is a process singleton — call `CronRuntime.reset()` in
+`beforeEach` / `afterEach`. Overlap tests use a second `invokeCronJob` while the first is still
+running.
+
+See [Scheduling](scheduling.md#manual-invocation-and-tests).
+
 ## Next Steps
 
 - [Best Practices](best-practices.md) - Review recommended patterns

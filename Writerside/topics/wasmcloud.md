@@ -326,6 +326,23 @@ cluster to pull. A string registry remains supported. An `http://` push URL or `
 enables ORAS plain HTTP for that target. See [Kubernetes with di-framework-kube](kube.md) for
 an external-target workflow using a loopback publisher and an in-cluster registry service.
 
+## Scheduled jobs
+
+`di-framework wasmcloud build` discovers `@Cron(...)` methods with a string or numeric literal
+and writes `.di-framework/cron.json` plus an invoker. Deploy applies one Kubernetes
+`batch/v1` CronJob per job. The workload sets `DI_CRON_MODE=external` so in-component timers do
+not fire. Generated workloads use `replicas: 1`.
+
+Scheduled-only projects (`"ingress": false`) still export `wasi:http/handler` and still get a
+ClusterIP Service so CronJobs can POST to `/_di/cron/{jobId}/invoke`. Public ingress is omitted.
+The default export must expose the DI container (`export { container }` or
+`export default { container }`).
+
+`destroy` deletes `WorkloadDeployment,service,cronjob` labeled
+`app.kubernetes.io/name=<witName>`. `dev` and `doctor` do not generate or check CronJobs.
+
+See [Scheduling](scheduling.md) for expressions, overlap, and `invokeCronJob`.
+
 ## Application deploy and destroy
 
 ```bash
@@ -376,5 +393,6 @@ and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are 
 - [CLI](cli.md) - The canonical command tree and the extensions mechanism
 - [HTTP Router](http-router.md) - Fetch-compatible routing that runs unchanged in a component
 - [Private service bindings](service-bindings.md) - In-process named contracts, not host WIT imports
+- [Scheduling](scheduling.md) - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`
 - [Installation](installation.md) - Core package and CLI setup
 - [Kubernetes with di-framework-kube](kube.md) - Local cluster and verified service-binding examples

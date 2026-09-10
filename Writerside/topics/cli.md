@@ -493,5 +493,6 @@ typed package API is extended first.
 - [Kubernetes with di-framework-kube](kube.md) - Separate platform CLI and live example deployment workflow
 - [HTTP Router](http-router.md) - HTTP routing and OpenAPI generation
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)
+- [Scheduling](scheduling.md) - `@Cron` (discovered by `wasmcloud build`, no `cron` group)
 - [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`
