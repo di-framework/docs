@@ -585,7 +585,7 @@ typed package API is extended first.
 - [Quick Start](quick-start.md) - Basics after scaffolding
 - [wasmCloud](wasmcloud.md) - Build and deploy apps as WebAssembly components
 - [Kubernetes with di-framework-kube](kube.md) - Separate platform CLI and live example deployment workflow
-- [HTTP Router](http-router.md) - HTTP routing and OpenAPI generation
+- [HTTP Router](http-router.md) - HTTP routing, OpenAPI generation, and static assets
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)
 - [Scheduling](scheduling.md) - `@Cron` (discovered by `wasmcloud build`, no `cron` group)
 - [Queues](queues.md) - Durable jobs and `queue list` / `inspect` / `retry`

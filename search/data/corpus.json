@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:25:17.434Z",
+  "generatedAt": "2026-09-10T14:26:43.746Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -667,7 +667,7 @@
       "pageTitle": "Features",
       "mainTitle": "HTTP Router",
       "breadcrumbs": "Docs|HTTP Router|Features",
-      "content": "- **Type-Safe Routing**: `TypedRouter` provides full TypeScript support for request bodies, response types, and context.\n- **Auto JSON Enforcement**: Automatically validates `Content-Type: application/json` for mutation methods (POST, PUT, PATCH).\n- **Multipart Support**: Opt into `multipart/form-data` handling with `Multipart<T>` and `{ multipart: true }`.\n- **Declarative Metadata**: Use `@Controller` and `@Endpoint` decorators to document your API logic directly in code.\n- **DI Integration**: `@Controller` composes the core DI `@Container` decorator, so controllers are auto-registered and can use `@Component` injection and `useContainer().resolve(...)`.\n- **OpenAPI 3.1 Support**: Generate a complete OpenAPI specification from your code at build time.\n- **Minimal Footprint**: Built on top of the ultra-light `itty-router`.",
+      "content": "- **Type-Safe Routing**: `TypedRouter` provides full TypeScript support for request bodies, response types, and context.\n- **Auto JSON Enforcement**: Automatically validates `Content-Type: application/json` for mutation methods (POST, PUT, PATCH).\n- **Multipart Support**: Opt into `multipart/form-data` handling with `Multipart<T>` and `{ multipart: true }`.\n- **Declarative Metadata**: Use `@Controller` and `@Endpoint` decorators to document your API logic directly in code.\n- **DI Integration**: `@Controller` composes the core DI `@Container` decorator, so controllers are auto-registered and can use `@Component` injection and `useContainer().resolve(...)`.\n- **OpenAPI 3.1 Support**: Generate a complete OpenAPI specification from your code at build time.\n- **Static assets**: `HttpRouter.builder().static()` serves a directory in development and packaged bytes after build.\n- **Minimal Footprint**: Built on top of the ultra-light `itty-router`.",
       "product": "d",
       "version": "latest"
     },
@@ -787,7 +787,77 @@
       "pageTitle": "`HttpRouter.builder()` & `@HttpRouter(options?)`",
       "mainTitle": "HTTP Router",
       "breadcrumbs": "Docs|HTTP Router|`HttpRouter.builder()` & `@HttpRouter(options?)`",
-      "content": "An extensible, fluent builder above `TypedRouter()` and its corresponding decorator:\n\n```typescript\nimport { HttpRouter } from '@di-framework/http';\n\n// 1. Fluent Builder\nconst http = HttpRouter.builder()\n .prefix('/api')\n .use(loggingMiddleware)\n .catch((err) => new Response(JSON.stringify({ error: err.message }), { status: 500 }))\n .build();\n\nhttp.get('/health', async () => new Response('OK'));\n\n// 2. Class Decorator with DI integration\n@HttpRouter({\n prefix: '/v1',\n use: [authMiddleware],\n})\nexport class ApiRouter {}\n\n// Resolve from DI container\nconst router = useContainer().resolve('HTTP_ROUTER');\n```\n\n- **`prefix(pathPrefix)`**: Sets a global base path prefix for registered routes.\n- **`catch(handler)`**: Registers a custom global error handler.\n- **`use(...middleware)`**: Registers global middleware executed on all routes.\n- **`withAuth(options)`**: Extension point for auth integrations without introducing runtime dependencies in `@di-framework/http`.\n- **`extend(fn)`**: Register custom builder extensions.",
+      "content": "An extensible, fluent builder above `TypedRouter()` and its corresponding decorator:\n\n```typescript\nimport { HttpRouter } from '@di-framework/http';\n\n// 1. Fluent Builder\nconst http = HttpRouter.builder()\n .prefix('/api')\n .use(loggingMiddleware)\n .catch((err) => new Response(JSON.stringify({ error: err.message }), { status: 500 }))\n .build();\n\nhttp.get('/health', async () => new Response('OK'));\n\n// 2. Class Decorator with DI integration\n@HttpRouter({\n prefix: '/v1',\n use: [authMiddleware],\n})\nexport class ApiRouter {}\n\n// Resolve from DI container\nconst router = useContainer().resolve('HTTP_ROUTER');\n```\n\n- **`prefix(pathPrefix)`**: Sets a global base path prefix for registered routes.\n- **`catch(handler)`**: Registers a custom global error handler.\n- **`use(...middleware)`**: Registers global middleware executed on all routes.\n- **`static(prefix, options)`**: Serve files from a directory or a packaged bundle. See Static assets.\n- **`withAuth(options)`**: Extension point for auth integrations without introducing runtime dependencies in `@di-framework/http`.\n- **`extend(fn)`**: Register custom builder extensions.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_http-router__static-assets",
+      "url": "https://docs.di-framework.dev/http-router.html#static-assets",
+      "pageTitle": "Static assets",
+      "mainTitle": "HTTP Router",
+      "breadcrumbs": "Docs|HTTP Router|Static assets",
+      "content": "Declare an asset directory once. During development the handler reads the directory on each\nrequest. After packaging, the same mount serves in-memory bytes when the source directory is\ngone.\n\nThese APIs landed on di-framework `main` after the\nv5.3.0 tag\n(PR #417, closing\ndi-framework#412).\nThey are documented here on **latest** (EAP) and are not in the frozen `/v5.3/` snapshot.\n\n`TypedRouter()` has no `.static()` method. Mounts live on `HttpRouter.builder()` / the built\nrouter, or `@HttpRouter({ static })`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_http-router__local-serving",
+      "url": "https://docs.di-framework.dev/http-router.html#local-serving",
+      "pageTitle": "Local serving",
+      "mainTitle": "HTTP Router",
+      "breadcrumbs": "Docs|HTTP Router|Local serving",
+      "content": "The http-router example\nmounts `public/` at `/static` next to `POST /echo` and `GET /`:\n\n```typescript\nimport { dirname, join } from 'node:path';\nimport { fileURLToPath } from 'node:url';\nimport { HttpRouter } from '@di-framework/http';\n\nconst publicDir = join(dirname(fileURLToPath(import.meta.url)), 'public');\n\nconst router = HttpRouter.builder()\n .static('/static', {\n directory: publicDir,\n cacheControl: 'public, max-age=3600',\n fallthrough: true,\n })\n .build();\n```\n\n`GET /static/style.css` and `HEAD /static/info.json` serve from disk. Edits appear without\nrebuilding while live mode is on.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_http-router__options",
+      "url": "https://docs.di-framework.dev/http-router.html#options",
+      "pageTitle": "Options",
+      "mainTitle": "HTTP Router",
+      "breadcrumbs": "Docs|HTTP Router|Options",
+      "content": "```typescript\ninterface StaticAssetOptions {\n directory: string;\n fallthrough?: boolean; // default false\n cacheControl?: string;\n manifest?: StaticAssetManifest | string;\n package?: StaticAssetPackage;\n live?: boolean;\n}\n```\n\n| Option | Behavior |\n| --- | --- |\n| `directory` | Required. Live root, and registry lookup key if no `package` / `manifest`. |\n| `fallthrough` | `true`: miss / wrong method / bad path returns `undefined` so later routes run. `false`: 404 / 405 / 403 / 400. |\n| `cacheControl` | Copied to `Cache-Control` on 200 and 304. |\n| `manifest` | Object or JSON path (native only). Metadata-only manifests still need a live directory for bytes. |\n| `package` | In-memory bundle with encoded contents. Used when not in live mode. |\n| `live` | Force disk vs package. Default: live iff the directory exists **and** there are no packaged contents. Packaged contents win unless `live: true`. |\n\nHidden path segments (names starting with `.`) 404. Directory listings are disabled. Symlinks\nthat escape the real root are skipped at package time and 403/404 at serve time. There is **no**\nconfigurable exclusions option.\n\nBuilder `prefix('/api')` plus `.static('/assets', …)` mounts at `/api/assets`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_http-router__get-head-types-etag",
+      "url": "https://docs.di-framework.dev/http-router.html#get-head-types-etag",
+      "pageTitle": "GET, HEAD, types, ETag",
+      "mainTitle": "HTTP Router",
+      "breadcrumbs": "Docs|HTTP Router|GET, HEAD, types, ETag",
+      "content": "Only `GET` and `HEAD`. Other methods return 405 + `Allow: GET, HEAD` (or fallthrough).\n\n| Case | Status |\n| --- | --- |\n| File found | 200 |\n| Matching `If-None-Match` | 304, empty body |\n| Missing / hidden / directory / no source | 404 |\n| `..` / traversal | 403 (malformed `%` decode → 400) |\n| Wrong method | 405 |\n\nMIME comes from a built-in map; unknown types are `application/octet-stream`. Text types include\n`charset=utf-8`.\n\nETag: packaged files use a strong tag from SHA-256; live disk uses a weak\n`W/\"<size>-<mtime>-<ctime>\"` tag (no per-request hash). `If-None-Match` supports exact tags,\n`W/`-stripped compare, comma lists, and `*`.\n\nLive GET streams from the file descriptor and **omits** `Content-Length` (the file can change\nwhile streaming). Live HEAD and packaged GET/HEAD set `Content-Length`. Consumers must read or\n`cancel()` the body so the descriptor closes.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_http-router__route-order-middleware-and-404",
+      "url": "https://docs.di-framework.dev/http-router.html#route-order-middleware-and-404",
+      "pageTitle": "Route order, middleware, and 404",
+      "mainTitle": "HTTP Router",
+      "breadcrumbs": "Docs|HTTP Router|Route order, middleware, and 404",
+      "content": "`HttpRouterBuilder.build()` registers, in order: `.use()` middleware as `all('*')`, then\n`.static()` mounts, then `withAuth` / `.extend()`, then application `get` / `post` after\n`.build()`.\n\n- Global middleware runs **before** the static handler.\n- `withAuthRoutes` does **not** wrap already-mounted static routes. Guard assets with `.use(guard)`\n or `fallthrough: true` plus a later guarded route.\n- Default `fallthrough: false` means a missing static path 404s and later routes never run.\n- The example uses `fallthrough: true` so `GET /` and `POST /echo` coexist. Static uses `all`, so\n non-GET/HEAD also need fallthrough to reach `router.post(...)`.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_http-router__packaging",
+      "url": "https://docs.di-framework.dev/http-router.html#packaging",
+      "pageTitle": "Packaging",
+      "mainTitle": "HTTP Router",
+      "breadcrumbs": "Docs|HTTP Router|Packaging",
+      "content": "Native `@di-framework/http` only (not the portable entry):\n\n```typescript\nimport { packageStaticAssets, registerStaticAssets } from '@di-framework/http';\n\nconst pkg = packageStaticAssets({ directory: './public' });\nregisterStaticAssets('/static', pkg);\n```\n\n`packageStaticAssets({ directory, outputDir?, outFile?, format?, prefix? })` writes\n`manifest.json` / `static-assets.json` or a JS/TS module that calls `registerStaticAssets`.\nManifests include posix keys, `contentType`, `size`, SHA-256 `hash`, and a strong `etag`.\n\nMissing source directory at **package** time throws `Error: Directory not found: …`. Mounting\n`.static()` does **not** validate the directory; a missing live root is 404 (or fallthrough) at\nrequest time.\n\nThe wasmCloud plugin does **not** auto-discover `.static()` directories. Package on the build\nhost, then either pass `package: pkg` into `.static()` or import generated JS that registers the\nbundle. The portable `/ wasmcloud` entry has no `node:fs` and no `packageStaticAssets`. Serve\nwithout the source directory by using packaged contents (tests delete the directory and still\nGET/HEAD/304).\n\nOut of scope (not implemented): SPA fallback, index-file routing, compression, byte ranges,\nremote storage, CDN provisioning, frontend compilation, configurable exclude globs, and\nautomatic CLI collection of asset directories.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_http-router__next-steps",
+      "url": "https://docs.di-framework.dev/http-router.html#next-steps",
+      "pageTitle": "Next steps",
+      "mainTitle": "HTTP Router",
+      "breadcrumbs": "Docs|HTTP Router|Next steps",
+      "content": "- wasmCloud - Component build; package assets on the host before bundling\n- CLI - `http openapi generate`\n- Deployment - Target runtimes",
       "product": "d",
       "version": "latest"
     },
@@ -1207,7 +1277,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "CLI",
       "breadcrumbs": "Docs|CLI|Next steps",
-      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing and OpenAPI generation\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Repositories - Decorator, SQL, and manifest migrations\n- Actors - Local runtime, persistence, and `actor` commands\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
+      "content": "- Installation - Core package and CLI setup\n- Quick Start - Basics after scaffolding\n- wasmCloud - Build and deploy apps as WebAssembly components\n- Kubernetes with di-framework-kube - Separate platform CLI and live example deployment workflow\n- HTTP Router - HTTP routing, OpenAPI generation, and static assets\n- Private service bindings - Named in-process contracts (no dedicated CLI command)\n- Scheduling - `@Cron` (discovered by `wasmcloud build`, no `cron` group)\n- Queues - Durable jobs and `queue list` / `inspect` / `retry`\n- Repositories - Decorator, SQL, and manifest migrations\n- Actors - Local runtime, persistence, and `actor` commands\n- Agents - Skills, plugins, and skill-index programmatic APIs\n- Runtime type checks - Emit-time transforms wired by `init`",
       "product": "d",
       "version": "latest"
     },
@@ -2547,7 +2617,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "Deployment",
       "breadcrumbs": "Docs|Deployment|Next steps",
-      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- Private service bindings - Named in-process contracts without URLs\n- Remote actors - Cross-process actor RPC independent of wasmCloud\n- wasmCloud actors - Single-host actor workloads and hostPath storage\n- CLI - Install extensions and use the canonical command tree",
+      "content": "- Cloud Foundry - Connect an application to platform metadata and bound services\n- wasmCloud - Build and deploy WebAssembly components\n- Kubernetes with di-framework-kube - Deploy examples and verify real service bindings\n- Private service bindings - Named in-process contracts without URLs\n- Remote actors - Cross-process actor RPC independent of wasmCloud\n- wasmCloud actors - Single-host actor workloads and hostPath storage\n- HTTP static assets - Live directory serving and host-side packaging\n- CLI - Install extensions and use the canonical command tree",
       "product": "d",
       "version": "latest"
     },
@@ -3832,6 +3902,16 @@
       "version": "latest"
     },
     {
+      "objectID": "docs_wasmcloud__static-assets",
+      "url": "https://docs.di-framework.dev/wasmcloud.html#static-assets",
+      "pageTitle": "Static assets",
+      "mainTitle": "wasmCloud",
+      "breadcrumbs": "Docs|wasmCloud|Static assets",
+      "content": "The extension does not scan `.static()` mounts. Package files on the build host with\n`packageStaticAssets` from native `@di-framework/http`, then `registerStaticAssets` or pass\n`package:` into `.static()` so the guest can serve bytes without the source directory. See\nHTTP static assets.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
       "objectID": "docs_wasmcloud__actors",
       "url": "https://docs.di-framework.dev/wasmcloud.html#actors",
       "pageTitle": "Actors",
@@ -3897,7 +3977,7 @@
       "pageTitle": "Next steps",
       "mainTitle": "wasmCloud",
       "breadcrumbs": "Docs|wasmCloud|Next steps",
-      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing that runs unchanged in a component\n- Private service bindings - In-process named contracts, not host WIT imports\n- Scheduling - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`\n- Queues - Durable workers without public ingress\n- Actors - Local runtime reused by wasmCloud guests\n- Remote actors - Ownership protocol (not wasmCloud multi-host routing)\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
+      "content": "- CLI - The canonical command tree and the extensions mechanism\n- HTTP Router - Fetch-compatible routing and host-side static asset packaging\n- Private service bindings - In-process named contracts, not host WIT imports\n- Scheduling - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`\n- Queues - Durable workers without public ingress\n- Actors - Local runtime reused by wasmCloud guests\n- Remote actors - Ownership protocol (not wasmCloud multi-host routing)\n- Installation - Core package and CLI setup\n- Kubernetes with di-framework-kube - Local cluster and verified service-binding examples",
       "product": "d",
       "version": "latest"
     },

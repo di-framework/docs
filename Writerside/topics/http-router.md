@@ -10,6 +10,7 @@ Lightweight TypeScript decorators and a type-safe router for [itty-router](https
 - **Declarative Metadata**: Use `@Controller` and `@Endpoint` decorators to document your API logic directly in code.
 - **DI Integration**: `@Controller` composes the core DI `@Container` decorator, so controllers are auto-registered and can use `@Component` injection and `useContainer().resolve(...)`.
 - **OpenAPI 3.1 Support**: Generate a complete OpenAPI specification from your code at build time.
+- **Static assets**: `HttpRouter.builder().static()` serves a directory in development and packaged bytes after build.
 - **Minimal Footprint**: Built on top of the ultra-light `itty-router`.
 
 ## Installation
@@ -272,5 +273,145 @@ const router = useContainer().resolve('HTTP_ROUTER');
 - **`prefix(pathPrefix)`**: Sets a global base path prefix for registered routes.
 - **`catch(handler)`**: Registers a custom global error handler.
 - **`use(...middleware)`**: Registers global middleware executed on all routes.
+- **`static(prefix, options)`**: Serve files from a directory or a packaged bundle. See [Static assets](#static-assets).
 - **`withAuth(options)`**: Extension point for auth integrations without introducing runtime dependencies in `@di-framework/http`.
 - **`extend(fn)`**: Register custom builder extensions.
+
+## Static assets
+
+Declare an asset directory once. During development the handler reads the directory on each
+request. After packaging, the same mount serves in-memory bytes when the source directory is
+gone.
+
+> These APIs landed on di-framework `main` after the
+> [v5.3.0](https://github.com/di-framework/di-framework/releases/tag/v5.3.0) tag
+> ([PR #417](https://github.com/di-framework/di-framework/pull/417), closing
+> [di-framework#412](https://github.com/di-framework/di-framework/issues/412)).
+> They are documented here on **latest** (EAP) and are not in the frozen `/v5.3/` snapshot.
+
+`TypedRouter()` has no `.static()` method. Mounts live on `HttpRouter.builder()` / the built
+router, or `@HttpRouter({ static })`.
+
+### Local serving
+
+The [http-router example](https://github.com/di-framework/di-framework/tree/main/examples/packages/http-router)
+mounts `public/` at `/static` next to `POST /echo` and `GET /`:
+
+```typescript
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { HttpRouter } from '@di-framework/http';
+
+const publicDir = join(dirname(fileURLToPath(import.meta.url)), 'public');
+
+const router = HttpRouter.builder()
+  .static('/static', {
+    directory: publicDir,
+    cacheControl: 'public, max-age=3600',
+    fallthrough: true,
+  })
+  .build();
+```
+
+`GET /static/style.css` and `HEAD /static/info.json` serve from disk. Edits appear without
+rebuilding while live mode is on.
+
+### Options
+
+```typescript
+interface StaticAssetOptions {
+  directory: string;
+  fallthrough?: boolean;   // default false
+  cacheControl?: string;
+  manifest?: StaticAssetManifest | string;
+  package?: StaticAssetPackage;
+  live?: boolean;
+}
+```
+
+| Option | Behavior |
+| --- | --- |
+| `directory` | Required. Live root, and registry lookup key if no `package` / `manifest`. |
+| `fallthrough` | `true`: miss / wrong method / bad path returns `undefined` so later routes run. `false`: 404 / 405 / 403 / 400. |
+| `cacheControl` | Copied to `Cache-Control` on 200 and 304. |
+| `manifest` | Object or JSON path (native only). Metadata-only manifests still need a live directory for bytes. |
+| `package` | In-memory bundle with encoded contents. Used when not in live mode. |
+| `live` | Force disk vs package. Default: live iff the directory exists **and** there are no packaged contents. Packaged contents win unless `live: true`. |
+
+Hidden path segments (names starting with `.`) 404. Directory listings are disabled. Symlinks
+that escape the real root are skipped at package time and 403/404 at serve time. There is **no**
+configurable exclusions option.
+
+Builder `prefix('/api')` plus `.static('/assets', …)` mounts at `/api/assets`.
+
+### GET, HEAD, types, ETag
+
+Only `GET` and `HEAD`. Other methods return 405 + `Allow: GET, HEAD` (or fallthrough).
+
+| Case | Status |
+| --- | --- |
+| File found | 200 |
+| Matching `If-None-Match` | 304, empty body |
+| Missing / hidden / directory / no source | 404 |
+| `..` / traversal | 403 (malformed `%` decode → 400) |
+| Wrong method | 405 |
+
+MIME comes from a built-in map; unknown types are `application/octet-stream`. Text types include
+`charset=utf-8`.
+
+ETag: packaged files use a strong tag from SHA-256; live disk uses a weak
+`W/"<size>-<mtime>-<ctime>"` tag (no per-request hash). `If-None-Match` supports exact tags,
+`W/`-stripped compare, comma lists, and `*`.
+
+Live GET streams from the file descriptor and **omits** `Content-Length` (the file can change
+while streaming). Live HEAD and packaged GET/HEAD set `Content-Length`. Consumers must read or
+`cancel()` the body so the descriptor closes.
+
+### Route order, middleware, and 404
+
+`HttpRouterBuilder.build()` registers, in order: `.use()` middleware as `all('*')`, then
+`.static()` mounts, then `withAuth` / `.extend()`, then application `get` / `post` after
+`.build()`.
+
+- Global middleware runs **before** the static handler.
+- `withAuthRoutes` does **not** wrap already-mounted static routes. Guard assets with `.use(guard)`
+  or `fallthrough: true` plus a later guarded route.
+- Default `fallthrough: false` means a missing static path 404s and later routes never run.
+- The example uses `fallthrough: true` so `GET /` and `POST /echo` coexist. Static uses `all`, so
+  non-GET/HEAD also need fallthrough to reach `router.post(...)`.
+
+### Packaging
+
+Native `@di-framework/http` only (not the portable entry):
+
+```typescript
+import { packageStaticAssets, registerStaticAssets } from '@di-framework/http';
+
+const pkg = packageStaticAssets({ directory: './public' });
+registerStaticAssets('/static', pkg);
+```
+
+`packageStaticAssets({ directory, outputDir?, outFile?, format?, prefix? })` writes
+`manifest.json` / `static-assets.json` or a JS/TS module that calls `registerStaticAssets`.
+Manifests include posix keys, `contentType`, `size`, SHA-256 `hash`, and a strong `etag`.
+
+Missing source directory at **package** time throws `Error: Directory not found: …`. Mounting
+`.static()` does **not** validate the directory; a missing live root is 404 (or fallthrough) at
+request time.
+
+The wasmCloud plugin does **not** auto-discover `.static()` directories. Package on the build
+host, then either pass `package: pkg` into `.static()` or import generated JS that registers the
+bundle. The portable `/ wasmcloud` entry has no `node:fs` and no `packageStaticAssets`. Serve
+without the source directory by using packaged contents (tests delete the directory and still
+GET/HEAD/304).
+
+Out of scope (not implemented): SPA fallback, index-file routing, compression, byte ranges,
+remote storage, CDN provisioning, frontend compilation, configurable exclude globs, and
+automatic CLI collection of asset directories.
+
+## Next steps
+
+- [wasmCloud](wasmcloud.md) - Component build; package assets on the host before bundling
+- [CLI](cli.md) - `http openapi generate`
+- [Deployment](deployment.md) - Target runtimes
+
