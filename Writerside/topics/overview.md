@@ -26,6 +26,7 @@ Published docs at [docs.di-framework.dev](https://docs.di-framework.dev) include
 - **RPC**: Decorator-generated JSON-RPC and per-method gRPC with a typed client via `@di-framework/rpc` — the same service over memory, HTTP, sockets, and Connect / gRPC.
 - **Private service bindings**: `@ExportService` / `@ServiceBinding` grant named in-process callers access to a contract without a URL or HTTP route.
 - **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.
+- **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.
 - **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.
 - **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.
 - **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).

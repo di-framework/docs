@@ -50,6 +50,10 @@ di-framework
 │   ├── test
 │   ├── typecheck
 │   └── publish
+├── queue
+│   ├── list
+│   ├── inspect
+│   └── retry
 └── extensions
     ├── install
     ├── uninstall
@@ -76,6 +80,7 @@ installed [CLI extension](#extensions).
 | `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |
 | `agent migrate` | Preview or apply audited migrations into neutral agent paths. |
 | `mx build\|test\|typecheck\|publish` | Run di-framework monorepo maintainer workflows. |
+| `queue list\|inspect\|retry` | List durable queues, inspect jobs, and retry dead-letter work. |
 | `extensions install\|uninstall\|list` | Manage installed CLI extensions. |
 
 The command paths and conventions on this page are the stable public contract.
@@ -340,6 +345,29 @@ and `.aiignore`. Source vendor files remain in place for deliberate cleanup
 after the neutral result is verified; no legacy or vendor-specific destination
 is generated.
 
+## Durable queue commands
+
+`queue` inspects the SQLite job table used by [`@di-framework/queues`](queues.md). It does not
+start a worker.
+
+```bash
+di-framework queue list [--db <path>]
+di-framework queue inspect <name> [--db <path>] [--status <status>] [--limit <n>]
+di-framework queue retry <name> [jobId] [--db <path>]
+```
+
+| Option | Description |
+| --- | --- |
+| `--db <path>` | SQLite path; `:memory:` allowed. |
+| `--status <status>` | `pending` \| `processing` \| `completed` \| `dead-letter` (inspect). |
+| `--limit <n>` | Positive integer; default `50` (inspect). |
+| `[jobId]` | Retry one dead-letter job; omit to retry all dead-letter jobs in that queue. |
+
+Database path: `--db` → `DI_QUEUE_DB` → existing `.di-framework/queue.db` → existing `queue.db`
+→ else `.di-framework/queue.db`. JSON `data` is `{ queues }` for list, `{ jobs }` for inspect,
+and `{ retried }` for retry. Missing `@di-framework/queues` exits `3`
+(`QUEUES_PACKAGE_UNAVAILABLE`). Invalid options exit `2`.
+
 ## Maintainer commands
 
 The `mx` group is only for the di-framework monorepo:
@@ -494,5 +522,6 @@ typed package API is extended first.
 - [HTTP Router](http-router.md) - HTTP routing and OpenAPI generation
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)
 - [Scheduling](scheduling.md) - `@Cron` (discovered by `wasmcloud build`, no `cron` group)
+- [Queues](queues.md) - Durable jobs and `queue list` / `inspect` / `retry`
 - [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`
