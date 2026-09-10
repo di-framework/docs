@@ -5,7 +5,8 @@ a pluggable transport. Ownership generations (fencing tokens) reject stale-owner
 Deduplication caches committed results so a retried `requestId` does not re-run the method.
 
 This guide is independent of wasmCloud. Multi-host wasmCloud routing is **not** wired to this
-protocol. Single-host wasmCloud deploy remains `replicas: 1` with a hostPath volume.
+protocol. Single-host wasmCloud deploy remains `replicas: 1` with a hostPath volume; see
+[Actors on wasmCloud](wasmcloud.md#actors).
 
 > These APIs landed on di-framework `main` after the
 > [v5.3.0](https://github.com/di-framework/di-framework/releases/tag/v5.3.0) tag
