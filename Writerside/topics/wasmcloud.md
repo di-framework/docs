@@ -356,6 +356,13 @@ uses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and
 
 See [Queues](queues.md#wasmcloud-workers).
 
+## Static assets
+
+The extension does not scan `.static()` mounts. Package files on the build host with
+`packageStaticAssets` from native `@di-framework/http`, then `registerStaticAssets` or pass
+`package:` into `.static()` so the guest can serve bytes without the source directory. See
+[HTTP static assets](http-router.md#static-assets).
+
 ## Actors
 
 > Actor wasmCloud integration landed in
@@ -471,7 +478,7 @@ and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are 
 ## Next steps
 
 - [CLI](cli.md) - The canonical command tree and the extensions mechanism
-- [HTTP Router](http-router.md) - Fetch-compatible routing that runs unchanged in a component
+- [HTTP Router](http-router.md) - Fetch-compatible routing and host-side static asset packaging
 - [Private service bindings](service-bindings.md) - In-process named contracts, not host WIT imports
 - [Scheduling](scheduling.md) - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`
 - [Queues](queues.md) - Durable workers without public ingress

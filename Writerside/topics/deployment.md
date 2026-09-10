@@ -34,4 +34,5 @@ independently deployed components by the CLI.
 - [Private service bindings](service-bindings.md) - Named in-process contracts without URLs
 - [Remote actors](actors-distributed.md) - Cross-process actor RPC independent of wasmCloud
 - [wasmCloud actors](wasmcloud.md#actors) - Single-host actor workloads and hostPath storage
+- [HTTP static assets](http-router.md#static-assets) - Live directory serving and host-side packaging
 - [CLI](cli.md) - Install extensions and use the canonical command tree
