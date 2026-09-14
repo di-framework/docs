@@ -277,8 +277,8 @@ A missing or malformed manifest reports `WASMCLOUD_DEPLOY_MANIFEST_NOT_FOUND` or
 A managed target has `platform` (a directory inside the workspace that contains `Pulumi.yaml`) and
 an optional `stack` (default `dev`). It must not mix those fields with kubeconfig fields.
 
-From the workspace root, generate a self-contained local platform — k0s, a local OCI registry, and
-the wasmCloud operator — from templates shipped with the extension:
+From the workspace root, generate a local Pulumi project for k0s, a local OCI registry, and
+the wasmCloud platform:
 
 ```bash
 di-framework wasmcloud platform init
@@ -293,6 +293,12 @@ left alone unless you pass `--force` / `-f`. When it finishes it prints the exac
 di-framework wasmcloud platform deploy local --yes
 ```
 
+The generated `index.ts` imports `@di-framework/platform/local`; its `package.json` pins the
+installed shared-package version. The implementation lives in that package, including the
+operator, Tenant/User CRDs, controller, and admission policies. Generated projects no longer
+copy `tenancy.ts` or its controller sources. [Kube](kube.md) consumes the same implementation
+through `@di-framework/platform/existing`, with Kubesolo supplying the cluster.
+
 Platform deploy runs `pulumi install` automatically for the generated project. Its default
 loopback ports are Kubernetes `26443`, registry `25000`, and HTTP `28180`; configure `apiPort`,
 `registryPort`, or `httpPort` in the generated Pulumi stack to choose different ports.
@@ -300,10 +306,17 @@ loopback ports are Kubernetes `26443`, registry `25000`, and HTTP `28180`; confi
 The generated Pulumi project provisions only platform concerns. It must not contain application
 names, component builds, Kubernetes Services for apps, or `WorkloadDeployment` objects.
 
-k0s and the registry are local Docker resources because they are not Kubernetes objects. Once k0s
-yields a kubeconfig, that value is passed to a Kubernetes provider and the operator is installed
-with Pulumi `kubernetes.helm.v3.Release` (`oci://ghcr.io/wasmcloud/charts/wasmcloud`) — not by
-shelling out to `helm`.
+The local entrypoint creates Docker resources for k0s, its network, and persistent volumes.
+Once k0s yields a kubeconfig, the shared implementation provisions the registry as a Kubernetes
+Deployment and Service and installs the operator through Pulumi `kubernetes.helm.v3.Release`
+(`oci://ghcr.io/wasmcloud/charts/runtime-operator`). Kube's existing-cluster profile leaves
+registry provisioning to the caller or example helpers.
+
+Keep the project name, backend, stack, and configuration when upgrading an older generated
+project to the package import. Review `pulumi preview` before applying and migrate any local
+customizations from the old copied files. The shared local entrypoint preserves the previous
+logical resource names. Do not point a second stack at resources already owned by another
+platform installation.
 
 The CLI reads a small output contract from `pulumi stack output --json`:
 
@@ -324,12 +337,15 @@ di-framework wasmcloud platform destroy local --yes
 
 `--yes` skips the Pulumi confirmation prompt on platform commands.
 
-Pulumi environment defaults, applied without changing the caller's environment:
+The extension's Pulumi environment defaults, applied without changing the caller's environment:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `PULUMI_BACKEND_URL` | `file://~` | Local file backend unless a backend is configured. |
 | `PULUMI_CONFIG_PASSPHRASE` | `local-dev` | Local development fallback when unset. |
+
+These are the extension's local-development defaults. Kube uses its own per-instance backend
+and generated passphrase; see [platform state and ownership](kube.md#platform-state-and-ownership).
 
 A managed target whose platform directory has no `Pulumi.yaml` reports `WASMCLOUD_PLATFORM_NOT_FOUND`.
 A stack that has not been deployed, or whose outputs do not match the contract, reports

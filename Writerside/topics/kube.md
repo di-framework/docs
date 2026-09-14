@@ -1,25 +1,29 @@
 # Kubernetes with di-framework-kube
 
-`di-framework-kube` creates an isolated local Kubernetes cluster with Kubesolo and installs
-the wasmCloud runtime operator. Use it to deploy DI Framework WebAssembly components and
-verify their connections to real services. The
-[kube repository](https://github.com/di-framework/kube) includes fourteen example apps targeting
-DI Framework **5.3.0**, with PostgreSQL, configuration, secrets, key-value, blobstore,
-messaging, outgoing HTTP, and Node compatibility checks.
+`di-framework-kube` creates an isolated local Kubernetes cluster with Kubesolo and provisions
+its wasmCloud platform through the shared `@di-framework/platform` TypeScript/Pulumi package.
+The [wasmCloud CLI extension](wasmcloud.md#managed-pulumi-target) uses the same package for its
+local k0s platform. Operator configuration, Tenant/User CRDs, the tenancy controller, admission
+policies, and HTTP routing come from one implementation.
 
-The CLI embeds the Helm client and downloads a pinned, checksum-verified `kubesoloctl` on
-first use. It pins Kubesolo **1.2.0** and wasmCloud runtime operator **2.8.0**. Framework,
-platform, and WIT versions are independent: upgrading to 5.3.0 does not require changing
-the operator chart.
+Kubesolo creation and deletion remain owned by `di-framework-kube`. Application builds and
+deployments remain owned by the framework extension and use an external target in
+`di-framework.deploy.toml`. The CLI downloads a pinned, checksum-verified `kubesoloctl` on first
+use. Its embedded Helm client is retained for status inspection and legacy cleanup; new
+installations and updates run through Pulumi.
 
-This is a separate executable from `di-framework wasmcloud`. It manages the cluster and
-operator; the framework extension builds and deploys applications through an external
-target in `di-framework.deploy.toml`.
+The default versions are Kubesolo **1.2.0**, wasmCloud runtime operator **2.8.0**, and
+`@di-framework/platform` **5.3.3**. These versions are independent of application framework
+versions. The [kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps)
+still pins DI Framework **5.3.0** and includes fourteen apps covering PostgreSQL, configuration,
+secrets, key-value, blobstore, messaging, outgoing HTTP, and Node compatibility.
 
 ## Build and start the platform
 
-Container mode supports macOS and Linux on amd64 and arm64 and requires a running Docker
-Engine. To build the binary from source, install Go 1.26+:
+Container mode supports macOS and Linux on amd64 and arm64. Install a running Docker Engine,
+Node.js, npm, and the Pulumi CLI. Source builds also require Go 1.26+.
+Use a kube build containing the [shared-platform integration](https://github.com/di-framework/kube/pull/6);
+older Helm-only builds do not expose `--platform-package` or `--platform-config`.
 
 ```bash
 git clone https://github.com/di-framework/kube.git di-framework-kube
@@ -30,18 +34,96 @@ make build
 ./bin/di-framework-kube outputs
 ```
 
-The default instance is `local`. Its dedicated kubeconfig keeps operations independent of
+`up` installs `@di-framework/platform@5.3.3` directly from npm by default. No local package build
+or tarball is required. To select an exact published version explicitly:
+
+```bash
+./bin/di-framework-kube up --platform-package @di-framework/platform@5.3.3
+```
+
+The default instance is `local`. Its dedicated kubeconfig selects the cluster independently of
 your current kubectl context. `outputs` returns the kubeconfig path, namespace, and HTTP
 and Kubernetes endpoints. Workload HTTP listens on `http://127.0.0.1:28080`, forwarded to
 the default host group through NodePort `30080`. HTTP routing uses the request's Host header.
 
-Re-running `up` upgrades the instance's Helm release in place. The platform commands do not
-require standalone `helm` or `kubectl`; the example deployment workflow uses `kubectl`.
+Re-running `up` updates the instance's existing Pulumi stack. Tool prerequisites are checked
+before creating Kubesolo. Platform commands do not require standalone `helm` or `kubectl`;
+the example deployment workflow uses `kubectl`.
+
+## Platform state and ownership
+
+Each instance keeps its generated TypeScript project in `<state-dir>/<name>/platform`, using
+stack `dev` and a local file backend inside that directory. `--state-dir` selects the state
+root. The default is `di-framework-kube` under the operating system's user configuration
+directory. The platform directory includes a mode-0600 `.passphrase` file and the project,
+stack configuration, and state history. Back up the whole instance directory, including its
+kubeconfig.
+
+A cluster-level ownership claim prevents another kube instance from installing a competing
+platform. An existing project also rejects a changed cluster, namespace, or release identity.
+Failed updates preserve their state for retry or cleanup; ownership is released only after a
+successful destroy. Sharing a package does not make two Pulumi stacks interchangeable.
+
+For direct Pulumi inspection, change into the recorded platform directory, set
+`PULUMI_CONFIG_PASSPHRASE` from its `.passphrase` file without printing it, and use
+`pulumi preview --stack dev`. The project records its backend URL. Do not run direct Pulumi
+operations and kube lifecycle commands concurrently. Use an external application deployment
+target with the kubeconfig and your registry; do not initialize a second managed platform for
+the same cluster.
+
+## Tenants and users
+
+Supply a JSON file with `--platform-config` to declare tenants and their users:
+
+```json
+{
+  "tenants": [{ "name": "alpha" }],
+  "users": [
+    { "name": "alice", "memberships": [{ "tenant": "alpha", "role": "developer" }] }
+  ]
+}
+```
+
+```bash
+./bin/di-framework-kube up --platform-config /absolute/path/platform.json
+```
+
+The shared platform provisions tenant namespaces, runtimes, Redis/NATS backends, and RBAC.
+It reports Tenant/User readiness through their custom resources. A declaration for `alice`
+creates the Kubernetes service account and membership bindings; it does not issue a kubeconfig
+or configure an identity provider. Credential issuance remains an administrator operation.
+
+Updates that omit `--platform-config` preserve existing declarations. Supplying the file
+replaces the declared tenant/user configuration; use explicit empty arrays when clearing it.
+The file also accepts these platform settings:
+
+| Setting | Purpose |
+| --- | --- |
+| `tenantHostImage` | Runtime image for tenant hosts. |
+| `tenantHostImagePullPolicy` | Kubernetes pull policy for that image. |
+| `storageRoot` | Node-local root for tenant data. |
+| `networkPolicyEngine` | `kube-router` installs the policy-only controller; `existing` uses a controller already supplied by the cluster. |
+
+Managed Kubesolo uses the shared package's pinned kube-router **2.10.0** controller in
+policy-only mode, preserving its bridge networking and service proxy. External clusters default
+to `existing` and must enforce NetworkPolicy themselves. The platform keeps
+`allowSharedHosts: false` and tenant host namespaces enforced even after administrator Helm
+value overrides. Admission restricts guest capabilities and protects platform-owned settings.
+
+Tenant storage currently uses single-node host paths, normally under `/var/lib/kubesolo`.
+Service mode forwards `--kubesolo-data` as its storage root unless configured otherwise.
+This is a local storage profile, not a distributed storage or backup service. Retained tenant
+data can survive platform resource cleanup, but purging the cluster removes its data volume.
+
+The example fixtures below run in the administrator-managed platform namespace. They are not a
+recipe for bypassing tenant admission or granting tenant developers access to platform Secrets.
+Independently requestable backing-service CRDs and `wasmcloud service create` commands are not
+part of this shared-package extraction.
 
 ## Deploy the examples
 
-In addition to Docker and the built binary, install Bun 1.3+, Node.js 22+, `kubectl`, and
-`oras`. From the repository root:
+In addition to the platform prerequisites and built binary, install Bun 1.3+, Node.js 22+,
+`kubectl`, and `oras`. From the repository root:
 
 ```bash
 cd examples-apps
@@ -191,6 +273,13 @@ components, checks status codes and response bodies, and includes the backend-de
 checks. Operator readiness alone cannot verify a binding. Run both local checks and smoke
 checks after changing framework dependencies.
 
+The shared-platform integration was verified on 2026-09-14 using a locally packed shared
+package on a fresh Kubesolo cluster: tenant/user readiness, an update preserving declarations,
+a repeat deployment with all 27 resources unchanged, and teardown. A tenant probe reached its
+Redis instance while an outside probe was rejected; the default host and operator also
+restarted successfully under network policies. That verification did not rerun the fourteen
+application examples or exercise an npm-installed artifact.
+
 On 2026-09-08, the earlier **patched 5.2.13** workspace passed **61/61 live API checks across
 14 apps**, typechecking, and **40 local tests** on Kubesolo 1.2.0 with operator 2.8.0. Those
 results cover the changes merged into 5.3.0; they are not a fresh deployment result for the
@@ -241,13 +330,22 @@ From the repository root, install onto an explicitly selected existing cluster w
   --kubeconfig /secure/path/admin.kubeconfig --context edge-admin
 ```
 
-Repeated `--values` / `-f` flags supply Helm overrides after the built-in profile. Native Linux service
+Repeated `--values` / `-f` flags supply administrator Helm overrides to the shared Pulumi profile.
+The platform still enforces shared-host and watched-namespace settings. Native Linux service
 mode is available through `sudo ./bin/di-framework-kube up --name edge --run-mode service`;
 it requires the host setup described in the repository README.
 
+## Migrate a Helm-only installation
+
+`up` refuses to adopt an unmanaged existing Helm release or another platform's CRDs. Existing
+Helm-only instance state still supports `status` and `down`. Back up application/backend data
+and credentials, arrange downtime, and explicitly remove the legacy release with `down` before
+running the shared-platform `up`. Do not use `--purge-cluster` as a migration shortcut: it
+removes the cluster's data. Automated resource import and data migration are not provided.
+
 ## Remove the platform
 
-From the repository root, remove wasmCloud while preserving Kubesolo:
+From the repository root, destroy the instance's Pulumi-managed platform while preserving Kubesolo:
 
 ```bash
 ./bin/di-framework-kube down --name local
@@ -259,8 +357,26 @@ To permanently remove the managed cluster and its data volume:
 ./bin/di-framework-kube down --name local --purge-cluster
 ```
 
-Purging deletes the example database and registry data. It is refused for clusters supplied
+Cleanup checks for Pulumi and Node.js before changing ownership; npm is not required for
+`down`. Purging deletes the example database, registry, and retained tenant data. It is refused for clusters supplied
 with `--kubeconfig`.
+
+## Develop the shared package locally
+
+For unpublished infrastructure changes only, build and pack `@di-framework/platform` in the
+framework checkout, then supply the resulting tarball to a separate test instance:
+
+```bash
+# In di-framework/packages/di-framework-platform:
+bun run build
+npm pack --pack-destination /tmp
+
+# In the kube checkout:
+./bin/di-framework-kube up --name shared-test --http-port 28089 \
+  --platform-package file:/tmp/di-framework-platform-5.3.3.tgz
+```
+
+Use the filename produced by `npm pack` if its version differs. Regular installs use npm.
 
 ## Next steps
 
