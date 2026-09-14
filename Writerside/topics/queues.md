@@ -211,11 +211,14 @@ Implemented deploy path:
 - Workload `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, hostPath volume,
   `QUEUE_DB_PATH=/data/queue.db`, `DI_SQLITE_BACKEND=wasm`
 - Public ingress is omitted for workers; a ClusterIP Service still exists for control HTTP
+- List / enqueue / inspect require `invoke`; retry requires `admin`
 
 SQLite-backed workloads cannot use more than one replica (WASI VFS has no file locking).
 
-If `DI_CONTROL_TOKEN` / `DI_CONTROL_IDENTITIES` are unset, control identities are open for
-local/dev. Provision a token before exposing the ClusterIP.
+Deployed HTTP workloads always receive `DI_CONTROL_TOKEN`. Unconfigured local/dev may invoke
+without a token (enqueue, list, inspect) but cannot retry. `pump()` runs after those control
+requests. Control paths reject `X-Forwarded-*` and are not reachable through public ingress.
+See [Control HTTP](wasmcloud.md#control-http).
 
 You can still [schedule](scheduling.md) work that enqueues jobs; neither feature requires the
 other.

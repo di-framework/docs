@@ -185,6 +185,29 @@ The deployer writes this list to the component's `localResources.allowedIpNameLo
 Omission leaves the host's default denial in place. Socket, clock, randomness, and TLS imports
 are runtime WASI capabilities, not wasmCloud `hostInterfaces`.
 
+TLS requires a host with the opt-in `wasi-tls` feature: Wasmtime 48 with
+`-S tls=y,inherit-network=y,allow-ip-name-lookup=y`, or a TLS-enabled wash-runtime. Importing
+`node:tls` or `node:https` adds `wasi:tls/client@0.3.0-draft` to the component world. A host
+without TLS cannot instantiate that component. Certificate chain and server-name verification
+use the host trust store; guest `ca` / client certificates, `rejectUnauthorized: false`, custom
+identity checks, TLS versions/ciphers, ALPN, sessions, and certificate inspection throw.
+Use `servername` when connecting by address to a DNS-named service.
+
+HTTPS responses without `Content-Length` or chunked encoding finish only when the peer closes.
+`options.timeout` is an inactivity notification and does not cancel the request; destroy it in
+the `timeout` handler:
+
+```typescript
+import { get } from 'node:https';
+
+const req = get('https://example.com/', { timeout: 10_000 }, (res) => {
+  res.on('data', (chunk) => console.log(chunk.toString()));
+  res.on('error', (error) => console.error(error));
+});
+req.on('timeout', () => req.destroy(new Error('HTTPS request timed out')));
+req.on('error', (error) => console.error(error));
+```
+
 Native `OutgoingHttp` requests separately require the destination in the workload component's
 `localResources.allowedHosts`. The binding does not grant egress access. Framework project
 configuration does not yet expose that field; the [kube deployment helper](kube.md#outgoing-http-permissions)
@@ -197,13 +220,15 @@ di-framework wasmcloud dev [--host <address>] [--port <port>]
 ```
 
 `dev` rebuilds the component and listens on `127.0.0.1:8000` by default. It selects wasmtime
-from PATH first, then wash, then jco. Use wasmtime 46+ for this path. Set
-`DI_FRAMEWORK_WASMCLOUD_DEV_RUNNER` to `wasmtime`, `wash`, or `jco` to select a runner explicitly.
-Tool output streams to the terminal until the server stops. The command uses the nearest
-`di-framework.config.json` above the working directory.
+from PATH first, then wash, then jco. Use wasmtime 46+ for this path; TLS-importing components
+need Wasmtime 48. Set `DI_FRAMEWORK_WASMCLOUD_DEV_RUNNER` to `wasmtime`, `wash`, or `jco` to
+select a runner explicitly. Tool output streams to the terminal until the server stops. The
+command uses the nearest `di-framework.config.json` above the working directory.
 
 The wasmtime runner uses `serve -S cli -S p3 -S config`, supporting WASI HTTP and unlabeled
-`wasi:config`. wasmCloud-only imports such as PostgreSQL require wash or a wasmCloud host.
+`wasi:config`. When the generated WIT lock imports `wasi:tls`, `dev` also passes
+`-S tls=y,inherit-network=y,allow-ip-name-lookup=y`. Other runners need their own TLS-enabled
+host configuration. wasmCloud-only imports such as PostgreSQL require wash or a wasmCloud host.
 For wash, the extension writes `.di-framework/wash-dev.yaml` with the address, host interfaces,
 and async component proposal, then invokes `wash dev --user-config`.
 `WASMCLOUD_POSTGRES_URL` supplies `dev.postgres_url` for that local runner.
@@ -328,6 +353,26 @@ cluster to pull. A string registry remains supported. An `http://` push URL or `
 enables ORAS plain HTTP for that target. See [Kubernetes with di-framework-kube](kube.md) for
 an external-target workflow using a loopback publisher and an in-cluster registry service.
 
+## Control HTTP
+
+Deployed HTTP workloads always get a Kubernetes Secret with `DI_CONTROL_TOKEN` and
+`DI_CONTROL_IDENTITY` (the workload name). CronJobs send `Authorization: Bearer` from that
+secret. Queue retry requires the `admin` role; cron invoke, actor invoke, and queue
+list / enqueue / inspect require `invoke`. A `DI_CONTROL_TOKEN` identity has both roles.
+
+Unconfigured local/dev (no token and no `DI_CONTROL_IDENTITIES`) may **invoke** only.
+Anonymous access never has `admin`. Client-supplied `callerId` on actor invoke is ignored;
+the caller is the authenticated control identity.
+
+Deployed control paths (`/_di/*`, `/_actors/*`) are not reachable through public ingress.
+Workloads set `DI_CONTROL_REJECT_FORWARDED=1` and `DI_CONTROL_HTTP_HOST` to the ClusterIP DNS
+name. Requests with `X-Forwarded-*` return 404. Local/dev leaves those unset, so auth still
+applies but the host filter does not.
+
+This contract is the v5.3.3 control-plane behavior
+([PR #430](https://github.com/di-framework/di-framework/pull/430),
+[PR #431](https://github.com/di-framework/di-framework/pull/431)).
+
 ## Scheduled jobs
 
 `di-framework wasmcloud build` discovers `@Cron(...)` methods with a string or numeric literal
@@ -338,7 +383,8 @@ not fire. Generated workloads use `replicas: 1`.
 Scheduled-only projects (`"ingress": false`) still export `wasi:http/handler` and still get a
 ClusterIP Service so CronJobs can POST to `/_di/cron/{jobId}/invoke`. Public ingress is omitted.
 The default export must expose the DI container (`export { container }` or
-`export default { container }`).
+`export default { container }`). Failed or skipped jobs return HTTP 500 with a generic
+`Cron job failed` body so the CronJob does not record success. See [Control HTTP](#control-http).
 
 `destroy` deletes `WorkloadDeployment,service,cronjob` labeled
 `app.kubernetes.io/name=<witName>`. `dev` and `doctor` do not generate or check CronJobs.
@@ -354,7 +400,8 @@ decorators.
 Generated guests import WASI SQLite, export `wasi:http/handler`, and `pump()` jobs on control
 HTTP (`/_di/queues/`) rather than starting poll loops. Public ingress is omitted. The workload
 uses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and
-`QUEUE_DB_PATH=/data/queue.db`. A ClusterIP Service still exists for control routes.
+`QUEUE_DB_PATH=/data/queue.db`. A ClusterIP Service still exists for control routes. Queue retry
+requires `admin`; see [Control HTTP](#control-http).
 
 See [Queues](queues.md#wasmcloud-workers).
 
@@ -404,8 +451,9 @@ rejects invocations.
 ### Private invocation
 
 Control path `POST /_actors/invoke`. Other HTTP routes are not intercepted by actor headers.
-If `DI_CONTROL_TOKEN` / `DI_CONTROL_IDENTITIES` are unset, local/dev is open (anonymous).
-Error JSON uses stable `error.name`; handler text is `'Actor invocation failed'` (no stacks).
+`callerId` is the authenticated control identity; a client-supplied `callerId` is ignored.
+See [Control HTTP](#control-http). Error JSON uses stable `error.name`; handler text is
+`'Actor invocation failed'` (no stacks).
 
 ### Deployed storage
 
