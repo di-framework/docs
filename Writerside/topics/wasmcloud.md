@@ -2,7 +2,8 @@
 
 `@di-framework/cli-plugin-wasmcloud` is a [CLI extension](cli.md#extensions) for targeting
 [wasmCloud](https://wasmcloud.com): it builds a di-framework HTTP application into a WASI 0.3
-WebAssembly component, serves it locally, and deploys it from a workspace manifest.
+WebAssembly component, serves it locally, and deploys it through an authenticated in-cluster
+controller.
 
 ```bash
 di-framework extensions install wasmcloud
@@ -16,6 +17,8 @@ di-framework wasmcloud
 ├── dev
 ├── deploy
 ├── destroy
+├── login
+├── logout
 ├── platform
 │   ├── init
 │   ├── deploy
@@ -27,12 +30,14 @@ di-framework wasmcloud
 | --- | --- |
 | `build` | Bundle the application entry and componentize it for WASI HTTP. |
 | `dev` | Build, then serve locally with wasmtime, wash, or jco. |
-| `deploy [name]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project. |
-| `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service`. Never tears down the platform. |
+| `deploy [name]` | Build, publish, and send a deploy intent to the in-cluster controller. |
+| `destroy [name]` | Ask the controller to remove that project's `WorkloadDeployment` and related objects. Never tears down the platform. |
+| `login` | Authenticate to the deploy controller with authorization-code + PKCE. |
+| `logout` | Delete stored credentials for a target. |
 | `platform init` | Generate `deploy/platform` from extension templates and register it as the default `local` target. |
-| `platform deploy <target>` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator). |
+| `platform deploy <target>` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator, deploy controller). |
 | `platform destroy <target>` | Tear down a managed platform target (`pulumi destroy`) only. |
-| `doctor` | Check the project and local toolchain for wasmCloud readiness. |
+| `doctor` | Check the project, local toolchain, login, and controller health. |
 
 Run these commands directly. Do not wrap them in `package.json` scripts.
 
@@ -233,6 +238,30 @@ For wash, the extension writes `.di-framework/wash-dev.yaml` with the address, h
 and async component proposal, then invokes `wash dev --user-config`.
 `WASMCLOUD_POSTGRES_URL` supplies `dev.postgres_url` for that local runner.
 
+## Login
+
+Application `deploy` and `destroy` talk to the in-cluster [deploy controller](#deploy-controller)
+over HTTP. They never run `kubectl`. Interactive use requires a login for the selected target:
+
+```bash
+di-framework wasmcloud login [--target <name>]
+```
+
+The CLI is a public OAuth client (`di-framework-cli`). It generates PKCE, opens a browser to
+the controller's `/oauth/authorize`, and listens on a loopback redirect (`http://127.0.0.1:<port>/…`)
+as in RFC 8252. The controller's authorization server opts into those loopback redirects with
+`allowLoopbackRedirects`; they are not pre-registered ports. After you sign in, the CLI exchanges
+the authorization code for tokens and stores them at `~/.di-framework/credentials.json`
+(mode `0600`), keyed by target.
+
+The generated local platform's bootstrap user is `admin` / `local-admin` (override the password
+with Pulumi `bootstrapPassword`). Pipelines skip the browser and set
+`DI_FRAMEWORK_DEPLOY_TOKEN` to a bearer token issued by that controller.
+
+`logout` deletes the stored credential for the target. Missing credentials report
+`WASMCLOUD_LOGIN_REQUIRED`. A rejected token reports the same code and asks you to log in again.
+A 403 from the controller reports `WASMCLOUD_DEPLOY_DENIED`.
+
 ## Deployment manifest
 
 Deployment topology lives in `di-framework.deploy.toml` at the workspace root. The CLI finds it by
@@ -247,9 +276,7 @@ platform = "deploy/platform"
 stack = "dev"
 
 [targets.development]
-kubeconfig = "${KUBECONFIG}"
-context = "team-development"
-namespace = "wasmcloud"
+controller = "${CONTROLLER_URL}"
 
 [targets.development.registry]
 push = "https://registry.example.com/team"
@@ -264,7 +291,8 @@ insecure = false
   conflicting path (`WASMCLOUD_DUPLICATE_PROJECT`).
 - `--target <name>` selects a declared target; without it the CLI uses `default-target`.
 - `${VAR}` interpolation fails with `WASMCLOUD_ENV_UNSET` if the variable is unset or empty. Do not
-  put credentials in the manifest.
+  put credentials in the manifest. Tokens live in `~/.di-framework/credentials.json` or
+  `DI_FRAMEWORK_DEPLOY_TOKEN`, not in the TOML.
 
 Optional `[discovery]` `include` / `exclude` glob lists refine the search. Directories `.git`,
 `node_modules`, and `.di-framework` are always skipped.
@@ -275,14 +303,16 @@ A missing or malformed manifest reports `WASMCLOUD_DEPLOY_MANIFEST_NOT_FOUND` or
 ### Managed Pulumi target
 
 A managed target has `platform` (a directory inside the workspace that contains `Pulumi.yaml`) and
-an optional `stack` (default `dev`). It must not mix those fields with kubeconfig fields.
+an optional `stack` (default `dev`). It must not mix those fields with controller or registry
+fields.
 
-From the workspace root, generate a self-contained local platform — k0s, a local OCI registry, and
-the wasmCloud operator — from templates shipped with the extension:
+From the workspace root, generate a self-contained local platform — k0s, a local OCI registry,
+the wasmCloud operator, and the deploy controller — from templates shipped with the extension:
 
 ```bash
 di-framework wasmcloud platform init
 di-framework wasmcloud platform deploy local --yes
+di-framework wasmcloud login
 ```
 
 `platform init` writes `deploy/platform` and creates or updates `di-framework.deploy.toml` so
@@ -297,8 +327,10 @@ Platform deploy runs `pulumi install` automatically for the generated project. I
 loopback ports are Kubernetes `26443`, registry `25000`, and HTTP `28180`; configure `apiPort`,
 `registryPort`, or `httpPort` in the generated Pulumi stack to choose different ports.
 
-The generated Pulumi project provisions only platform concerns. It must not contain application
-names, component builds, Kubernetes Services for apps, or `WorkloadDeployment` objects.
+The generated Pulumi project provisions platform concerns plus one `WorkloadDeployment`: the
+deploy controller (HTTP Host `deploy`). It must not contain application project names, component
+builds, or application `WorkloadDeployment` objects. Application workloads are written only by
+the controller after login.
 
 k0s and the registry are local Docker resources because they are not Kubernetes objects. Once k0s
 yields a kubeconfig, that value is passed to a Kubernetes provider and the operator is installed
@@ -309,11 +341,12 @@ The CLI reads a small output contract from `pulumi stack output --json`:
 
 | Output | Required | Meaning |
 | --- | --- | --- |
-| `kubeconfig` | yes | kubeconfig YAML or a filesystem path |
+| `kubeconfig` | yes | operator kubeconfig YAML or a filesystem path (not used by application deploy) |
 | `namespace` | yes | Kubernetes namespace for workloads |
 | `registry` | yes | OCI registry prefix, or `{ push, pull, insecure }` transport object |
 | `context` | no | kubectl context |
 | `endpoints.http` / `endpoints.kubernetes` / `endpoints.registry` | no | optional URLs |
+| `controller.url` / `controller.host` | no | deploy controller; defaults to `endpoints.http` with Host `deploy` |
 
 Provision and tear down that stack explicitly. Application `destroy` never runs `pulumi destroy`.
 
@@ -337,21 +370,91 @@ A stack that has not been deployed, or whose outputs do not match the contract, 
 
 ### Existing cluster
 
-When kubeconfig and a registry are already available, declare an **external** target with only
-access information: `kubeconfig`, `namespace`, and `registry`, plus optional `context`. Deploy:
+When a deploy controller and registry are already available, declare an **external** target with
+`controller` and `registry`, plus optional `controller-host` (default `deploy`). Deploy:
 
 ```bash
-export KUBECONFIG="$HOME/.kube/config"
+export CONTROLLER_URL="https://deploy.example.test"
+di-framework wasmcloud login --target development
 di-framework wasmcloud deploy greeter --target development
 ```
 
-External and managed fields are mutually exclusive. An incomplete target reports
-`WASMCLOUD_DEPLOY_MANIFEST_INVALID`.
+External and managed fields are mutually exclusive. `kubeconfig`, `namespace`, and `context` on
+an application target are a parse error (`WASMCLOUD_DEPLOY_MANIFEST_INVALID`): application deploy
+talks to the controller, not kubectl. An incomplete target reports the same code.
 
 The registry object separates the address used by ORAS to push from the address used by the
 cluster to pull. A string registry remains supported. An `http://` push URL or `insecure = true`
 enables ORAS plain HTTP for that target. See [Kubernetes with di-framework-kube](kube.md) for
-an external-target workflow using a loopback publisher and an in-cluster registry service.
+the separate 5.3.0 kube example workspace, which still used that release's kubectl-based deploy.
+
+## Deploy controller
+
+The controller is a wasmCloud HTTP component in the same cluster as application workloads. It is
+the only writer of application `WorkloadDeployment`s, Services, control Secrets, and CronJobs.
+The CLI never kubectl-applies those objects.
+
+It is a DI Framework application: `@di-framework/http` for routing, `@di-framework/auth` for
+bearer JWT and the OAuth authorization server, `@di-framework/authz` for org/team policy, and
+`@di-framework/wasmcloud` for Config, Secrets, and `OutgoingHttp` to the Kubernetes API. Bindings
+are declared in the controller's own `src/bindings.ts`. Pulumi is the chicken-egg path: only
+`platform deploy` writes the controller `WorkloadDeployment` (Host `deploy`).
+
+Reach it with the HTTP `Host` header `deploy` on the platform ingress (for the generated local
+platform, `http://127.0.0.1:28180`). Unauthenticated `GET /health` reports readiness. The CLI
+uses:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | Controller liveness (no bearer token). |
+| `GET` / `POST` | `/login` | Browser bootstrap sign-in. |
+| `GET` / `POST` | `/oauth/authorize`, `POST /oauth/token` | Authorization-code + PKCE. |
+| `POST` / `PUT` | `/applications/:name` | Create or update from a JSON deploy intent. |
+| `GET` | `/applications/:name` | Readiness and ownership labels. |
+| `DELETE` | `/applications/:name` | Remove the workload, Service, control Secret, and labeled CronJobs. |
+
+The intent names the application, digest-pinned image (`sha256`), bindings, cron jobs, and queue
+handlers. It cannot set `namespace`, `hostPath`, `hostSelector`, `org`, `team`, `owner`, or
+`kubeconfig`. The controller stamps those from the authenticated principal and cluster config.
+A storage hostPath already claimed by another workload returns `WASMCLOUD_STORAGE_OWNERSHIP_CONFLICT`
+(HTTP 409).
+
+The CLI still writes `.di-framework/deploy/workload.yaml` and `intent.json` as a local preview.
+Those files are not applied.
+
+Override the controller component image with Pulumi `controllerImage`. The generated default is
+the in-cluster registry reference `wasmcloud-controller:local`.
+
+### Org, team, and member
+
+There is no application-user database. Identity is the JWT `sub`. Org, team, and roles come from
+a membership ConfigMap keyed by that `sub` (merged onto the principal because access tokens do
+not carry org/team claims). Default local membership:
+
+```json
+{ "admin": { "org": "local", "team": "platform", "roles": ["org-admin"] } }
+```
+
+On create, the controller labels the workload:
+
+| Label | Value |
+| --- | --- |
+| `di-framework.dev/org` | Membership org. |
+| `di-framework.dev/team` | Membership team. |
+| `di-framework.dev/owner` | Principal `sub`. |
+| `di-framework.dev/application` | Configured project `name`. |
+
+[Resource authorization](authorization.md) is the policy:
+
+| Action | Who |
+| --- | --- |
+| create, read | Same org. Create also requires a team unless the caller is `org-admin`. |
+| update, delete | Same org and same team. |
+| create, read, update, delete | `org-admin`. |
+
+Two teams in one namespace cannot destroy each other's workloads. The Kubernetes namespace plus
+RBAC on the controller's ServiceAccount is the tenant boundary toward the API server; org/team
+labels plus this policy are the tenant boundary toward CLI users.
 
 ## Control HTTP
 
@@ -376,7 +479,7 @@ This contract is the v5.3.3 control-plane behavior
 ## Scheduled jobs
 
 `di-framework wasmcloud build` discovers `@Cron(...)` methods with a string or numeric literal
-and writes `.di-framework/cron.json` plus an invoker. Deploy applies one Kubernetes
+and writes `.di-framework/cron.json` plus an invoker. The controller applies one Kubernetes
 `batch/v1` CronJob per job. The workload sets `DI_CRON_MODE=external` so in-component timers do
 not fire. Generated workloads use `replicas: 1`.
 
@@ -386,8 +489,9 @@ The default export must expose the DI container (`export { container }` or
 `export default { container }`). Failed or skipped jobs return HTTP 500 with a generic
 `Cron job failed` body so the CronJob does not record success. See [Control HTTP](#control-http).
 
-`destroy` deletes `WorkloadDeployment,service,cronjob` labeled
-`app.kubernetes.io/name=<witName>`. `dev` and `doctor` do not generate or check CronJobs.
+`destroy` asks the controller to delete the `WorkloadDeployment`, Service, control Secret, and
+CronJobs labeled `app.kubernetes.io/name=<witName>`. `dev` and `doctor` do not generate or check
+CronJobs.
 
 See [Scheduling](scheduling.md) for expressions, overlap, and `invokeCronJob`.
 
@@ -493,19 +597,25 @@ For the selected project the extension:
 2. Publishes it with `oras` under a stable reference derived from canonical build and deployment
    inputs (`<registry>/<wit-name>:sha256-<deployment-digest>`). The component-byte digest is reported
    separately because componentization snapshots can vary for identical inputs.
-3. Derives a wasmCloud `WorkloadDeployment` and Kubernetes `Service` (written under
-   `.di-framework/deploy/`, not checked in).
-4. Configures HTTP ingress with the project name as its Host value, applies the resources with
-   `kubectl`, and waits until the workload is ready.
+3. Writes a deploy intent and a YAML preview under `.di-framework/deploy/` (not checked in).
+4. POSTs the intent to the controller (`/applications/:name`) with the stored bearer token, then
+   GETs until the workload is ready. HTTP ingress uses the project name as its Host value.
 
-For the generated Pulumi platform, call an app with
-`curl -H 'Host: greeter' http://127.0.0.1:28180/`. The kube platform uses port `28080` by default.
-Readiness does not prove a service binding works: follow deployment with requests that exercise
-the actual backend, as in the [kube smoke checks](kube.md#verification).
+Typical flow on the generated local platform:
 
-`destroy` deletes only those generated resources for that application on the selected target. It
-must never run `pulumi destroy`. `--yes` is accepted for compatibility; application deploy and
-destroy do not prompt.
+```bash
+di-framework wasmcloud platform deploy local --yes
+di-framework wasmcloud login
+di-framework wasmcloud deploy greeter
+```
+
+Call an app with `curl -H 'Host: greeter' http://127.0.0.1:28180/`. The kube platform uses port
+`28080` by default. Readiness does not prove a service binding works: follow deployment with
+requests that exercise the actual backend, as in the [kube smoke checks](kube.md#verification).
+
+`destroy` deletes only those generated resources for that application on the selected target,
+through the controller. It must never run `pulumi destroy` or `kubectl delete`. `--yes` is
+accepted for compatibility; application deploy and destroy do not prompt.
 
 The generated Kubernetes objects are an implementation detail. Do not treat them as application
 configuration.
@@ -518,17 +628,21 @@ di-framework wasmcloud doctor
 
 `doctor` verifies the project loads and probes the local toolchain: Bun, Node.js,
 `@di-framework/core` and `@di-framework/http` resolvable from the project, Pulumi, Docker, kubectl,
-and oras. JSON `data` lists every check with its result; any failed check exits `1`.
+and oras. When a `di-framework.deploy.toml` is present it also checks login (stored credentials or
+`DI_FRAMEWORK_DEPLOY_TOKEN`) and `GET /health` on the controller. JSON `data` lists every check
+with its result; any failed check exits `1`.
 
 Bun runs the CLI, but `jco` itself requires a real Node.js installation on `PATH` — `build`, `dev`,
 and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are needed for
-`platform deploy` and `platform destroy`. kubectl and oras are needed for application `deploy` and
-`destroy`.
+`platform deploy` and `platform destroy`. oras is needed for application `deploy`. kubectl is not
+used by application `deploy` or `destroy`; doctor still reports whether it is on `PATH`.
 
 ## Next steps
 
 - [CLI](cli.md) - The canonical command tree and the extensions mechanism
 - [HTTP Router](http-router.md) - Fetch-compatible routing and host-side static asset packaging
+- [Authentication](auth.md) - OAuth authorization server and PKCE used by `wasmcloud login`
+- [Resource Authorization](authorization.md) - Org/team policy on the deploy controller
 - [Private service bindings](service-bindings.md) - In-process named contracts, not host WIT imports
 - [Scheduling](scheduling.md) - `@Cron` discovery, CronJobs, and `DI_CRON_MODE=external`
 - [Queues](queues.md) - Durable workers without public ingress

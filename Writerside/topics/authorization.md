@@ -101,3 +101,7 @@ const protectedResolver = protectGraphQLField(ArticlePolicy, rawResolver, {
 - Action inference detects `list`, `create`, `update`, `delete`, or `read` based on field names, or uses `@ResourceAction`.
 - Missing or ambiguous resource IDs fail closed immediately.
 - Client error responses sanitize decision details (`ruleIds`, `category`) and return standard `GraphQLResourcePolicyError` (`FORBIDDEN`/`UNAUTHENTICATED`).
+
+The wasmCloud [deploy controller](wasmcloud.md#org-team-and-member) uses `@Policy` with
+`@Owner({ subjectPath, resourcePath })` and `@HasRole('org-admin')` so org members can create
+and read applications, while update and delete require the same team.

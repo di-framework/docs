@@ -493,7 +493,7 @@ Dispatch rules:
   and the exit-status table all behave exactly as for built-in commands.
 
 Root help lists installed extensions alongside the built-in tree. The first available extension is
-[wasmCloud deployment](wasmcloud.md); authors of new extensions start from
+[wasmCloud deployment](wasmcloud.md) (`build`, `dev`, `login`, `deploy`, `platform`, …); authors of new extensions start from
 `@di-framework/cli-extension`, which provides the manifest contract, the command-node types, and
 `CommandFailure`.
 

@@ -31,7 +31,7 @@ Published docs at [docs.di-framework.dev](https://docs.di-framework.dev) include
 - **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.
 - **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.
 - **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).
-- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The [kube platform](kube.md) provides a local cluster and live verification examples.
+- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. Application deploy authenticates to an in-cluster controller after `wasmcloud login`. The [kube platform](kube.md) provides a local cluster and live verification examples.
 
 ## Why Use This Framework?
 

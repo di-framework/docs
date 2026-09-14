@@ -183,7 +183,7 @@ export default { container };
 under `src/` (otherwise the project root). Dynamic schedules are skipped. Duplicate `jobId`
 values keep the first file.
 
-Deploy applies one Kubernetes `batch/v1` CronJob per job:
+The deploy controller applies one Kubernetes `batch/v1` CronJob per job:
 
 - Name `{witName}-{kebab-job-id}`
 - `concurrencyPolicy: Forbid` or `Allow` from `allowConcurrent`
@@ -192,9 +192,10 @@ Deploy applies one Kubernetes `batch/v1` CronJob per job:
 - Default invoke timeout 30s when `timeoutMs` is omitted
 - Workload `spec.replicas: 1`
 
-`di-framework wasmcloud destroy` deletes `WorkloadDeployment,service,cronjob` labeled
-`app.kubernetes.io/name=<witName>`. Redeploy `kubectl apply`s the regenerated manifest; jobs
-removed from source are not pruned except via destroy.
+`di-framework wasmcloud destroy` asks the deploy controller to delete the
+`WorkloadDeployment`, Service, control Secret, and CronJobs labeled
+`app.kubernetes.io/name=<witName>`. Redeploy POSTs a new intent; jobs removed from source are
+not pruned except via destroy.
 
 Deployed HTTP workloads always receive `DI_CONTROL_TOKEN`. Unconfigured local/dev may invoke
 without a token, but never administer. Control paths are not reachable through public ingress.

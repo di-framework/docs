@@ -13,8 +13,9 @@ platform, and WIT versions are independent: upgrading to 5.3.0 does not require 
 the operator chart.
 
 This is a separate executable from `di-framework wasmcloud`. It manages the cluster and
-operator; the framework extension builds and deploys applications through an external
-target in `di-framework.deploy.toml`.
+operator. The example workspace pins the framework to **5.3.0**, whose wasmCloud extension
+applied `WorkloadDeployment`s with kubectl. Current `di-framework wasmcloud deploy` talks to
+an authenticated in-cluster controller instead; see [Login](wasmcloud.md#login).
 
 ## Build and start the platform
 
@@ -63,9 +64,10 @@ This registry uses plain HTTP for local development, and the helper enables inse
 pulls on the host. Dependencies and base images still require network access.
 
 For every discovered `apps/*/di-framework.config.json`, the helper invokes
-`di-framework wasmcloud deploy <name> --yes`. It adjusts each generated Service's target port
-to `9191` for this host profile, then checks the app's live `/health` route. Generated components
-and workload manifests remain under the app's ignored `dist/` and `.di-framework/` directories.
+`di-framework wasmcloud deploy <name> --yes` from the pinned 5.3.0 extension (kubectl apply).
+It adjusts each generated Service's target port to `9191` for this host profile, then checks
+the app's live `/health` route. Generated components and workload manifests remain under the
+app's ignored `dist/` and `.di-framework/` directories.
 
 Select apps by name to shorten a redeployment:
 

@@ -6,14 +6,15 @@ WebAssembly components for wasmCloud. Choose the integration that matches the ta
 | Target | Integration | Use it for |
 | --- | --- | --- |
 | [Cloud Foundry](cloudfoundry.md) | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |
-| [wasmCloud](wasmcloud.md) | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |
+| [wasmCloud](wasmcloud.md) | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy through an authenticated in-cluster controller from a workspace `di-framework.deploy.toml` manifest. |
 | [Kubernetes with di-framework-kube](kube.md) | `di-framework-kube` and the wasmCloud extension | Create a local Kubesolo cluster with the wasmCloud operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |
 
 The Cloud Foundry package configures an application at runtime; the platform CLI and manifest
-remain responsible for pushing it. The wasmCloud extension provides its build, development,
+remain responsible for pushing it. The wasmCloud extension provides its build, development, login,
 application deploy and destroy, and managed-platform commands through the main `di-framework`
-executable. Application deploy never runs Pulumi; Pulumi is used only for explicit
-`wasmcloud platform` lifecycle of a managed target.
+executable. Application deploy never runs Pulumi or kubectl; it authenticates to the in-cluster
+controller after `wasmcloud login`. Pulumi is used only for explicit `wasmcloud platform`
+lifecycle of a managed target, which also installs that controller.
 
 The kube CLI manages Kubesolo and the operator directly, with an embedded Helm client.
 Its example workspace uses an external deployment target and pins the framework to 5.3.0.
