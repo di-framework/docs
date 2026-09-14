@@ -158,7 +158,9 @@ compatibility layer inside QuickJS, with a different filesystem and process mode
 | `node:crypto` | WASI randomness, hashes, HMAC, and a Web Crypto subset including HKDF, AES-GCM, and ECDH P-256. |
 | `node:timers`, global timers | WASI monotonic clock; cancellation, refresh, and ref/unref flags. Flags do not control process lifetime in a component. |
 | `node:async_hooks` | AsyncLocalStorage context scopes and binding; transformed Promise continuations and timer callbacks retain context. |
-| `node:tls`, `node:https`, `node:child_process` | Remain unenv mocks. |
+| `node:tls` | Client `connect` / `TLSSocket` over `wasi:tls/client@0.3.0-draft`, including STARTTLS on an existing `node:net` socket. Requires a TLS-enabled host. Guest `createServer` is unsupported. |
+| `node:https` | HTTP/1.1 `request` / `get` and an Agent over the TLS implementation; requests wait for verified `secureConnect` before sending. Incoming HTTPS terminates at host ingress. |
+| `node:child_process` | Remains an unenv mock. |
 
 Text encoding and Fetch globals initialize before application imports. The fixes carried
 forward from 5.2.13 cover startup, async context, timers, and chunked HTTP. The bundler lowers
@@ -180,7 +182,7 @@ WASI DNS lookups require an explicit project allowlist:
 ```
 
 The deployer writes this list to the component's `localResources.allowedIpNameLookups`.
-Omission leaves the host's default denial in place. Socket, clock, and randomness imports
+Omission leaves the host's default denial in place. Socket, clock, randomness, and TLS imports
 are runtime WASI capabilities, not wasmCloud `hostInterfaces`.
 
 Native `OutgoingHttp` requests separately require the destination in the workload component's
