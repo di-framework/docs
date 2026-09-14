@@ -52,7 +52,9 @@ Implemented transports:
 - `ChildProcessIpcTransport` — `child.send` or stdin JSON lines
 
 There is **no** HTTP/TCP/wasmCloud cluster transport in this package. wasmCloud uses a plugin
-adapter at `POST /_actors/invoke`, not `RemoteActorClient`.
+adapter at `POST /_actors/invoke`, not `RemoteActorClient`. That adapter sets `callerId` from
+the authenticated control identity and ignores a client-supplied `callerId`. See
+[Control HTTP](wasmcloud.md#control-http).
 
 The client retries the same `requestId` unless the error is `ActorAuthorizationError`,
 `StaleOwnerWriteError`, `ActorBackpressureError`, `ActorDeadlineExceededError`, or an

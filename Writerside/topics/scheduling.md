@@ -187,7 +187,8 @@ Deploy applies one Kubernetes `batch/v1` CronJob per job:
 
 - Name `{witName}-{kebab-job-id}`
 - `concurrencyPolicy: Forbid` or `Allow` from `allowConcurrent`
-- `curl` POST to `http://{name}.{ns}.svc.cluster.local/_di/cron/{jobId}/invoke`
+- `curl` POST to `http://{name}.{ns}.svc.cluster.local/_di/cron/{jobId}/invoke` with
+  `Authorization: Bearer` from the workload control secret
 - Default invoke timeout 30s when `timeoutMs` is omitted
 - Workload `spec.replicas: 1`
 
@@ -195,9 +196,13 @@ Deploy applies one Kubernetes `batch/v1` CronJob per job:
 `app.kubernetes.io/name=<witName>`. Redeploy `kubectl apply`s the regenerated manifest; jobs
 removed from source are not pruned except via destroy.
 
-Control HTTP authorizes with `DI_CONTROL_TOKEN` / `DI_CONTROL_IDENTITIES`. If those are unset,
-anonymous invoke is allowed. Provision a control token before exposing the ClusterIP beyond a
-trusted cluster.
+Deployed HTTP workloads always receive `DI_CONTROL_TOKEN`. Unconfigured local/dev may invoke
+without a token, but never administer. Control paths are not reachable through public ingress.
+See [Control HTTP](wasmcloud.md#control-http).
+
+A failed or skipped `CronExecutionResult` (or a thrown invoke) returns HTTP 500 with a generic
+`Cron job failed` body so the Kubernetes job does not record success. The response does not echo
+`error.message`.
 
 `di-framework wasmcloud dev` serves locally and does **not** generate Kubernetes CronJobs.
 `doctor` does not check cron configuration.
@@ -222,7 +227,7 @@ trusted cluster.
 | `CronJobNotFoundError` | `name` / `` Class.method `` mismatch; or the service was never resolved |
 | Invalid cron expression | Not five fields |
 | wasmCloud skips a job | Non-literal `@Cron` argument |
-| HTTP `ok: true` but job failed | Control HTTP reports that invoke did not throw; inspect `CronExecutionResult.success` |
+| HTTP 500 on invoke | Job returned `status: 'failure'` or `'skipped'`, or the invoker threw. Inspect the method; the HTTP body is generic. |
 
 ## Next steps
 

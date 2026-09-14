@@ -8,6 +8,8 @@ Spring AI–aligned chat, tools, RAG, MCP, and agents for TypeScript. Portable m
 - **ChatClient**: fluent prompt / call / stream API with an advisor chain (memory, tools, RAG, logging, observation).
 - **Prototype builder**: inject `AiTokens.CHAT_CLIENT_BUILDER` (fresh per resolve), like Spring’s `ChatClient.Builder`.
 - **Providers**: `OpenAiChatModel` and `AnthropicChatModel` over `fetch` — no official SDKs.
+  `createChatModel()` selects API or CLI subscription access (OpenAI, Anthropic, xAI, and
+  subscription-only CLIs).
 - **Tools**: `functionToolCallback`, method-level `@Tool` on DI beans, automatic tool-calling loops.
 - **Structured output**: JSON Schema converters and `call().entity(...)`.
 - **Memory / RAG / MCP / agents**: same runtime as the imperative APIs, annotation-friendly.
@@ -25,7 +27,7 @@ npm install @di-framework/ai @di-framework/core
 
 Peer: `@di-framework/core`. Runtime dependency: `@modelcontextprotocol/sdk` (MCP helpers).
 
-Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` when using the HTTP providers.
+Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `XAI_API_KEY` when using the HTTP API route.
 
 Decorators need TypeScript 5 and `experimentalDecorators`. `emitDecoratorMetadata` is not required. Parameter decorators are factories — call them with parentheses: `@UserMessageAnn()`, `@MemoryId()`, `@ToolParam()`.
 
@@ -336,6 +338,48 @@ new AnthropicChatModel({
 ```
 
 Both speak HTTP via `fetch`. Point `baseUrl` at any OpenAI-compatible gateway when needed.
+
+### Select API or subscription access
+
+`createChatModel()` synchronously selects a model. There is no fallback from subscription to API
+on missing CLIs, login errors, or provider failures.
+
+```typescript
+import { createChatModel, configureAi } from '@di-framework/ai';
+
+configureAi({ chatModel: () => createChatModel() });
+```
+
+```bash
+PROVIDER=openai AUTH=subscription bun my-program.ts
+```
+
+Explicit `provider`, `auth`, and `model` override `PROVIDER`, `AUTH`, and `MODEL`. A provider is
+required. `api.model` also precedes `MODEL`; the top-level `model` wins over both.
+
+| Provider | API route | Subscription route |
+| --- | --- | --- |
+| `openai` | OpenAI; existing default model | Codex CLI |
+| `anthropic` | Anthropic; existing default model | Claude CLI |
+| `xai` | xAI OpenAI-compatible endpoint; model required | Grok CLI |
+| `agy` | Unsupported | AGY CLI |
+| `junie` | Unsupported | Junie CLI |
+| `hermes` | Unsupported | Local Nous proxy; model required |
+
+Vendor names default to API access. Aliases `codex`, `claude`, and `grok`, and subscription-only
+providers, default to subscription access. Explicit `auth` always wins. API keys come from
+`api.apiKey` or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `XAI_API_KEY`; xAI never borrows an
+OpenAI key. Existing HTTP constructors keep their original behavior.
+
+CLI inference requires **Bun** and the selected CLI on PATH (`codex login`, Claude login,
+`grok login`, AGY Google sign-in, or Junie including `JUNIE_API_KEY`). Hermes uses
+`http://127.0.0.1:8645/v1`; start `hermes proxy start --provider nous` separately.
+
+`api` accepts the existing HTTP provider options (including a custom `fetch`). `subscription`
+accepts `timeoutMs` (default 120000), `maxCalls` (default 32), `executable`, `toolCallingManager`,
+and `onEvent`. Irrelevant route options are rejected. Native CLIs own their model/tool loop;
+framework callbacks go through a private MCP child. Streaming, token usage, sampling controls,
+media, and provider output schemas are unsupported on the subscription route.
 
 ## Testing
 
