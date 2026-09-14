@@ -268,10 +268,31 @@ jobs:
       - name: Fetch latest coverage badges from di-framework
         env:
           GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN_ID: ${{ github.event.client_payload.run_id }}
         run: |
           set -euo pipefail
+          # Extract into an empty directory. `gh run download` refuses to overwrite
+          # files, and this repo already has coverage/*.json checked in, so downloading
+          # onto that tree aborts after the first overlap (newer slugs never publish).
+          tmp="$(mktemp -d)"
+          run_id="${COVERAGE_RUN_ID:-}"
+          if [[ -z "$run_id" ]]; then
+            run_id="$(gh run list --repo di-framework/di-framework --workflow Test --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          fi
+          if [[ -z "$run_id" || "$run_id" == null ]]; then
+            echo "::error::could not resolve a di-framework Test run that uploaded coverage-badges"
+            exit 1
+          fi
+          gh run download "$run_id" --repo di-framework/di-framework --name coverage-badges --dir "$tmp"
+          count="$(find "$tmp" -type f -name '*.json' | wc -l)"
+          if [[ "$count" -lt 1 ]]; then
+            echo "::error::coverage-badges artifact from run $run_id contained no JSON files"
+            exit 1
+          fi
+          rm -rf coverage
           mkdir -p coverage
-          gh run download --repo di-framework/di-framework --name coverage-badges --dir coverage || true
+          find "$tmp" -type f -name '*.json' -exec cp {} coverage/ \;
+          echo "Installed $count coverage badge(s) from di-framework run $run_id"
       - name: Normalize artifact layout and assemble
         run: |
           set -euo pipefail
@@ -315,4 +336,7 @@ jobs:
             curl -fsS "https://docs.di-framework.dev${path%/}/overview.html" >/dev/null
             curl -fsS "$SEARCH_URL/preview-search/Writerside/d/$version?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
           done < <(jq -r '.[] | [.version,.path] | @tsv' supported-versions.json)
-          curl -fsS https://docs.di-framework.dev/coverage/core.json | jq -e '.label == "line coverage" and .color == "brightgreen"' >/dev/null
+          for slug in core actors queues cli-extension cli-plugin-wasmcloud cloudfoundry wasmcloud; do
+            curl -fsS "https://docs.di-framework.dev/coverage/${slug}.json" \
+              | jq -e '.schemaVersion == 1 and .label == "line coverage" and (.message | length > 0)' >/dev/null
+          done
