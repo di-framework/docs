@@ -13,9 +13,13 @@ The Cloud Foundry package configures an application at runtime; the platform CLI
 remain responsible for pushing it. The wasmCloud extension provides its build, development,
 application deploy and destroy, and managed-platform commands through the main `di-framework`
 executable. Application deploy never runs Pulumi; Pulumi is used only for explicit
-`wasmcloud platform` lifecycle of a managed target.
+`wasmcloud platform` lifecycle of a managed target and for kube platform provisioning.
 
-The kube CLI manages Kubesolo and the operator directly, with an embedded Helm client.
+Both platform entrypoints use the TypeScript `@di-framework/platform` package. The extension's
+local entrypoint provisions Docker/k0s and a registry; kube manages Kubesolo and invokes the
+shared existing-cluster entrypoint through its persistent Pulumi stack. Kube installs an exact
+published package version from npm by default; local tarballs are a development option. Its
+embedded Helm client remains for status inspection and legacy cleanup.
 Its example workspace uses an external deployment target and pins the framework to 5.3.0.
 Native services are consumed through `@di-framework/wasmcloud`; the platform and example
 helpers provision their backends and credentials. See [native service bindings](wasmcloud.md#native-service-bindings)
