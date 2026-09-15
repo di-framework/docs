@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T15:00:18.890Z",
+  "generatedAt": "2026-09-15T15:51:27.340Z",
   "docs": [
     {
       "objectID": "docs_scheduling",
@@ -1138,6 +1138,46 @@
       "mainTitle": "wasmCloud backing services",
       "breadcrumbs": "Docs|wasmCloud backing services|Troubleshooting",
       "content": "| Result | Check |\n| --- | --- |\n| `WASMCLOUD_SERVICE_UNAUTHORIZED` | The target kubeconfig, namespace, and tenant membership. |\n| `WASMCLOUD_SERVICE_ALREADY_EXISTS` | Inspect the existing service or choose a new name. |\n| `WASMCLOUD_SERVICE_NOT_READY` | Inspect service conditions, class visibility/sizing, and Deployment readiness; increase `--timeout` only if provisioning is still progressing. |\n| `WASMCLOUD_SERVICE_PROVISIONING_FAILED` | Read the service's failure condition and correct the request or platform configuration. |\n| Binding reports `Failed` | Check same-namespace service existence/readiness, matching capability, and conflicting bindings with the same `bindingName`. |\n| Resource name cannot be adopted | Existing resources belong to another service UID; inspect retained resources before reusing a deleted service name. |",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_backing-services__dedicated-postgresql-upcoming-release",
+      "url": "https://docs.di-framework.dev/backing-services.html#dedicated-postgresql-upcoming-release",
+      "pageTitle": "Dedicated PostgreSQL (upcoming release)",
+      "mainTitle": "wasmCloud backing services",
+      "breadcrumbs": "Docs|wasmCloud backing services|Dedicated PostgreSQL (upcoming release)",
+      "content": "The upcoming framework release adds the `postgres` capability and the default\n`postgres-dedicated` class. Each BackingService owns one PostgreSQL 18 instance,\none PVC, and application credentials. Defaults are **1Gi storage, 512Mi memory,\nand 250m CPU**. Multiple applications may share a service; distinct services have\nseparate databases, volumes, and passwords.\n\nUpdate the platform package and apply its existing Pulumi stack before using\nthese APIs. Update the application CLI extension and `@di-framework/wasmcloud`\ntogether. Managed named imports require `@di-framework/componentize-qjs`\n`0.4.4-di.3` or later; the CLI installs the compiler dependency.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_backing-services__create-and-bind",
+      "url": "https://docs.di-framework.dev/backing-services.html#create-and-bind",
+      "pageTitle": "Create and bind",
+      "mainTitle": "wasmCloud backing services",
+      "breadcrumbs": "Docs|wasmCloud backing services|Create and bind",
+      "content": "```bash\ndi-framework wasmcloud service create postgres --name orders --target alpha \\\n --storage 1Gi --memory 512Mi --cpu 250m --wait --timeout 180\ndi-framework wasmcloud service create postgres --name audit --target alpha --wait\n```\n\nDeclare the bindings in `src/bindings.ts` (or the project's configured bindings file):\n\n```typescript\nimport { Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';\n\n@WasmCloudBinding('orders-db', { serviceName: 'orders' })\nexport class OrdersDatabase extends Postgres {}\n\n@WasmCloudBinding('audit-db', { serviceName: 'audit' })\nexport class AuditDatabase extends Postgres {}\n```\n\nDeploy with `di-framework wasmcloud deploy --target alpha`. The CLI validates the\nsame-namespace references, creates deterministic ServiceBindings for that workload,\nand waits for their readiness before applying the WorkloadDeployment. Inferred\nworkload members use the same binding discovery. Obsolete associations are removed\nafter a successful rollout and when a workload is destroyed. Another workload using\nthe same binding keeps the shared projection alive. A shared binding name must refer\nto the same service and capability throughout the tenant.\n\nEach binding imports its own `<binding>-query` and `<binding>-prepared` interfaces;\nPostgreSQL types remain shared. Each named host interface references the protected\n`di-binding-<binding>-creds` Secret containing its complete connection URL. The\ncontroller keeps administrator credentials exclusively in the runtime namespace.\nThe application connects to database `app` as its non-superuser owner `app`.\n\n`serviceName` currently supports PostgreSQL only. It cannot be combined with\n`secretFrom`, `configFrom`, or `config`. Managed binding names are DNS labels of at\nmost 54 characters; service names are at most 40. Existing decorators without\n`serviceName` retain their existing configuration behavior.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_backing-services__storage-and-readiness",
+      "url": "https://docs.di-framework.dev/backing-services.html#storage-and-readiness",
+      "pageTitle": "Storage and readiness",
+      "mainTitle": "wasmCloud backing services",
+      "breadcrumbs": "Docs|wasmCloud backing services|Storage and readiness",
+      "content": "Managed local platforms install Rancher Local Path Provisioner **v0.0.34**, with\ndata under `/var/lib/k0s/di-postgres` inside the persistent k0s Docker volume.\nExisting clusters need a working default StorageClass, or an administrator can set\n`spec.storageClassName` on `postgres-dedicated` before creating services:\n\n```bash\nkubectl patch backingserviceclass postgres-dedicated --type merge \\\n -p '{\"spec\":{\"storageClassName\":\"fast-ssd\"}}'\n```\n\nA provisioned PVC keeps its selected StorageClass even if the class definition\nchanges. Storage cannot shrink. Expansion requires a StorageClass with\n`allowVolumeExpansion: true`; local-path does not support expansion. Requested\ncapacity participates in Kubernetes quota accounting, but **local-path does not\nenforce that capacity on disk**. CPU and memory requests and limits apply to each\ninstance. Backend NetworkPolicy permits tenant hostgroup ingress.\n\nReadiness authenticates to the application database and runs `SELECT 1` after\nidempotent startup bootstrap. `StoragePending` points to PVC/provisioner or scheduling\nproblems; `Initializing` waits for bootstrap; `InitializationFailed` points to runtime\npod logs. A `CredentialsMissing` failure requires restoring the original runtime\nSecret. The controller never generates replacement passwords for an existing PVC.\nSuspending the tenant stops the instance and preserves its PVC and credentials;\nresuming uses both again.",
+      "product": "d",
+      "version": "latest"
+    },
+    {
+      "objectID": "docs_backing-services__delete-and-recover",
+      "url": "https://docs.di-framework.dev/backing-services.html#delete-and-recover",
+      "pageTitle": "Delete and recover",
+      "mainTitle": "wasmCloud backing services",
+      "breadcrumbs": "Docs|wasmCloud backing services|Delete and recover",
+      "content": "Deletion blocks while any ServiceBinding references the service. Its status lists\nthe blocking associations, existing connections remain available, and new\nassociations are refused. Remove the binding from application source and redeploy,\nor destroy the consuming workload. Remove manually created ServiceBindings with\n`kubectl delete servicebinding <name> -n di-tenant-alpha`.\n\nAfter all associations are removed, the controller stops PostgreSQL and waits for\nits pods to terminate:\n\n- **Retain** (default): removes serving resources, keeps the PVC and both runtime\n credential Secrets for administrator recovery.\n- **Delete**: removes serving resources, credentials, and the PVC, and waits for\n completion before releasing the BackingService finalizer. Physical volume\n reclamation follows the StorageClass reclaim policy.\n\nSelect deletion policy at creation with `--deletion-policy Delete`, or update it\nbefore deletion:\n\n```bash\nkubectl patch backingservice audit -n di-tenant-alpha --type merge \\\n -p '{\"spec\":{\"deletionPolicy\":\"Delete\"}}'\ndi-framework wasmcloud service delete audit --target alpha\n```\n\nPersistent resource names include a hash of the BackingService UID. Recreating\n`orders` creates fresh storage and credentials, so it cannot silently inherit a\nretained database. Administrators can find retained resources by service label:\n\n```bash\nkubectl get pvc,secret -n di-runtime-alpha \\\n -l platform.di-framework.dev/service=orders\n```\n\nFor recovery, identify the retained PVC and matching `-auth` Secret from the same\nUID generation. Mount that PVC into an administrator-managed PostgreSQL 18 recovery\npod at `/var/lib/postgresql`, set `PGDATA=/var/lib/postgresql/18/docker`, and use\n`envFrom.secretRef.name` with the retained `-auth` Secret. Use `pg_dump -U app -d app`\nwith `PGPASSWORD=$APP_PASSWORD` inside that pod to export data, then restore into a\nnew service. Do not mount the retained PVC concurrently with another PostgreSQL\ninstance. Back up recovery credentials securely alongside database backups.\n\nFor example, replace `RETAINED_PVC` and `RETAINED_AUTH_SECRET` below with names\nfrom the same retained generation, then apply this recovery pod:\n\n```yaml\napiVersion: v1\nkind: Pod\nmetadata:\n name: orders-recovery\n namespace: di-runtime-alpha\nspec:\n restartPolicy: Never\n automountServiceAccountToken: false\n containers:\n - name: postgres\n image: postgres:18.3-bookworm\n resources:\n requests: {cpu: 250m, memory: 512Mi}\n limits: {cpu: 250m, memory: 512Mi}\n envFrom:\n - secretRef:\n name: RETAINED_AUTH_SECRET\n env:\n - name: PGDATA\n value: /var/lib/postgresql/18/docker\n volumeMounts:\n - name: data\n mountPath: /var/lib/postgresql\n readinessProbe:\n exec:\n command: [pg_isready, -h, 127.0.0.1, -U, app, -d, app]\n volumes:\n - name: data\n persistentVolumeClaim:\n claimName: RETAINED_PVC\n```\n\n```bash\nkubectl wait pod/orders-recovery -n di-runtime-alpha --for=condition=Ready --timeout=180s\nkubectl exec -n di-runtime-alpha orders-recovery -- \\\n bash -c 'PGPASSWORD=\"$APP_PASSWORD\" pg_dump -h 127.0.0.1 -U app -d app -Fc' > orders.dump\nkubectl delete pod orders-recovery -n di-runtime-alpha --wait=true\n```\n\nRestore `orders.dump` with `pg_restore --no-owner` into the new service's `app`\ndatabase using its application credentials. Keep the retained PVC and credentials\nuntil the restored data has been verified.\n\nRetention is not a backup: deleting the runtime namespace or the underlying\nplatform volume can still destroy retained data and credentials. Initial support\nprovides one instance with authenticated internal connections. Automated backups,\nreplication, TLS provisioning, major-version upgrades, and credential rotation\nremain future work.",
       "product": "d",
       "version": "latest"
     },
