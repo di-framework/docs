@@ -4,7 +4,8 @@
 its wasmCloud platform through the shared `@di-framework/platform` TypeScript/Pulumi package.
 The [wasmCloud CLI extension](wasmcloud.md#managed-pulumi-target) uses the same package for its
 local k0s platform. Operator configuration, Tenant/User CRDs, the tenancy controller, admission
-policies, and HTTP routing come from one implementation.
+policies, and HTTP routing come from one implementation. Platform 5.3.6 also adds
+[requestable Redis/NATS backing services](backing-services.md).
 
 Kubesolo creation and deletion remain owned by `di-framework-kube`. Application builds and
 deployments remain owned by the framework extension and use an external target in
@@ -117,8 +118,16 @@ data can survive platform resource cleanup, but purging the cluster removes its 
 
 The example fixtures below run in the administrator-managed platform namespace. They are not a
 recipe for bypassing tenant admission or granting tenant developers access to platform Secrets.
-Independently requestable backing-service CRDs and `wasmcloud service create` commands are not
-part of this shared-package extraction.
+To use the backing-service APIs introduced in 5.3.6, upgrade the existing instance's platform
+package and the wasmCloud CLI extension explicitly:
+
+```bash
+./bin/di-framework-kube up --platform-package @di-framework/platform@5.3.6
+```
+
+The earlier kube default and the 5.3.0 example pins do not change automatically. See
+[wasmCloud backing services](backing-services.md) for tenant prerequisites, CLI commands, and
+binding projection. Existing example backends and warehouse data are not migrated by this upgrade.
 
 ## Deploy the examples
 

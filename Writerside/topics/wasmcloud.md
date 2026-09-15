@@ -16,6 +16,12 @@ di-framework wasmcloud
 ├── dev
 ├── deploy
 ├── destroy
+├── service
+│   ├── create
+│   ├── list
+│   ├── get
+│   ├── delete
+│   └── classes
 ├── platform
 │   ├── init
 │   ├── deploy
@@ -29,6 +35,10 @@ di-framework wasmcloud
 | `dev` | Build, then serve locally with wasmtime, wash, or jco. |
 | `deploy [name]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project. |
 | `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service`. Never tears down the platform. |
+| `service create <keyvalue\|messaging> --name <name>` | Request an independent Redis or NATS BackingService in a tenant namespace. |
+| `service list` / `service get <name>` | Inspect BackingService readiness, class, and endpoint summaries. |
+| `service delete <name>` | Delete the BackingService request according to its retention policy. |
+| `service classes` | Discover cluster classes, with a fallback to built-in defaults. |
 | `platform init` | Generate `deploy/platform` from extension templates and register it as the default `local` target. |
 | `platform deploy <target>` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator). |
 | `platform destroy <target>` | Tear down a managed platform target (`pulumi destroy`) only. |
@@ -38,6 +48,17 @@ Run these commands directly. Do not wrap them in `package.json` scripts.
 
 As with every extension, the commands follow the [CLI contract](cli.md): the same help forms,
 `--json` envelope, and exit-status table apply.
+
+## Backing services in 5.3.6
+
+The platform can provision independent Redis and NATS instances from tenant `BackingService`
+requests and project `ServiceBinding` configuration into protected ConfigMaps/Secrets. Use the
+new `wasmcloud service` commands to create and inspect requests. The controller owns provisioning;
+CLI commands use the target kubeconfig and Kubernetes RBAC.
+
+See [wasmCloud backing services](backing-services.md) for platform upgrades, commands, binding
+manifests, tenant restrictions, and retention. Automatic application-to-ServiceBinding wiring is
+still separate work; creating a binding does not rewrite a workload's guest imports.
 
 ## Project convention
 
@@ -115,9 +136,10 @@ includes services resolved at module startup.
 | `OutgoingHttp` | `wasi:http/client` | `0.3.0` |
 
 These WIT package versions are independent of both the framework version and the WASI 0.3
-component-model preview. The bindings consume services; your infrastructure must provision the
-database, Redis, NATS, ConfigMaps, Secrets, and host configuration. `configFrom` references a
-ConfigMap and `secretFrom` references a Kubernetes Secret. For capabilities that use a Secret,
+component-model preview. The bindings consume services. In 5.3.6, the platform can provision
+Redis/NATS through [BackingService requests](backing-services.md); other backends still require
+infrastructure provisioning. Application host configuration must match the guest imports.
+`configFrom` references a ConfigMap and `secretFrom` references a Kubernetes Secret. For capabilities that use a Secret,
 an omitted `secretFrom` defaults to `<application>-<binding>`. Keep credentials out of inline
 `config` and project files.
 
@@ -295,8 +317,8 @@ di-framework wasmcloud platform deploy local --yes
 
 The generated `index.ts` imports `@di-framework/platform/local`; its `package.json` pins the
 installed shared-package version. The implementation lives in that package, including the
-operator, Tenant/User CRDs, controller, and admission policies. Generated projects no longer
-copy `tenancy.ts` or its controller sources. [Kube](kube.md) consumes the same implementation
+operator, Tenant/User and backing-service CRDs, controller, and admission policies. Generated
+projects no longer copy `tenancy.ts` or its controller sources. [Kube](kube.md) consumes the same implementation
 through `@di-framework/platform/existing`, with Kubesolo supplying the cluster.
 
 Platform deploy runs `pulumi install` automatically for the generated project. Its default
