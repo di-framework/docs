@@ -11,8 +11,8 @@ WebAssembly components for wasmCloud. Choose the integration that matches the ta
 
 The Cloud Foundry package configures an application at runtime; the platform CLI and manifest
 remain responsible for pushing it. The wasmCloud extension provides its build, development,
-application deploy and destroy, and managed-platform commands through the main `di-framework`
-executable. Application deploy never runs Pulumi; Pulumi is used only for explicit
+application deploy and destroy, backing-service commands, and managed-platform commands through
+the main `di-framework` executable. Application deploy never runs Pulumi; Pulumi is used only for explicit
 `wasmcloud platform` lifecycle of a managed target and for kube platform provisioning.
 
 Both platform entrypoints use the TypeScript `@di-framework/platform` package. The extension's
@@ -25,6 +25,11 @@ Native services are consumed through `@di-framework/wasmcloud`; the platform and
 helpers provision their backends and credentials. See [native service bindings](wasmcloud.md#native-service-bindings)
 for the build and runtime contract.
 
+In 5.3.6, [wasmCloud backing services](backing-services.md) add independently requested Redis
+and NATS instances. Tenant developers create `BackingService` resources with `wasmcloud service`;
+the platform controller provisions them and projects Kubernetes `ServiceBinding` configuration.
+Automatic wiring into application deployments remains outside this release.
+
 Application-authored [private service bindings](service-bindings.md) (`@ExportService` /
 `@ServiceBinding`) are a separate in-process contract: callers receive a named DI proxy and do
 not configure a URL. They are not wasmCloud host capabilities and are not mapped onto
@@ -34,6 +39,7 @@ independently deployed components by the CLI.
 
 - [Cloud Foundry](cloudfoundry.md) - Connect an application to platform metadata and bound services
 - [wasmCloud](wasmcloud.md) - Build and deploy WebAssembly components
+- [wasmCloud backing services](backing-services.md) - Request Redis/NATS instances and project tenant binding configuration
 - [Kubernetes with di-framework-kube](kube.md) - Deploy examples and verify real service bindings
 - [Private service bindings](service-bindings.md) - Named in-process contracts without URLs
 - [Remote actors](actors-distributed.md) - Cross-process actor RPC independent of wasmCloud

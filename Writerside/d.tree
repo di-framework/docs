@@ -12,7 +12,9 @@
     <toc-element topic="cli.md"/>
     <toc-element topic="deployment.md">
         <toc-element topic="cloudfoundry.md"/>
-        <toc-element topic="wasmcloud.md"/>
+        <toc-element topic="wasmcloud.md">
+            <toc-element topic="backing-services.md"/>
+        </toc-element>
         <toc-element topic="kube.md"/>
     </toc-element>
     <toc-element topic="tsc.md"/>

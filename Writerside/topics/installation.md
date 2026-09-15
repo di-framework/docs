@@ -146,7 +146,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/ai-utils` | [Agent Skills](ai-utils.md) — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |
 | `@di-framework/wasmcloud` | [Native service bindings](wasmcloud.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
 | `@di-framework/cli-plugin-wasmcloud` | [wasmCloud](wasmcloud.md) — WASI 0.3 build, development, and deployment extension |
-| `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure used by kube and the wasmCloud extension |
+| `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis/NATS backing services](backing-services.md) used by kube and the wasmCloud extension |
 
 For a local Kubernetes platform and live service-binding examples, use the separate
 [di-framework-kube CLI](kube.md). It requires Node.js, npm, and Pulumi, and installs the shared
