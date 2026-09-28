@@ -166,8 +166,8 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/authz` | [Resource Authorization](authorization.md) |
 | `@di-framework/ai` | [AI](ai.md) |
 | `@di-framework/ai-utils` | [Agent Skills](ai-utils.md) — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |
-| `@di-framework/bindings` | [Native service bindings](wasmcloud.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
-| `@di-framework/cli-plugin-platform` | [wasmCloud](wasmcloud.md) — WASI 0.3 build, development, and deployment extension |
+| `@di-framework/bindings` | [Native service bindings](platform.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
+| `@di-framework/cli-plugin-platform` | [Platform](platform.md) — WASI 0.3 build, development, and deployment extension |
 | `@di-framework/cli-plugin-ai` | [CLI](cli.md#skills-index-commands) — `ai agent` and `ai skills` |
 | `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, and PostgreSQL backing services](backing-services.md) used by kube and the platform CLI |
 | `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |

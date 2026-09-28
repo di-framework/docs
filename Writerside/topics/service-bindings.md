@@ -16,7 +16,7 @@ development and tests; map targets with configuration or `LocalServiceDevManager
 changing caller code.
 
 This is distinct from [JSON-RPC and gRPC](rpc.md) (typed request/response over a transport) and
-from [wasmCloud native bindings](wasmcloud.md#native-service-bindings) (Postgres, KV, messaging,
+from [platform native bindings](platform.md#native-service-bindings) (Postgres, KV, messaging,
 and similar host capabilities).
 
 ## Installation
@@ -257,5 +257,5 @@ component.
 - [Remote actors](actors-distributed.md) - Cross-process actor RPC and ownership (a different API)
 - [RPC](rpc.md) - Typed request/response over memory, HTTP, sockets, and gRPC
 - [Testing](testing.md) - Mock substitution and unbound-caller tests
-- [wasmCloud](wasmcloud.md) - Native host capability bindings (not this API)
+- [Platform](platform.md) - Native host capability bindings (not this API)
 - [CLI](cli.md) - Canonical command tree (no dedicated bindings command)

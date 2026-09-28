@@ -482,7 +482,7 @@ Dispatch rules:
   and the exit-status table all behave exactly as for built-in commands.
 
 Root help lists installed extensions alongside the built-in tree. First-party extensions are
-[platform deployment](wasmcloud.md) (`@di-framework/cli-plugin-platform`) and agent configuration
+[platform deployment](platform.md) (`@di-framework/cli-plugin-platform`) and agent configuration
 (`@di-framework/cli-plugin-ai`, documented above). Authors of new extensions start from
 `@di-framework/cli-extension`, which provides the manifest contract, the command-node types, and
 `CommandFailure`.
@@ -573,8 +573,8 @@ typed package API is extended first.
 
 - [Installation](installation.md) - Core package and CLI setup
 - [Quick Start](quick-start.md) - Basics after scaffolding
-- [wasmCloud](wasmcloud.md) - Build and deploy apps as WebAssembly components
-- [wasmCloud backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis/NATS requests
+- [Platform](platform.md) - Build and deploy apps as WebAssembly components
+- [Platform backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis/NATS requests
 - [Kubernetes with di-framework-kube](kube.md) - Separate platform CLI and live example deployment workflow
 - [HTTP Router](http-router.md) - HTTP routing, OpenAPI generation, and static assets
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)

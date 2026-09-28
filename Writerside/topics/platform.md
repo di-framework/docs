@@ -1,8 +1,8 @@
-# wasmCloud
+# Platform
 
-`@di-framework/cli-plugin-platform` is a [CLI extension](cli.md#extensions) for targeting
-[wasmCloud](https://wasmcloud.com): it builds a di-framework HTTP application into a WASI 0.3
-WebAssembly component, serves it locally, and deploys it from a workspace manifest.
+`@di-framework/cli-plugin-platform` is a [CLI extension](cli.md#extensions) that builds a
+di-framework HTTP application into a WASI 0.3 WebAssembly component, serves it locally, and
+deploys it from a workspace manifest.
 
 In **6.0** the extension publishes from
 [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions). Through 5.x the
@@ -62,7 +62,7 @@ protected ConfigMaps and Secrets. Use `platform service` to create and inspect r
 controller owns provisioning; CLI commands use the target kubeconfig and Kubernetes RBAC.
 
 Redis and NATS requests landed in 5.3.6. Dedicated PostgreSQL, and `serviceName` wiring on a
-`Postgres` binding, ship in 6.0. See [wasmCloud backing services](backing-services.md).
+`Postgres` binding, ship in 6.0. See [Platform backing services](backing-services.md).
 
 ## Project convention
 
@@ -451,7 +451,7 @@ uses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and
 `QUEUE_DB_PATH=/data/queue.db`. A ClusterIP Service still exists for control routes. Queue retry
 requires `admin`; see [Control HTTP](#control-http).
 
-See [Queues](queues.md#wasmcloud-workers).
+See [Queues](queues.md#platform-workers).
 
 ## Static assets
 

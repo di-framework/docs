@@ -177,7 +177,7 @@ export { container };
 export default { container };
 ```
 
-## wasmCloud CronJobs
+## Platform CronJobs
 
 `di-framework platform build` discovers `@Cron(...)` calls with a **string or numeric literal**
 under `src/` (otherwise the project root). Dynamic schedules are skipped. Duplicate `jobId`
@@ -198,7 +198,7 @@ removed from source are not pruned except via destroy.
 
 Deployed HTTP workloads always receive `DI_CONTROL_TOKEN`. Unconfigured local/dev may invoke
 without a token, but never administer. Control paths are not reachable through public ingress.
-See [Control HTTP](wasmcloud.md#control-http).
+See [Control HTTP](platform.md#control-http).
 
 A failed or skipped `CronExecutionResult` (or a thrown invoke) returns HTTP 500 with a generic
 `Cron job failed` body so the Kubernetes job does not record success. The response does not echo
@@ -233,5 +233,5 @@ A failed or skipped `CronExecutionResult` (or a thrown invoke) returns HTTP 500 
 
 - [Advanced Usage](advanced-usage.md) - Container patterns used by scheduled services
 - [Testing](testing.md) - Isolated containers and `CronRuntime.reset()`
-- [wasmCloud](wasmcloud.md) - Build and deploy the generated CronJobs
+- [Platform](platform.md) - Build and deploy the generated CronJobs
 - [CLI](cli.md) - Canonical command tree (cron is not a built-in group)
