@@ -180,10 +180,10 @@ from vendor-specific layouts into neutral paths.
 
 ### Large catalogs
 
-Normal discovery places every skill name and description in the `Skill` tool. For catalogs above the default threshold of 50, generate a semantic index during the application build:
+Normal discovery places every skill name and description in the `Skill` tool. For catalogs above the default threshold of 50, generate a semantic index during the application build with `@di-framework/cli-plugin-ai`:
 
 ```bash
-di-framework skills index build --skills-dir .agents/skills
+di-framework ai skills index build --skills-dir .agents/skills
 ```
 
 Or call the same package implementation programmatically:
@@ -246,7 +246,7 @@ class ApplicationSkillsIndex {}
 await skillsIndexBuilderFrom(ApplicationSkillsIndex).build();
 ```
 
-Helpers: `skillsToolboxOptionsFrom`, `skillsToolboxBuilderFrom` / `skillsToolboxFrom`, `skillsAgentBuilderFrom` / `skillsAgentFrom`, `skillsIndexBuilderFrom`. Pass `chatModel`, custom `SkillEmbedder`, and stores as **overrides** — they are not stored on decorator metadata. Stack `@Skills`, `@SemanticSkillDiscovery`, and `@Skill` on one class; merge multiple catalog classes yourself. Terminal use goes through `di-framework skills index`; package APIs remain independent of command-line arguments and output.
+Helpers: `skillsToolboxOptionsFrom`, `skillsToolboxBuilderFrom` / `skillsToolboxFrom`, `skillsAgentBuilderFrom` / `skillsAgentFrom`, `skillsIndexBuilderFrom`. Pass `chatModel`, custom `SkillEmbedder`, and stores as **overrides** — they are not stored on decorator metadata. Stack `@Skills`, `@SemanticSkillDiscovery`, and `@Skill` on one class; merge multiple catalog classes yourself. Terminal use goes through `di-framework ai skills index` from `@di-framework/cli-plugin-ai`; package APIs remain independent of command-line arguments and output.
 
 ## Skill-only and MCP
 

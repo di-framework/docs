@@ -133,12 +133,13 @@ Application packages that stayed in the core monorepo are still published as **5
 | `@di-framework/core` and the other packages in the core monorepo | 5.x | [di-framework/di-framework](https://github.com/di-framework/di-framework) |
 | `@di-framework/ai`, `@di-framework/ai-utils` | 6.x | [di-framework/ai](https://github.com/di-framework/ai) |
 | `@di-framework/platform`, `@di-framework/bindings`, `@di-framework/cloudfoundry` | 6.x | [di-framework/platform](https://github.com/di-framework/platform) |
-| `@di-framework/cli-plugin-platform` | 6.x | [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) |
+| `@di-framework/cli-plugin-platform`, `@di-framework/cli-plugin-ai` | 6.x | [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) |
 
 `@di-framework/bindings` replaces `@di-framework/wasmcloud`.
 `@di-framework/cli-plugin-platform` replaces `@di-framework/cli-plugin-wasmcloud`. Install it with
 `di-framework extensions install platform`; the command group is `platform`, and cluster lifecycle
-is `platform cluster`. Sample apps live in
+is `platform cluster`. `@di-framework/cli-plugin-ai` (`di-framework extensions install ai`) provides
+`di-framework ai agent` and `di-framework ai skills`. Sample apps live in
 [di-framework/examples](https://github.com/di-framework/examples).
 
 `@di-framework/ai` and `@di-framework/bindings` declare `@di-framework/core@^5` as a peer until the
@@ -167,6 +168,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/ai-utils` | [Agent Skills](ai-utils.md) — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |
 | `@di-framework/bindings` | [Native service bindings](wasmcloud.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
 | `@di-framework/cli-plugin-platform` | [wasmCloud](wasmcloud.md) — WASI 0.3 build, development, and deployment extension |
+| `@di-framework/cli-plugin-ai` | [CLI](cli.md#skills-index-commands) — `ai agent` and `ai skills` |
 | `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, and PostgreSQL backing services](backing-services.md) used by kube and the platform CLI |
 | `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |
 
