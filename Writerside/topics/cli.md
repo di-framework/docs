@@ -98,14 +98,11 @@ The command paths and conventions on this page are the stable public contract.
 ## One executable
 
 `@di-framework/cli` publishes one `bin`: `di-framework`. Application builds,
-skill indexing, OpenAPI generation, agent operations, and monorepo maintenance
-all route through the canonical command tree above. Feature packages remain
-programmatic libraries and do not publish package-specific executables. That
-includes CLI extensions: an extension package must not declare a `bin`; its
-commands run through `di-framework <name>`.
-
-Neutral skill discovery uses `.agents/skills` and `~/.agents/skills`. No
-non-neutral path is consulted implicitly.
+OpenAPI generation, and monorepo maintenance route through the canonical command
+tree above. Agent configuration and Agent Skills commands install as
+[`@di-framework/cli-plugin-ai`](ai-cli.md) and run through the same executable. Feature packages remain programmatic libraries and do not
+publish package-specific executables. An extension package must not declare a
+`bin`; its commands run through `di-framework <name>`.
 
 ## App commands
 
@@ -141,74 +138,11 @@ Existing files are skipped unless `--force` is set.
 
 ## Skills index commands
 
-The five index leaves delegate to the typed `@di-framework/ai-utils` operations;
-the CLI only maps arguments and presents their results:
-
-```bash
-di-framework skills index build \
-  --skills-dir ./.agents/skills \
-  --output ./.di-framework/skills-index.json
-di-framework skills index inspect --input ./.di-framework/skills-index.json
-di-framework skills index validate \
-  --input ./.di-framework/skills-index.json \
-  --skills-dir ./.agents/skills
-di-framework skills index query \
-  --input ./.di-framework/skills-index.json \
-  --query 'review TypeScript authorization'
-di-framework skills index migrate \
-  --input ./older-skills-index.json \
-  --output ./.di-framework/skills-index.json
-```
-
-| Leaf | Options |
-| --- | --- |
-| `build` | repeatable `--skills-dir`, repeatable `--skill-file`, `--output`, `--threshold`, `--limit`, `--batch-size`, `--chunk-tokens`, `--chunk-overlap`, `--force` |
-| `inspect` | `--input` |
-| `validate` | `--input`, repeatable `--skills-dir`, repeatable `--skill-file`, `--allow-extra-skills` |
-| `query` | required `--query`, `--input`, `--limit`, `--min-score`, `--abstention-threshold` |
-| `migrate` | `--input`, `--output` |
-
-The default index path is `.di-framework/skills-index.json`. Text output
-summarizes the typed package result; JSON mode returns that result in `data`.
-Validation drift and query abstention exit `1`. Invalid options, missing inputs,
-and invalid indexes exit `2`; dependency, embedding, write, and unexpected
-operation failures exit `3`.
-
-## Validate skill catalogs
-
-`skills validate` uses the same neutral source resolution and
-`validateSkillCatalog` API as application code:
-
-```bash
-# Workspace and user neutral defaults.
-di-framework skills validate
-
-# Explicit sources before the defaults.
-di-framework skills validate \
-  --workspace . \
-  --skills-dir ./team-skills \
-  --skills-package @example/shared-skills
-
-# Explicit sources only.
-di-framework skills validate \
-  --skills-dir ./team-skills \
-  --source-mode replace \
-  --json
-```
-
-| Option | Description |
-| --- | --- |
-| `--workspace <path>` | Workspace root; defaults to the current directory. |
-| `--user-directory <path>` | User root for neutral default discovery. |
-| `--skills-dir <path>` | Explicit `SKILL.md` tree; repeatable. |
-| `--skills-package <name-or-path>` | Package skill source; repeatable. |
-| `--source-mode <merge\|replace>` | Merge with or replace neutral defaults. |
-
-Text mode prints a summary and source-aware diagnostics. JSON `data` contains
-`valid`, `skillCount`, and the typed diagnostics without skill bodies. Valid
-catalogs exit `0`, catalogs with error findings exit `1`, malformed CLI
-configuration exits `2`, and unavailable packages or unexpected failures exit
-`3`.
+Install `@di-framework/cli-plugin-ai` (`di-framework extensions install ai`). The
+`ai` command group then provides these leaves. They delegate to the typed
+`@di-framework/ai-utils` operations; the extension only maps arguments and
+presents their results. The project must be able to resolve
+`@di-framework/ai-utils`.
 
 ## Generate HTTP OpenAPI
 
@@ -228,7 +162,8 @@ contains `controllerModules`, `outputPath`, and `bytes`. Usage failures exit
 
 ## Agent configuration commands
 
-All four leaves delegate agent-configuration decisions to typed
+These leaves are also part of `@di-framework/cli-plugin-ai` (`di-framework ai agent`).
+All four delegate agent-configuration decisions to typed
 `@di-framework/ai-utils` APIs. They only discover the neutral `AGENTS.md`,
 `.agents/skills`, `~/.agents/skills`, and root `.aiignore` conventions
 automatically. An audit may report known vendor assets as migration
@@ -237,124 +172,6 @@ command creates a vendor-specific path or compatibility adapter.
 
 ### Audit
 
-```bash
-di-framework agent audit
-di-framework agent audit \
-  --working-directory packages/api \
-  --skills-dir ./team-skills \
-  --json
-```
-
-`agent audit` is read-only and delegates every rule to
-`auditAgentConfiguration`. Text output groups findings under Errors, Warnings,
-and Info and includes source paths, provenance, precedence, related paths, and
-recommended actions when present. JSON `data` is the unchanged typed audit
-report, including resolved instruction and skill provenance, active ignore
-policy, content-free suppressions, conflicts, vendor assets, and migration
-opportunities. Instruction and ignored-file contents are not emitted.
-
-| Option | Description |
-| --- | --- |
-| `--workspace <path>` | Workspace boundary; defaults to the current directory. |
-| `--working-directory <path>` | Location used for hierarchical instruction discovery. |
-| `--user-directory <path>` | User-level neutral source root. |
-| `--skills-dir <path>` | Explicit skill root; repeatable. |
-| `--skills-package <name>` | Package-provided skill root; repeatable. |
-| `--source-mode <merge\|replace>` | Merge with or replace neutral skill roots. |
-| `--instructions-fallback <name>` | Additional instruction filename; repeatable. |
-| `--max-instruction-bytes <count>` | Non-negative combined instruction byte limit. |
-| `--allowed-directory <path>` | Further restrict allowed instruction roots; repeatable. |
-
-A report with no error-severity finding exits `0`; a report containing an error
-exits `1`. Invalid options exit `2`, and an unavailable package or unexpected
-execution failure exits `3`.
-
-### Inspect
-
-```bash
-di-framework agent inspect
-di-framework agent inspect --working-directory packages/api --json
-```
-
-`agent inspect` is also read-only. It delegates source resolution, catalog
-conflict detection, hierarchical instruction discovery, and root `.aiignore`
-loading to `@di-framework/ai-utils`. Text and JSON identify resolved skill roots
-and precedence, instruction file paths from broad to specific, active policy
-rules, suppressed sources, and shadowed skills. Instruction contents are not
-emitted, and the command does not change files. It accepts the audit options
-above except `--allowed-directory`.
-
-### Initialize neutral assets
-
-```bash
-# Preview all four assets without writing (the default).
-di-framework agent init
-
-# Preview a selected subset.
-di-framework agent init \
-  --asset AGENTS.md \
-  --asset .agents/skills
-
-# Apply the generated plan after reviewing the preview.
-di-framework agent init \
-  --asset AGENTS.md \
-  --asset .agents/skills \
-  --apply
-```
-
-With no `--asset`, `agent init` requests `AGENTS.md`,
-`.agents/AGENTS.md`, `.agents/skills`, and `.aiignore`. The repeatable option
-accepts only those four paths. Dry-run is the default; explicit `--dry-run` and
-`--apply` are mutually exclusive. Both text and JSON contain the deterministic
-plan followed by its dry-run or apply result. Existing files become explicit
-collisions and are never silently overwritten. Initialization excludes
-audit-discovered vendor assets, so it only creates the requested neutral
-scaffolding.
-
-Plan or execution failures exit `1`; invalid options exit `2`; package-loading
-or unexpected failures exit `3`.
-
-### Migrate audited assets
-
-```bash
-# Planning is the default and never writes.
-di-framework agent migrate
-di-framework agent migrate --plan --json
-
-# Select exact audited source paths.
-di-framework agent migrate \
-  --source ./legacy-agent-instructions.md \
-  --source ./legacy-skills
-
-# Generate and apply that invocation's exact plan.
-di-framework agent migrate --apply
-```
-
-`agent migrate` calls the audit API, passes its report directly to the
-migration planner, and calls the executor only in `--apply` mode. Default mode
-and explicit `--plan` perform no writes. Text always shows the audit and planned
-actions; apply mode additionally groups every result as applied, skipped, or
-failed. Stable JSON `data` contains `mode`, the audit validity and findings, and
-the complete versioned plan; apply mode also includes the typed execution
-result.
-
-The repeatable `--source` option limits migration to exact paths reported by
-the audit. Without it, all audited opportunities are planned.
-`--replace-existing` converts eligible file collisions into explicit
-`replace-file` actions whose old targets are retained with a
-`.di-framework-backup` suffix. It does not silently weaken directory, symlink,
-boundary, source-change, target-change, or backup-collision checks.
-
-`agent migrate` also accepts the audit options above except
-`--allowed-directory`. `--plan` and `--apply` are mutually exclusive. Invalid
-audits, plans, collisions, and partial execution failures exit `1`; invalid
-options exit `2`; package-loading or unexpected failures exit `3`.
-
-Migration writes only `AGENTS.md`, `.agents/AGENTS.md`, `.agents/skills/**`,
-and `.aiignore`. Source vendor files remain in place for deliberate cleanup
-after the neutral result is verified; no legacy or vendor-specific destination
-is generated.
-
 ## Actor commands
 
 `actor` inspects and resets local [`@di-framework/actors`](actors.md#local-development-discovery-reload-and-inspection)
@@ -362,8 +179,10 @@ SQLite storage. It does not start a runtime.
 
 ```bash
 di-framework actor list [--namespace <name>] [--dir <path>] [--active]
-di-framework actor inspect <actorType|identity> [--key <key>] [--namespace <name>] [--dir <path>] [--show-state]
-di-framework actor reset --actor <name> [--key <key>] [--namespace <name>] [--dir <path>]
+di-framework actor inspect <actorType|identity> \
+  [--key <key>] [--namespace <name>] [--dir <path>] [--show-state]
+di-framework actor reset --actor <name> \
+  [--key <key>] [--namespace <name>] [--dir <path>]
 di-framework actor reset --all
 di-framework actor clean [same flags as reset]
 ```
@@ -418,7 +237,8 @@ start a worker.
 
 ```bash
 di-framework queue list [--db <path>]
-di-framework queue inspect <name> [--db <path>] [--status <status>] [--limit <n>]
+di-framework queue inspect <name> \
+  [--db <path>] [--status <status>] [--limit <n>]
 di-framework queue retry <name> [jobId] [--db <path>]
 ```
 
@@ -492,8 +312,12 @@ Dispatch rules:
 - Mounted extension commands inherit this page's contract in full: help forms, the JSON envelope,
   and the exit-status table all behave exactly as for built-in commands.
 
-Root help lists installed extensions alongside the built-in tree. The first available extension is
-[wasmCloud deployment](wasmcloud.md); authors of new extensions start from
+Root help lists installed extensions alongside the built-in tree. First-party extensions:
+
+- [Platform](platform.md) (`@di-framework/cli-plugin-platform`) builds, serves, and deploys WASI 0.3 components.
+- [AI CLI](ai-cli.md) (`@di-framework/cli-plugin-ai`) inspects and manages agent configuration and Agent Skills. Through 5.x those commands shipped in `@di-framework/cli`. In 6.0 they moved to this extension when AI moved to [di-framework/ai](https://github.com/di-framework/ai).
+
+Authors of new extensions start from
 `@di-framework/cli-extension`, which provides the manifest contract, the command-node types, and
 `CommandFailure`.
 
@@ -565,14 +389,19 @@ stable API. JSON output never includes colors, icons, or environment-dependent f
 
 ```text
 feature package = domain behavior + typed results
-@di-framework/cli = arguments + presentation + exit status
+@di-framework/cli and installed extensions =
+  arguments + presentation + exit status
 ```
 
 | Layer | Owns | Does not own |
 | --- | --- | --- |
 | Feature packages | Domain validation and transformations, typed options and results, explicit write APIs, and progress callbacks. | Argument parsing, terminal formatting, process globals, or exit status. |
-| CLI command handlers | Mapping parsed arguments to package options and typed results to presentation models. | Copied indexing, generation, audit, migration, validation, or other domain algorithms. |
+| CLI and extension command handlers | Mapping parsed arguments to package options and typed results to presentation models. | Copied indexing, generation, audit, migration, validation, or other domain algorithms. |
 | CLI infrastructure | Nested routing, help, injectable I/O, JSON envelopes, typed command failures, and centralized exit translation. | Feature-specific business rules. |
+
+`@di-framework/cli-plugin-ai` follows that split: it maps `di-framework ai`
+arguments and presentation, and `@di-framework/ai-utils` owns the agent and
+skills operations. See [AI CLI](ai-cli.md).
 
 Command handlers return results or throw typed command failures. They do not call `process.exit()`, write
 through global `console`, or translate domain results into exit statuses. Tests at the CLI boundary must
@@ -583,8 +412,8 @@ typed package API is extended first.
 
 - [Installation](installation.md) - Core package and CLI setup
 - [Quick Start](quick-start.md) - Basics after scaffolding
-- [wasmCloud](wasmcloud.md) - Build and deploy apps as WebAssembly components
-- [wasmCloud backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis/NATS requests
+- [Platform](platform.md) - Build and deploy apps as WebAssembly components
+- [Platform backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis/NATS requests
 - [Kubernetes with di-framework-kube](kube.md) - Separate platform CLI and live example deployment workflow
 - [HTTP Router](http-router.md) - HTTP routing, OpenAPI generation, and static assets
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)
@@ -592,5 +421,6 @@ typed package API is extended first.
 - [Queues](queues.md) - Durable jobs and `queue list` / `inspect` / `retry`
 - [Repositories](repositories.md#database-migrations) - Decorator, SQL, and manifest migrations
 - [Actors](actors.md) - Local runtime, persistence, and `actor` commands
+- [AI CLI](ai-cli.md) - `di-framework ai` agent and skills commands (`@di-framework/cli-plugin-ai`)
 - [Agents](ai-utils.md) - Skills, plugins, and skill-index programmatic APIs
 - [Runtime type checks](tsc.md) - Emit-time transforms wired by `init`
