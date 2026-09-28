@@ -248,4 +248,4 @@ other.
 - [Scheduling](scheduling.md) - Optional `@Cron` that can enqueue work
 - [CLI](cli.md) - `queue list` / `inspect` / `retry`
 - [Testing](testing.md) - Isolated containers and in-memory backends
-- [wasmCloud](wasmcloud.md) - Worker deploy without public ingress
+- [Platform](wasmcloud.md) - Worker deploy without public ingress

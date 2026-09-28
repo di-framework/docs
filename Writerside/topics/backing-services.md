@@ -1,4 +1,4 @@
-# wasmCloud backing services
+# Platform backing services
 
 In **6.0**, tenant developers request independent Redis, NATS, and dedicated PostgreSQL
 instances through `di-framework platform service`. `@di-framework/platform` publishes from

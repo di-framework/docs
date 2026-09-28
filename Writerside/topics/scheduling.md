@@ -233,5 +233,5 @@ A failed or skipped `CronExecutionResult` (or a thrown invoke) returns HTTP 500 
 
 - [Advanced Usage](advanced-usage.md) - Container patterns used by scheduled services
 - [Testing](testing.md) - Isolated containers and `CronRuntime.reset()`
-- [wasmCloud](wasmcloud.md) - Build and deploy the generated CronJobs
+- [Platform](wasmcloud.md) - Build and deploy the generated CronJobs
 - [CLI](cli.md) - Canonical command tree (cron is not a built-in group)
