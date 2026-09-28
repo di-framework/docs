@@ -2,7 +2,7 @@
 
 `di-framework-kube` creates an isolated local Kubernetes cluster with Kubesolo and provisions
 its wasmCloud platform through the shared `@di-framework/platform` TypeScript/Pulumi package.
-The [wasmCloud CLI extension](wasmcloud.md#managed-pulumi-target) uses the same package for its
+The [platform CLI extension](platform.md#managed-pulumi-target) uses the same package for its
 local k0s platform. Operator configuration, Tenant/User CRDs, the tenancy controller, admission
 policies, and HTTP routing come from one implementation. `@di-framework/platform` **6.0.1**
 publishes from [di-framework/platform](https://github.com/di-framework/platform) and includes
@@ -132,7 +132,7 @@ di-framework extensions install platform
 ```
 
 The kube CLI default and the 5.3.0 example pins do not change automatically. See
-[wasmCloud backing services](backing-services.md) for tenant prerequisites, CLI commands, and
+[Platform backing services](backing-services.md) for tenant prerequisites, CLI commands, and
 binding projection. Existing example backends and warehouse data are not migrated by this upgrade.
 
 ## Deploy the examples
@@ -316,7 +316,7 @@ tools cannot rely on the mocked `child_process` implementation.
 Also verify the chosen model adapter's HTTP transport, destination grant, streaming behavior,
 and Secret-backed credentials inside the component. The outgoing HTTP fixture demonstrates
 a native request path; it does not establish that an arbitrary model SDK's Node HTTPS path
-works. See [Node compatibility and permissions](wasmcloud.md#node-compatibility-and-permissions)
+works. See [Node compatibility and permissions](platform.md#node-compatibility-and-permissions)
 and [Agent Skills](ai-utils.md).
 
 ## Configure and inspect an instance
@@ -398,6 +398,6 @@ Use the filename produced by `npm pack` if its version differs. Regular installs
 
 ## Next steps
 
-- [wasmCloud](wasmcloud.md) - Component builds, binding declarations, runtime behavior, and deployment targets
+- [Platform](platform.md) - Component builds, binding declarations, runtime behavior, and deployment targets
 - [Example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) - Application sources, fixtures, deployment helper, and API checks
 - [Platform README](https://github.com/di-framework/kube/blob/main/README.md) - CLI options, supported modes, and release builds

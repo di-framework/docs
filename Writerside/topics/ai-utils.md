@@ -22,11 +22,15 @@ Prefer **builders**: `SkillsAgent.builder()`, `SkillsToolbox.builder()`, `Skills
 ## Installation
 
 ```bash
-bun add @di-framework/ai-utils@^6 @di-framework/ai@^6 @di-framework/core@^5
+bun add @di-framework/ai-utils@^6 \
+  @di-framework/ai@^6 \
+  @di-framework/core@^5
 ```
 
 ```bash
-npm install @di-framework/ai-utils@^6 @di-framework/ai@^6 @di-framework/core@^5
+npm install @di-framework/ai-utils@^6 \
+  @di-framework/ai@^6 \
+  @di-framework/core@^5
 ```
 
 `@di-framework/ai-utils` **6.x** publishes from the same
@@ -63,7 +67,9 @@ const tools = SkillsToolbox.builder()
   .workspace(process.cwd())
   .buildTools();
 
-const client = ChatClient.builder(model).defaultTools(...tools).build();
+const client = ChatClient.builder(model)
+  .defaultTools(...tools)
+  .build();
 ```
 
 The [`ai-skills`](https://github.com/di-framework/examples/tree/main/framework/ai-skills) example has scripted tests (no API key) and a live `bun start` path that reviews `fixtures/sample-user.ts` with `OpenAiChatModel` (`process.env.OPENAI_API_KEY`).
@@ -87,7 +93,9 @@ A skill is a folder with a `SKILL.md` file (YAML front matter + instructions). O
 ```text
 ---
 name: code-reviewer
-description: Reviews TypeScript for nulls and framework conventions. Use when the user asks to review or audit code.
+description: >
+  Reviews TypeScript for nulls and framework conventions.
+  Use when the user asks to review or audit code.
 license: Apache-2.0
 allowed-tools:
   - Read
@@ -180,7 +188,7 @@ from vendor-specific layouts into neutral paths.
 
 ### Large catalogs
 
-Normal discovery places every skill name and description in the `Skill` tool. For catalogs above the default threshold of 50, generate a semantic index during the application build:
+Normal discovery places every skill name and description in the `Skill` tool. For catalogs above the default threshold of 50, install [`@di-framework/cli-plugin-ai`](ai-cli.md) and generate a semantic index during the application build:
 
 ```bash
 di-framework skills index build --skills-dir .agents/skills
@@ -246,12 +254,16 @@ class ApplicationSkillsIndex {}
 await skillsIndexBuilderFrom(ApplicationSkillsIndex).build();
 ```
 
-Helpers: `skillsToolboxOptionsFrom`, `skillsToolboxBuilderFrom` / `skillsToolboxFrom`, `skillsAgentBuilderFrom` / `skillsAgentFrom`, `skillsIndexBuilderFrom`. Pass `chatModel`, custom `SkillEmbedder`, and stores as **overrides** — they are not stored on decorator metadata. Stack `@Skills`, `@SemanticSkillDiscovery`, and `@Skill` on one class; merge multiple catalog classes yourself. Terminal use goes through `di-framework skills index`; package APIs remain independent of command-line arguments and output.
+Helpers: `skillsToolboxOptionsFrom`, `skillsToolboxBuilderFrom` / `skillsToolboxFrom`, `skillsAgentBuilderFrom` / `skillsAgentFrom`, `skillsIndexBuilderFrom`. Pass `chatModel`, custom `SkillEmbedder`, and stores as **overrides** — they are not stored on decorator metadata. Stack `@Skills`, `@SemanticSkillDiscovery`, and `@Skill` on one class; merge multiple catalog classes yourself. Terminal use goes through `di-framework ai skills index` from [`@di-framework/cli-plugin-ai`](ai-cli.md). That extension publishes from [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) and carries the commands that lived in `@di-framework/cli` before AI moved to this repository. Package APIs remain independent of command-line arguments and output.
 
 ## Skill-only and MCP
 
 ```typescript
-import { agentSkill, SkillsTool, skillsToolboxAsMcp } from '@di-framework/ai-utils';
+import {
+  agentSkill,
+  SkillsTool,
+  skillsToolboxAsMcp,
+} from '@di-framework/ai-utils';
 
 const skillOnly = SkillsTool.builder()
   .addSkill(
@@ -278,7 +290,7 @@ Plugins are filesystem bundles under `.agents/plugins/<id>/` (and
 
 ```text
 .agents/plugins/<plugin-id>/
-  plugin.json          # required; name optional (defaults to directory name)
+  plugin.json          # required; name defaults to directory
   mcp_config.json      # optional { mcpServers: ... }
   hooks.json           # optional object
   skills/              # optional nested SKILL.md trees
@@ -297,7 +309,10 @@ A package that publishes `plugin.json` at its own root (for example
 are validated with the skill catalog rules when you validate a plugin catalog.
 
 ```typescript
-import { resolvePluginSources, validatePluginCatalog } from '@di-framework/ai-utils';
+import {
+  resolvePluginSources,
+  validatePluginCatalog,
+} from '@di-framework/ai-utils';
 
 const resolution = resolvePluginSources({ workspace: process.cwd() });
 const catalog = validatePluginCatalog({ workspace: process.cwd() });
@@ -340,7 +355,9 @@ import {
 const workspace = process.cwd();
 const catalog = validatePluginCatalog({ workspace });
 if (!catalog.valid) {
-  throw new Error(catalog.diagnostics.map((d) => d.message).join('\n'));
+  throw new Error(
+    catalog.diagnostics.map((d) => d.message).join('\n'),
+  );
 }
 
 const pluginSkillDirs = catalog.plugins
@@ -375,6 +392,7 @@ example for official `@di-framework/plugin` discovery plus elective MCP wiring.
 
 - [SkillsAgent on kube](kube.md#using-a-skillsagent) — guest filesystem, model transport, and tool requirements before a complete agent deployment
 - [AI](ai.md) — chat, tools, RAG, MCP, and agents (`@di-framework/ai`)
+- [AI CLI](ai-cli.md) — `di-framework ai agent` and `di-framework ai skills` (`@di-framework/cli-plugin-ai`)
 - [Agent configuration](agent-foundations.md) — neutral sources, validation, instructions, plugins, and `.aiignore`
 - [Package README](https://github.com/di-framework/ai/blob/main/ai-utils/README.md)
 - [Skills example](https://github.com/di-framework/examples/tree/main/framework/ai-skills)

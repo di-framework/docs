@@ -84,7 +84,7 @@ UTC and not an IANA zone. Generated Kubernetes CronJobs use the cluster controll
 
 | Field | Default | Behavior |
 | --- | --- | --- |
-| `name` | `` `${className}.${methodName}` `` | Stable job id used by `invokeCronJob` and wasmCloud CronJobs |
+| `name` | `` `${className}.${methodName}` `` | Stable job id used by `invokeCronJob` and platform CronJobs |
 | `allowConcurrent` | `false` | Overlapping `invokeCronJob` calls skip (or throw with `throwOnError`) |
 | `description` | — | Human-readable only; unused at runtime |
 | `timeoutMs` | — | Max wait on **`invokeCronJob`**. Does not cancel the running method |
@@ -177,7 +177,7 @@ export { container };
 export default { container };
 ```
 
-## wasmCloud CronJobs
+## Platform CronJobs
 
 `di-framework platform build` discovers `@Cron(...)` calls with a **string or numeric literal**
 under `src/` (otherwise the project root). Dynamic schedules are skipped. Duplicate `jobId`
@@ -198,7 +198,7 @@ removed from source are not pruned except via destroy.
 
 Deployed HTTP workloads always receive `DI_CONTROL_TOKEN`. Unconfigured local/dev may invoke
 without a token, but never administer. Control paths are not reachable through public ingress.
-See [Control HTTP](wasmcloud.md#control-http).
+See [Control HTTP](platform.md#control-http).
 
 A failed or skipped `CronExecutionResult` (or a thrown invoke) returns HTTP 500 with a generic
 `Cron job failed` body so the Kubernetes job does not record success. The response does not echo
@@ -226,12 +226,12 @@ A failed or skipped `CronExecutionResult` (or a thrown invoke) returns HTTP 500 
 | Duplicate fires in deployment | In-process timers still running; confirm `DI_CRON_MODE=external` |
 | `CronJobNotFoundError` | `name` / `` Class.method `` mismatch; or the service was never resolved |
 | Invalid cron expression | Not five fields |
-| wasmCloud skips a job | Non-literal `@Cron` argument |
+| Build skips a job | Non-literal `@Cron` argument |
 | HTTP 500 on invoke | Job returned `status: 'failure'` or `'skipped'`, or the invoker threw. Inspect the method; the HTTP body is generic. |
 
 ## Next steps
 
 - [Advanced Usage](advanced-usage.md) - Container patterns used by scheduled services
 - [Testing](testing.md) - Isolated containers and `CronRuntime.reset()`
-- [wasmCloud](wasmcloud.md) - Build and deploy the generated CronJobs
+- [Platform](platform.md) - Build and deploy the generated CronJobs
 - [CLI](cli.md) - Canonical command tree (cron is not a built-in group)

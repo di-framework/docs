@@ -92,8 +92,10 @@ import { Container, Component } from '@di-framework/core/decorators';
 Avoid:
 
 ```typescript
-import { useContainer } from 'di-framework/container'; // Wrong: unscoped id
-import { Container } from '../../di-framework/decorators'; // Wrong: relative id
+// Wrong: unscoped package id
+import { useContainer } from 'di-framework/container';
+// Wrong: relative source path
+import { Container } from '../../di-framework/decorators';
 ```
 
 ## Verify Installation
@@ -125,8 +127,10 @@ bun run test.ts
 
 ## Version 6 package sources
 
-**6.0** publishes AI, the operated platform, and the platform CLI from their own repositories.
-Application packages that stayed in the core monorepo are still published as **5.x**.
+**6.0** publishes AI, the operated platform, and first-party CLI extensions from their own
+repositories. Application packages that stayed in the core monorepo are still published as **5.x**.
+Agent configuration and Agent Skills commands that shipped in `@di-framework/cli` through 5.x now
+install as `@di-framework/cli-plugin-ai`.
 
 | Package | Version line | Repository |
 | --- | --- | --- |
@@ -138,7 +142,9 @@ Application packages that stayed in the core monorepo are still published as **5
 `@di-framework/bindings` replaces `@di-framework/wasmcloud`.
 `@di-framework/cli-plugin-platform` replaces `@di-framework/cli-plugin-wasmcloud`. Install it with
 `di-framework extensions install platform`; the command group is `platform`, and cluster lifecycle
-is `platform cluster`. Sample apps live in
+is `platform cluster`. `@di-framework/cli-plugin-ai` (`di-framework extensions install ai`) provides
+`di-framework ai agent` and `di-framework ai skills`. Those leaves used to be built into
+`@di-framework/cli`; see [AI CLI](ai-cli.md). Sample apps live in
 [di-framework/examples](https://github.com/di-framework/examples).
 
 `@di-framework/ai` and `@di-framework/bindings` declare `@di-framework/core@^5` as a peer until the
@@ -165,8 +171,9 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/authz` | [Resource Authorization](authorization.md) |
 | `@di-framework/ai` | [AI](ai.md) |
 | `@di-framework/ai-utils` | [Agent Skills](ai-utils.md) — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |
-| `@di-framework/bindings` | [Native service bindings](wasmcloud.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
-| `@di-framework/cli-plugin-platform` | [wasmCloud](wasmcloud.md) — WASI 0.3 build, development, and deployment extension |
+| `@di-framework/bindings` | [Native service bindings](platform.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
+| `@di-framework/cli-plugin-platform` | [Platform](platform.md) — WASI 0.3 build, development, and deployment extension |
+| `@di-framework/cli-plugin-ai` | [AI CLI](ai-cli.md) — `ai agent` and `ai skills`, moved out of `@di-framework/cli` in 6.0 |
 | `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, and PostgreSQL backing services](backing-services.md) used by kube and the platform CLI |
 | `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |
 

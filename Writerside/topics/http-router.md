@@ -411,7 +411,7 @@ automatic CLI collection of asset directories.
 
 ## Next steps
 
-- [wasmCloud](wasmcloud.md) - Component build; package assets on the host before bundling
+- [Platform](platform.md) - Component build; package assets on the host before bundling
 - [CLI](cli.md) - `http openapi generate`
 - [Deployment](deployment.md) - Target runtimes
 

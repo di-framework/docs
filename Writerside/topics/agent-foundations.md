@@ -2,8 +2,13 @@
 
 `@di-framework/ai-utils` provides vendor-neutral project discovery for skills,
 plugins, repository instructions, and AI exclusion policy. These APIs are
-independent of the CLI: applications, tests, and build tooling can inspect the
-same ordered sources and typed diagnostics without constructing an agent.
+independent of the command line: applications, tests, and build tooling can
+inspect the same ordered sources and typed diagnostics without constructing an
+agent. The matching terminal commands install as
+[`@di-framework/cli-plugin-ai`](ai-cli.md) (`di-framework extensions install ai`).
+They used to ship in `@di-framework/cli` and moved to
+[di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) when
+this package moved to [di-framework/ai](https://github.com/di-framework/ai).
 
 ## Neutral project layout
 
@@ -250,7 +255,11 @@ import {
 const policy = loadAiIgnorePolicy({ workspace: process.cwd() });
 const evaluation = evaluateAiIgnorePath(policy, 'build/generated.ts');
 
-console.log(evaluation.decision, evaluation.rule?.line, evaluation.source.path);
+console.log(
+  evaluation.decision,
+  evaluation.rule?.line,
+  evaluation.source.path,
+);
 ```
 
 `compileAiIgnorePolicy` compiles explicitly supplied text without reading CLI or
@@ -372,7 +381,9 @@ import {
 const audit = auditAgentConfiguration({ workspace: process.cwd() });
 const plan = planAgentConfigurationMigration(audit, {
   // Omit to plan every audited opportunity.
-  opportunityPaths: audit.migrationOpportunities.map(({ path }) => path),
+  opportunityPaths: audit.migrationOpportunities.map(
+    ({ path }) => path,
+  ),
   requests: [
     { target: '.agents/AGENTS.md', content: '# Agent defaults\n' },
     { target: '.agents/skills' },
@@ -384,7 +395,9 @@ const plan = planAgentConfigurationMigration(audit, {
 const preview = executeAgentConfigurationMigration(plan);
 
 // Explicit opt-in: execute the same fingerprinted plan.
-const applied = executeAgentConfigurationMigration(plan, { dryRun: false });
+const applied = executeAgentConfigurationMigration(plan, {
+  dryRun: false,
+});
 ```
 
 `planAgentConfigurationMigration` includes all audited opportunities by default.
