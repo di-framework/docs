@@ -4,8 +4,10 @@
 its wasmCloud platform through the shared `@di-framework/platform` TypeScript/Pulumi package.
 The [wasmCloud CLI extension](wasmcloud.md#managed-pulumi-target) uses the same package for its
 local k0s platform. Operator configuration, Tenant/User CRDs, the tenancy controller, admission
-policies, and HTTP routing come from one implementation. Platform 5.3.6 also adds
-[requestable Redis/NATS backing services](backing-services.md).
+policies, and HTTP routing come from one implementation. `@di-framework/platform` **6.0.1**
+publishes from [di-framework/platform](https://github.com/di-framework/platform) and includes
+[requestable Redis, NATS, and dedicated PostgreSQL backing services](backing-services.md).
+Redis and NATS landed in 5.3.6.
 
 Kubesolo creation and deletion remain owned by `di-framework-kube`. Application builds and
 deployments remain owned by the framework extension and use an external target in
@@ -13,11 +15,14 @@ deployments remain owned by the framework extension and use an external target i
 use. Its embedded Helm client is retained for status inspection and legacy cleanup; new
 installations and updates run through Pulumi.
 
-The default versions are Kubesolo **1.2.0**, wasmCloud runtime operator **2.8.0**, and
-`@di-framework/platform` **5.3.3**. These versions are independent of application framework
-versions. The [kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps)
-still pins DI Framework **5.3.0** and includes fourteen apps covering PostgreSQL, configuration,
-secrets, key-value, blobstore, messaging, outgoing HTTP, and Node compatibility.
+The kube CLI's built-in defaults remain Kubesolo **1.2.0**, wasmCloud runtime operator **2.8.0**,
+and the platform package version compiled into that CLI. Those defaults are independent of
+application framework versions. The published platform package to select for 6.0 APIs is
+`@di-framework/platform@6.0.1`. The
+[kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) still pins
+DI Framework **5.3.0** and `@di-framework/wasmcloud`, and includes fourteen apps covering
+PostgreSQL, configuration, secrets, key-value, blobstore, messaging, outgoing HTTP, and Node
+compatibility.
 
 ## Build and start the platform
 
@@ -35,11 +40,11 @@ make build
 ./bin/di-framework-kube outputs
 ```
 
-`up` installs `@di-framework/platform@5.3.3` directly from npm by default. No local package build
-or tarball is required. To select an exact published version explicitly:
+`up` installs the CLI's compiled `@di-framework/platform` version directly from npm. No local
+package build or tarball is required. To select the published 6.0 platform explicitly:
 
 ```bash
-./bin/di-framework-kube up --platform-package @di-framework/platform@5.3.3
+./bin/di-framework-kube up --platform-package @di-framework/platform@6.0.1
 ```
 
 The default instance is `local`. Its dedicated kubeconfig selects the cluster independently of
@@ -118,14 +123,15 @@ data can survive platform resource cleanup, but purging the cluster removes its 
 
 The example fixtures below run in the administrator-managed platform namespace. They are not a
 recipe for bypassing tenant admission or granting tenant developers access to platform Secrets.
-To use the backing-service APIs introduced in 5.3.6, upgrade the existing instance's platform
-package and the wasmCloud CLI extension explicitly:
+To use the 6.0 backing-service APIs, upgrade the existing instance's platform package and install
+`@di-framework/cli-plugin-platform` explicitly:
 
 ```bash
-./bin/di-framework-kube up --platform-package @di-framework/platform@5.3.6
+./bin/di-framework-kube up --platform-package @di-framework/platform@6.0.1
+di-framework extensions install platform
 ```
 
-The earlier kube default and the 5.3.0 example pins do not change automatically. See
+The kube CLI default and the 5.3.0 example pins do not change automatically. See
 [wasmCloud backing services](backing-services.md) for tenant prerequisites, CLI commands, and
 binding projection. Existing example backends and warehouse data are not migrated by this upgrade.
 
@@ -154,7 +160,7 @@ This registry uses plain HTTP for local development, and the helper enables inse
 pulls on the host. Dependencies and base images still require network access.
 
 For every discovered `apps/*/di-framework.config.json`, the helper invokes
-`di-framework wasmcloud deploy <name> --yes`. It adjusts each generated Service's target port
+`di-framework platform deploy <name> --yes`. It adjusts each generated Service's target port
 to `9191` for this host profile, then checks the app's live `/health` route. Generated components
 and workload manifests remain under the app's ignored `dist/` and `.di-framework/` directories.
 
@@ -206,7 +212,7 @@ The PostgreSQL app declares its DI service in `apps/postgres/src/bindings.ts`:
 
 ```typescript
 import { Container } from '@di-framework/core/decorators';
-import { Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';
+import { Postgres, WasmCloudBinding } from '@di-framework/bindings';
 
 @WasmCloudBinding('example-database', {
   config: { database: 'examples' },
@@ -216,7 +222,8 @@ import { Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';
 export class ExampleDatabase extends Postgres {}
 ```
 
-The application resolves the class at module startup and calls native
+The 5.3.0 example imports `@di-framework/wasmcloud`. 6.0 applications import
+`@di-framework/bindings`, as shown above. The application resolves the class at module startup and calls native
 `wasmcloud:postgres/query@0.2.0` through `queryBatch`. No Node PostgreSQL driver is needed.
 Guest initialization precedes application evaluation in 5.3.0, and the generated host
 declaration matches the unlabeled QuickJS import.
@@ -373,16 +380,18 @@ with `--kubeconfig`.
 ## Develop the shared package locally
 
 For unpublished infrastructure changes only, build and pack `@di-framework/platform` in the
-framework checkout, then supply the resulting tarball to a separate test instance:
+[di-framework/platform](https://github.com/di-framework/platform) checkout, then supply the
+resulting tarball to a separate test instance:
 
 ```bash
-# In di-framework/packages/di-framework-platform:
+# In di-framework/platform, package platform/platform:
+cd platform/platform
 bun run build
 npm pack --pack-destination /tmp
 
 # In the kube checkout:
 ./bin/di-framework-kube up --name shared-test --http-port 28089 \
-  --platform-package file:/tmp/di-framework-platform-5.3.3.tgz
+  --platform-package file:/tmp/di-framework-platform-6.0.1.tgz
 ```
 
 Use the filename produced by `npm pack` if its version differs. Regular installs use npm.

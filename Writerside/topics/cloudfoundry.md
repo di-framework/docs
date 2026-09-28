@@ -11,12 +11,16 @@ Foundry manifest and the `cf` CLI to push and manage the application itself.
 ## Installation
 
 ```bash
-bun add @di-framework/cloudfoundry @di-framework/core
+bun add @di-framework/cloudfoundry@^6 @di-framework/core@^5
 ```
 
 ```bash
-npm install @di-framework/cloudfoundry @di-framework/core
+npm install @di-framework/cloudfoundry@^6 @di-framework/core@^5
 ```
+
+`@di-framework/cloudfoundry` **6.x** publishes from
+[di-framework/platform](https://github.com/di-framework/platform) (`adapters/cloudfoundry`).
+Peer: `@di-framework/core@^5`.
 
 ## Dependency injection
 

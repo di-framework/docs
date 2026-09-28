@@ -12,7 +12,7 @@ and Kubernetes CronJobs privately invoke the method.
 > They are documented here on **latest** (EAP) and are not in the frozen `/v5.3/` snapshot.
 
 There is no `di-framework cron` command. Discovery, invoker generation, and CronJob manifests are
-part of `di-framework wasmcloud build` / `deploy`.
+part of `di-framework platform build` / `deploy`.
 
 ## Installation
 
@@ -52,7 +52,7 @@ export class MaintenanceService {
 }
 ```
 
-The [scheduled-worker example](https://github.com/di-framework/di-framework/tree/main/examples/scheduled-worker)
+The [scheduled-worker example](https://github.com/di-framework/examples/tree/main/platform/scheduled-worker)
 runs two jobs (`nightly-prune` at 02:00 and `partition-rebalance` every 15 minutes) with
 `"ingress": false` in `di-framework.config.json`.
 
@@ -179,7 +179,7 @@ export default { container };
 
 ## wasmCloud CronJobs
 
-`di-framework wasmcloud build` discovers `@Cron(...)` calls with a **string or numeric literal**
+`di-framework platform build` discovers `@Cron(...)` calls with a **string or numeric literal**
 under `src/` (otherwise the project root). Dynamic schedules are skipped. Duplicate `jobId`
 values keep the first file.
 
@@ -192,7 +192,7 @@ Deploy applies one Kubernetes `batch/v1` CronJob per job:
 - Default invoke timeout 30s when `timeoutMs` is omitted
 - Workload `spec.replicas: 1`
 
-`di-framework wasmcloud destroy` deletes `WorkloadDeployment,service,cronjob` labeled
+`di-framework platform destroy` deletes `WorkloadDeployment,service,cronjob` labeled
 `app.kubernetes.io/name=<witName>`. Redeploy `kubectl apply`s the regenerated manifest; jobs
 removed from source are not pruned except via destroy.
 
@@ -204,7 +204,7 @@ A failed or skipped `CronExecutionResult` (or a thrown invoke) returns HTTP 500 
 `Cron job failed` body so the Kubernetes job does not record success. The response does not echo
 `error.message`.
 
-`di-framework wasmcloud dev` serves locally and does **not** generate Kubernetes CronJobs.
+`di-framework platform dev` serves locally and does **not** generate Kubernetes CronJobs.
 `doctor` does not check cron configuration.
 
 ## Overlap, retries, missed runs

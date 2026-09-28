@@ -1,17 +1,22 @@
 # wasmCloud
 
-`@di-framework/cli-plugin-wasmcloud` is a [CLI extension](cli.md#extensions) for targeting
+`@di-framework/cli-plugin-platform` is a [CLI extension](cli.md#extensions) for targeting
 [wasmCloud](https://wasmcloud.com): it builds a di-framework HTTP application into a WASI 0.3
 WebAssembly component, serves it locally, and deploys it from a workspace manifest.
 
+In **6.0** the extension publishes from
+[di-framework/cli-extensions](https://github.com/di-framework/cli-extensions). Through 5.x the
+package was `@di-framework/cli-plugin-wasmcloud` and the command group was `wasmcloud`. Cluster
+lifecycle moved from `wasmcloud platform deploy` to `platform cluster up`.
+
 ```bash
-di-framework extensions install wasmcloud
+di-framework extensions install platform
 ```
 
 The extension mounts one command group:
 
 ```text
-di-framework wasmcloud
+di-framework platform
 ├── build
 ├── dev
 ├── deploy
@@ -22,9 +27,9 @@ di-framework wasmcloud
 │   ├── get
 │   ├── delete
 │   └── classes
-├── platform
+├── cluster
 │   ├── init
-│   ├── deploy
+│   ├── up
 │   └── destroy
 └── doctor
 ```
@@ -35,13 +40,13 @@ di-framework wasmcloud
 | `dev` | Build, then serve locally with wasmtime, wash, or jco. |
 | `deploy [name]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project. |
 | `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service`. Never tears down the platform. |
-| `service create <keyvalue\|messaging> --name <name>` | Request an independent Redis or NATS BackingService in a tenant namespace. |
+| `service create <keyvalue\|messaging\|postgres> --name <name>` | Request an independent Redis, NATS, or dedicated PostgreSQL BackingService in a tenant namespace. |
 | `service list` / `service get <name>` | Inspect BackingService readiness, class, and endpoint summaries. |
 | `service delete <name>` | Delete the BackingService request according to its retention policy. |
 | `service classes` | Discover cluster classes, with a fallback to built-in defaults. |
-| `platform init` | Generate `deploy/platform` from extension templates and register it as the default `local` target. |
-| `platform deploy <target>` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator). |
-| `platform destroy <target>` | Tear down a managed platform target (`pulumi destroy`) only. |
+| `cluster init` | Generate `deploy/platform` from extension templates and register it as the default `local` target. |
+| `cluster up <target>` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator). |
+| `cluster destroy <target>` | Tear down a managed platform target (`pulumi destroy`) only. |
 | `doctor` | Check the project and local toolchain for wasmCloud readiness. |
 
 Run these commands directly. Do not wrap them in `package.json` scripts.
@@ -49,16 +54,15 @@ Run these commands directly. Do not wrap them in `package.json` scripts.
 As with every extension, the commands follow the [CLI contract](cli.md): the same help forms,
 `--json` envelope, and exit-status table apply.
 
-## Backing services in 5.3.6
+## Backing services
 
-The platform can provision independent Redis and NATS instances from tenant `BackingService`
-requests and project `ServiceBinding` configuration into protected ConfigMaps/Secrets. Use the
-new `wasmcloud service` commands to create and inspect requests. The controller owns provisioning;
-CLI commands use the target kubeconfig and Kubernetes RBAC.
+`@di-framework/platform` **6.0** provisions independent Redis, NATS, and dedicated PostgreSQL
+instances from tenant `BackingService` requests and projects `ServiceBinding` configuration into
+protected ConfigMaps and Secrets. Use `platform service` to create and inspect requests. The
+controller owns provisioning; CLI commands use the target kubeconfig and Kubernetes RBAC.
 
-See [wasmCloud backing services](backing-services.md) for platform upgrades, commands, binding
-manifests, tenant restrictions, and retention. Automatic application-to-ServiceBinding wiring is
-still separate work; creating a binding does not rewrite a workload's guest imports.
+Redis and NATS requests landed in 5.3.6. Dedicated PostgreSQL, and `serviceName` wiring on a
+`Postgres` binding, ship in 6.0. See [wasmCloud backing services](backing-services.md).
 
 ## Project convention
 
@@ -91,14 +95,20 @@ component is written to the configured `output` path. JSON `data` contains `appl
 
 ## Native service bindings
 
-Install `@di-framework/wasmcloud` alongside core and HTTP, keeping the packages and the CLI
-extension on the same framework release. The kube examples pin them to **5.3.0**.
+Install `@di-framework/bindings` alongside core and HTTP. In 6.0, `@di-framework/bindings` and
+`@di-framework/platform` publish from
+[di-framework/platform](https://github.com/di-framework/platform) at **6.x**, and the CLI
+extension publishes from
+[di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) at **6.x**.
+Through 5.x the bindings package was `@di-framework/wasmcloud`. Core packages that stayed in
+[di-framework/di-framework](https://github.com/di-framework/di-framework) remain on the published
+**5.x** line (`@di-framework/core@^5`). The kube example workspace still pins 5.3.0.
 Declare exported binding classes in `src/bindings.ts`, or select another file with
 `"bindings": "src/services/bindings.ts"` in the project configuration:
 
 ```typescript
 import { Container } from '@di-framework/core/decorators';
-import { Config, Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';
+import { Config, Postgres, WasmCloudBinding } from '@di-framework/bindings';
 
 @WasmCloudBinding('orders-database', {
   config: { database: 'orders' },
@@ -238,7 +248,7 @@ applies an endpoint-specific grant after deployment.
 ## Local development
 
 ```bash
-di-framework wasmcloud dev [--host <address>] [--port <port>]
+di-framework platform dev [--host <address>] [--port <port>]
 ```
 
 `dev` rebuilds the component and listens on `127.0.0.1:8000` by default. It selects wasmtime
@@ -279,8 +289,8 @@ pull = "registry.internal.example.com/team"
 insecure = false
 ```
 
-- `di-framework wasmcloud deploy` with no name uses the nearest `di-framework.config.json`.
-- `di-framework wasmcloud deploy greeter` recursively discovers projects under the workspace
+- `di-framework platform deploy` with no name uses the nearest `di-framework.config.json`.
+- `di-framework platform deploy greeter` recursively discovers projects under the workspace
   (skipping `.git`, `node_modules`, `.di-framework`, and generated output such as `dist/` and
   `coverage/` by default) and matches the configured `name`. Duplicate names fail with every
   conflicting path (`WASMCLOUD_DUPLICATE_PROJECT`).
@@ -303,16 +313,16 @@ From the workspace root, generate a local Pulumi project for k0s, a local OCI re
 the wasmCloud platform:
 
 ```bash
-di-framework wasmcloud platform init
-di-framework wasmcloud platform deploy local --yes
+di-framework platform cluster init
+di-framework platform cluster up local --yes
 ```
 
-`platform init` writes `deploy/platform` and creates or updates `di-framework.deploy.toml` so
+`cluster init` writes `deploy/platform` and creates or updates `di-framework.deploy.toml` so
 `local` is a managed target (`platform = "deploy/platform"`, `stack = "dev"`). Existing files are
 left alone unless you pass `--force` / `-f`. When it finishes it prints the exact start command:
 
 ```text
-di-framework wasmcloud platform deploy local --yes
+di-framework platform cluster up local --yes
 ```
 
 The generated `index.ts` imports `@di-framework/platform/local`; its `package.json` pins the
@@ -321,7 +331,7 @@ operator, Tenant/User and backing-service CRDs, controller, and admission polici
 projects no longer copy `tenancy.ts` or its controller sources. [Kube](kube.md) consumes the same implementation
 through `@di-framework/platform/existing`, with Kubesolo supplying the cluster.
 
-Platform deploy runs `pulumi install` automatically for the generated project. Its default
+`cluster up` runs `pulumi install` automatically for the generated project. Its default
 loopback ports are Kubernetes `26443`, registry `25000`, and HTTP `28180`; configure `apiPort`,
 `registryPort`, or `httpPort` in the generated Pulumi stack to choose different ports.
 
@@ -353,11 +363,11 @@ The CLI reads a small output contract from `pulumi stack output --json`:
 Provision and tear down that stack explicitly. Application `destroy` never runs `pulumi destroy`.
 
 ```bash
-di-framework wasmcloud platform deploy local --yes
-di-framework wasmcloud platform destroy local --yes
+di-framework platform cluster up local --yes
+di-framework platform cluster destroy local --yes
 ```
 
-`--yes` skips the Pulumi confirmation prompt on platform commands.
+`--yes` skips the Pulumi confirmation prompt on `cluster up` and `cluster destroy`.
 
 The extension's Pulumi environment defaults, applied without changing the caller's environment:
 
@@ -380,7 +390,7 @@ access information: `kubeconfig`, `namespace`, and `registry`, plus optional `co
 
 ```bash
 export KUBECONFIG="$HOME/.kube/config"
-di-framework wasmcloud deploy greeter --target development
+di-framework platform deploy greeter --target development
 ```
 
 External and managed fields are mutually exclusive. An incomplete target reports
@@ -413,7 +423,7 @@ This contract is the v5.3.3 control-plane behavior
 
 ## Scheduled jobs
 
-`di-framework wasmcloud build` discovers `@Cron(...)` methods with a string or numeric literal
+`di-framework platform build` discovers `@Cron(...)` methods with a string or numeric literal
 and writes `.di-framework/cron.json` plus an invoker. Deploy applies one Kubernetes
 `batch/v1` CronJob per job. The workload sets `DI_CRON_MODE=external` so in-component timers do
 not fire. Generated workloads use `replicas: 1`.
@@ -461,12 +471,12 @@ Carry a local actor into a **single-host** wasmCloud workload. Mailboxes live in
 SQLite files live on a hostPath volume. Multi-host relocation is not implemented; see
 [remote actors](actors-distributed.md) for the out-of-band ownership protocol.
 
-The [wasmcloud-actor-counter example](https://github.com/di-framework/di-framework/tree/main/examples/wasmcloud-actor-counter)
+The [wasmcloud-actor-counter example](https://github.com/di-framework/examples/tree/main/platform/wasmcloud-actor-counter)
 sets `"actors": true` in `di-framework.config.json` and reuses the local `CounterActor`.
 
 ### Build
 
-`di-framework wasmcloud build` scans `@Actor` / `@ActorMethod` and writes `.di-framework/actors.js`:
+`di-framework platform build` scans `@Actor` / `@ActorMethod` and writes `.di-framework/actors.js`:
 
 ```javascript
 storage = new SqliteActorStorage({
@@ -509,8 +519,8 @@ There is no PersistentVolumeClaim. Process restart on the same hostPath keeps SQ
 multi-host failover are not supported with this storage.
 
 ```bash
-di-framework wasmcloud build
-di-framework wasmcloud deploy
+di-framework platform build
+di-framework platform deploy
 # restart the workload and call the same actor key — count is unchanged if the volume survived
 ```
 
@@ -521,8 +531,8 @@ Migration failure: the actor refuses activation; inspect `failedMigration` local
 ## Application deploy and destroy
 
 ```bash
-di-framework wasmcloud deploy [name] [--target <name>] [--yes]
-di-framework wasmcloud destroy [name] [--target <name>] [--yes]
+di-framework platform deploy [name] [--target <name>] [--yes]
+di-framework platform destroy [name] [--target <name>] [--yes]
 ```
 
 For the selected project the extension:
@@ -551,7 +561,7 @@ configuration.
 ## Doctor
 
 ```bash
-di-framework wasmcloud doctor
+di-framework platform doctor
 ```
 
 `doctor` verifies the project loads and probes the local toolchain: Bun, Node.js,
@@ -560,7 +570,7 @@ and oras. JSON `data` lists every check with its result; any failed check exits 
 
 Bun runs the CLI, but `jco` itself requires a real Node.js installation on `PATH` — `build`, `dev`,
 and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are needed for
-`platform deploy` and `platform destroy`. kubectl and oras are needed for application `deploy` and
+`cluster up` and `cluster destroy`. kubectl and oras are needed for application `deploy` and
 `destroy`.
 
 ## Next steps

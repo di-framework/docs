@@ -362,4 +362,4 @@ Stored hashes record their own parameters, and `login` re-hashes transparently w
 
 ## Example
 
-https://github.com/di-framework/di-framework/tree/main/examples/packages/auth
+https://github.com/di-framework/examples/tree/main/framework/auth

@@ -454,11 +454,11 @@ Optional capabilities ship as installable extensions so the core CLI stays lean.
 extension adds one top-level command named after it:
 
 ```bash
-di-framework extensions install wasmcloud
-di-framework wasmcloud doctor
+di-framework extensions install platform
+di-framework platform doctor
 
 di-framework extensions list
-di-framework extensions uninstall wasmcloud
+di-framework extensions uninstall platform
 ```
 
 | Command | Behavior |
@@ -467,8 +467,8 @@ di-framework extensions uninstall wasmcloud
 | `extensions uninstall <name-or-package>` | Remove an installed extension. |
 | `extensions list` | List installed extensions with their package names and versions. |
 
-`<spec>` is an npm package name with an optional version range (`wasmcloud`,
-`@di-framework/cli-plugin-wasmcloud@^5`). A bare `<name>` resolves to the canonical
+`<spec>` is an npm package name with an optional version range (`platform`,
+`@di-framework/cli-plugin-platform@^6`). A bare `<name>` resolves to the canonical
 `@di-framework/cli-plugin-<name>` package. Extensions are ordinary npm packages named by
 convention:
 
@@ -584,11 +584,11 @@ typed package API is extended first.
 - [Installation](installation.md) - Core package and CLI setup
 - [Quick Start](quick-start.md) - Basics after scaffolding
 - [wasmCloud](wasmcloud.md) - Build and deploy apps as WebAssembly components
-- [wasmCloud backing services](backing-services.md) - `wasmcloud service create/list/get/delete/classes` for tenant Redis/NATS requests
+- [wasmCloud backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis/NATS requests
 - [Kubernetes with di-framework-kube](kube.md) - Separate platform CLI and live example deployment workflow
 - [HTTP Router](http-router.md) - HTTP routing, OpenAPI generation, and static assets
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)
-- [Scheduling](scheduling.md) - `@Cron` (discovered by `wasmcloud build`, no `cron` group)
+- [Scheduling](scheduling.md) - `@Cron` (discovered by `platform build`, no `cron` group)
 - [Queues](queues.md) - Durable jobs and `queue list` / `inspect` / `retry`
 - [Repositories](repositories.md#database-migrations) - Decorator, SQL, and manifest migrations
 - [Actors](actors.md) - Local runtime, persistence, and `actor` commands
