@@ -1,15 +1,22 @@
 # wasmCloud backing services
 
-In **5.3.6**, tenant developers can request independent Redis and NATS instances through
-`di-framework wasmcloud service`. The shared `@di-framework/platform` package installs their
-Kubernetes APIs, provisions the backends, and projects connection configuration for bindings.
+In **6.0**, tenant developers request independent Redis, NATS, and dedicated PostgreSQL
+instances through `di-framework platform service`. `@di-framework/platform` publishes from
+[di-framework/platform](https://github.com/di-framework/platform) and installs their Kubernetes
+APIs, provisions the backends, and projects connection configuration for bindings. The CLI
+commands live in `@di-framework/cli-plugin-platform` from
+[di-framework/cli-extensions](https://github.com/di-framework/cli-extensions).
+
+Redis and NATS requests, and the `BackingService` / `ServiceBinding` APIs, landed in **5.3.6**.
+Dedicated PostgreSQL and `Postgres` `serviceName` wiring ship in **6.0**. Use platform **6.0.1**
+(or newer 6.x) with the CLI extension from the same major line.
 
 ## What changed in 5.3.6
 
 | Resource | Scope | Purpose |
 | --- | --- | --- |
 | `BackingServiceClass` | Cluster | Administrator-owned provider, sizing defaults, limits, and tenant visibility. |
-| `BackingService` | Tenant namespace | Request an independent `keyvalue` (Redis) or `messaging` (NATS) instance. |
+| `BackingService` | Tenant namespace | Request an independent `keyvalue` (Redis), `messaging` (NATS), or `postgres` instance. `postgres` is a 6.0 capability. |
 | `ServiceBinding` | Tenant namespace | Associate a binding name with a service and create protected host configuration. |
 
 All three use `apiVersion: platform.di-framework.dev/v1alpha1`. The release adds their
@@ -22,18 +29,18 @@ Deployments, Services, and connection Secrets live in `di-runtime-alpha`. A serv
 
 ## Prepare the platform and target
 
-Use `@di-framework/platform` **5.3.6** and the wasmCloud CLI extension from the same release.
-Updating the application packages alone does not update the platform controller or CRDs.
+Use `@di-framework/platform` **6.0.1** and `@di-framework/cli-plugin-platform` **6.x**.
+Updating application packages alone does not update the platform controller or CRDs.
 An administrator must update the platform package and apply the existing Pulumi stack. For
 an extension-managed project:
 
 ```bash
 cd deploy/platform
-npm install --save-exact @di-framework/platform@5.3.6
+npm install --save-exact @di-framework/platform@6.0.1
 pulumi preview --stack dev
 ```
 
-Then run `di-framework wasmcloud platform deploy local --yes` from the workspace root. Keep
+Then run `di-framework platform cluster up local --yes` from the workspace root. Keep
 the existing project, backend, stack, and tenant declarations. For a kube-managed installation,
 select the platform package through [kube's existing instance](kube.md#build-and-start-the-platform);
 avoid creating a second stack for the same cluster.
@@ -64,11 +71,11 @@ select the tenant namespace if the platform outputs point to the platform namesp
 ## Create and inspect a service
 
 ```bash
-di-framework wasmcloud service classes --target alpha
-di-framework wasmcloud service create keyvalue --name stock --target alpha --wait
-di-framework wasmcloud service create messaging --name events --target alpha --wait
-di-framework wasmcloud service list --target alpha
-di-framework wasmcloud service get stock --target alpha --json
+di-framework platform service classes --target alpha
+di-framework platform service create keyvalue --name stock --target alpha --wait
+di-framework platform service create messaging --name events --target alpha --wait
+di-framework platform service list --target alpha
+di-framework platform service get stock --target alpha --json
 ```
 
 | Capability | Default class | Provider | Default sizing |
@@ -81,7 +88,7 @@ at most 40 characters. `create` requires a type and `--name`; it rejects an exis
 Use `--class`, `--memory`, `--cpu`, and `--storage` to request class-approved settings:
 
 ```bash
-di-framework wasmcloud service create keyvalue --name cache --target alpha \
+di-framework platform service create keyvalue --name cache --target alpha \
   --class keyvalue-redis --memory 256Mi --cpu 500m --storage 2Gi \
   --deletion-policy Retain --wait --timeout 180
 ```
@@ -98,15 +105,16 @@ listing does not prove those classes are installed or that the caller can use th
 
 ### Class configuration and limits
 
-Platform installation seeds `keyvalue-redis` and `messaging-nats` by default. The Pulumi
-`seedDefaultBackingClasses` setting disables automatic seeding when `false`;
-`backingServiceClasses` supplies named class declarations that replace matching defaults or
-add classes. Classes support `AllTenants` and `SelectedTenants` visibility; the latter uses
-`allowedTenants`.
+Platform installation seeds `keyvalue-redis`, `messaging-nats`, and `postgres-dedicated` by
+default. The Pulumi `seedDefaultBackingClasses` setting disables automatic seeding when
+`false`; `backingServiceClasses` supplies named class declarations that replace matching
+defaults or add classes. Classes support `AllTenants` and `SelectedTenants` visibility; the
+latter uses `allowedTenants`.
 
-The 5.3.6 tenant admission policy accepts only the two approved default class names. Adding
-another class does not make its name usable by tenant requests. Administrators can adjust the
-existing classes' sizing and visibility while retaining their approved names.
+5.3.6 admission accepted only `keyvalue-redis` and `messaging-nats`. 6.0 also accepts
+`postgres-dedicated`. Adding another class name still does not make it usable by tenant
+requests. Administrators can adjust the approved classes' sizing and visibility while
+retaining their names.
 
 Default class bounds are `64Mi`–`2Gi` memory, `50m`–`2` CPU, and `256Mi`–`20Gi` for the storage
 parameter. Requests must also fit the tenant's CPU and memory budget. Tenant resource settings
@@ -180,11 +188,15 @@ hostInterfaces:
 A messaging entry uses `package: messaging` and its own binding name. Subscription options stay
 in the workload's inline `config`.
 
-**Automatic application/decorator-to-ServiceBinding wiring is not included in 5.3.6.** Creating
-the service and binding does not modify an existing workload or change its guest imports. The
+**Redis and NATS decorator wiring is not included in 5.3.6 or 6.0.** Creating those services
+and bindings does not modify an existing workload or change its guest imports. The
 [QuickJS native binding path](wasmcloud.md#binding-changes-in-530) still emits unnamed provider
-requirements. End-to-end named-backend deployment wiring is tracked in
+requirements for those capabilities. End-to-end named-backend deployment wiring is tracked in
 [issue #455](https://github.com/di-framework/di-framework/issues/455).
+
+PostgreSQL is the exception in 6.0: a `Postgres` binding with `serviceName` makes
+`platform deploy` create the `ServiceBinding`, wait until it is ready, and apply the workload.
+See [Dedicated PostgreSQL](#dedicated-postgresql).
 
 The Kubernetes `ServiceBinding` resource is also separate from the in-process
 [`@ServiceBinding` decorator](service-bindings.md).
@@ -212,7 +224,7 @@ within the same tenant. Shared hosts remain disabled.
 ## Deletion and existing data
 
 ```bash
-di-framework wasmcloud service delete cache --target alpha
+di-framework platform service delete cache --target alpha
 ```
 
 `spec.deletionPolicy` defaults to `Retain`:
@@ -245,31 +257,31 @@ retention/cleanup and warehouse migration are tracked in
 | Binding reports `Failed` | Check same-namespace service existence/readiness, matching capability, and conflicting bindings with the same `bindingName`. |
 | Resource name cannot be adopted | Existing resources belong to another service UID; inspect retained resources before reusing a deleted service name. |
 
-## Dedicated PostgreSQL (upcoming release)
+## Dedicated PostgreSQL
 
-The upcoming framework release adds the `postgres` capability and the default
+`@di-framework/platform` **6.0** adds the `postgres` capability and the default
 `postgres-dedicated` class. Each BackingService owns one PostgreSQL 18 instance,
 one PVC, and application credentials. Defaults are **1Gi storage, 512Mi memory,
 and 250m CPU**. Multiple applications may share a service; distinct services have
 separate databases, volumes, and passwords.
 
 Update the platform package and apply its existing Pulumi stack before using
-these APIs. Update the application CLI extension and `@di-framework/wasmcloud`
+these APIs. Update the application CLI extension and `@di-framework/bindings`
 together. Managed named imports require `@di-framework/componentize-qjs`
 `0.4.4-di.3` or later; the CLI installs the compiler dependency.
 
 ### Create and bind
 
 ```bash
-di-framework wasmcloud service create postgres --name orders --target alpha \
+di-framework platform service create postgres --name orders --target alpha \
   --storage 1Gi --memory 512Mi --cpu 250m --wait --timeout 180
-di-framework wasmcloud service create postgres --name audit --target alpha --wait
+di-framework platform service create postgres --name audit --target alpha --wait
 ```
 
 Declare the bindings in `src/bindings.ts` (or the project's configured bindings file):
 
 ```typescript
-import { Postgres, WasmCloudBinding } from '@di-framework/wasmcloud';
+import { Postgres, WasmCloudBinding } from '@di-framework/bindings';
 
 @WasmCloudBinding('orders-db', { serviceName: 'orders' })
 export class OrdersDatabase extends Postgres {}
@@ -278,7 +290,7 @@ export class OrdersDatabase extends Postgres {}
 export class AuditDatabase extends Postgres {}
 ```
 
-Deploy with `di-framework wasmcloud deploy --target alpha`. The CLI validates the
+Deploy with `di-framework platform deploy --target alpha`. The CLI validates the
 same-namespace references, creates deterministic ServiceBindings for that workload,
 and waits for their readiness before applying the WorkloadDeployment. Inferred
 workload members use the same binding discovery. Obsolete associations are removed
@@ -347,7 +359,7 @@ before deletion:
 ```bash
 kubectl patch backingservice audit -n di-tenant-alpha --type merge \
   -p '{"spec":{"deletionPolicy":"Delete"}}'
-di-framework wasmcloud service delete audit --target alpha
+di-framework platform service delete audit --target alpha
 ```
 
 Persistent resource names include a hash of the BackingService UID. Recreating

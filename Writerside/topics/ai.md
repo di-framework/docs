@@ -18,14 +18,16 @@ Spring AI–aligned chat, tools, RAG, MCP, and agents for TypeScript. Portable m
 ## Installation
 
 ```bash
-bun add @di-framework/ai @di-framework/core
+bun add @di-framework/ai@^6 @di-framework/core@^5
 ```
 
 ```bash
-npm install @di-framework/ai @di-framework/core
+npm install @di-framework/ai@^6 @di-framework/core@^5
 ```
 
-Peer: `@di-framework/core`. Runtime dependency: `@modelcontextprotocol/sdk` (MCP helpers).
+`@di-framework/ai` **6.x** publishes from [di-framework/ai](https://github.com/di-framework/ai).
+Peer: `@di-framework/core@^5`. Add `@di-framework/auth@^5` when a provider uses auth-backed
+credentials. Runtime dependency: `@modelcontextprotocol/sdk` (MCP helpers).
 
 Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `XAI_API_KEY` when using the HTTP API route.
 
@@ -477,4 +479,4 @@ Prefer `AiTokens` over ad-hoc strings:
 
 ## Example
 
-Package tests under [`packages/di-framework-ai/tests`](https://github.com/di-framework/di-framework/tree/main/packages/di-framework-ai/tests) cover ChatClient, tools, memory, RAG, MCP, agents, A2A 1.0, and the annotation DX.
+Package tests under [`ai/tests`](https://github.com/di-framework/ai/tree/main/ai/tests) cover ChatClient, tools, memory, RAG, MCP, agents, A2A 1.0, and the annotation DX.

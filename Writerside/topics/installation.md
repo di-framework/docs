@@ -123,6 +123,27 @@ bun run test.ts
 # Output: di-framework is working!
 ```
 
+## Version 6 package sources
+
+**6.0** publishes AI, the operated platform, and the platform CLI from their own repositories.
+Application packages that stayed in the core monorepo are still published as **5.x**.
+
+| Package | Version line | Repository |
+| --- | --- | --- |
+| `@di-framework/core` and the other packages in the core monorepo | 5.x | [di-framework/di-framework](https://github.com/di-framework/di-framework) |
+| `@di-framework/ai`, `@di-framework/ai-utils` | 6.x | [di-framework/ai](https://github.com/di-framework/ai) |
+| `@di-framework/platform`, `@di-framework/bindings`, `@di-framework/cloudfoundry` | 6.x | [di-framework/platform](https://github.com/di-framework/platform) |
+| `@di-framework/cli-plugin-platform` | 6.x | [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) |
+
+`@di-framework/bindings` replaces `@di-framework/wasmcloud`.
+`@di-framework/cli-plugin-platform` replaces `@di-framework/cli-plugin-wasmcloud`. Install it with
+`di-framework extensions install platform`; the command group is `platform`, and cluster lifecycle
+is `platform cluster`. Sample apps live in
+[di-framework/examples](https://github.com/di-framework/examples).
+
+`@di-framework/ai` and `@di-framework/bindings` declare `@di-framework/core@^5` as a peer until the
+core repository publishes 6.0.0.
+
 ## Optional Packages
 
 The core package stands alone. Companion packages add data access, HTTP, GraphQL, events, sockets, RPC, configuration, authentication, and AI support:
@@ -144,14 +165,16 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/authz` | [Resource Authorization](authorization.md) |
 | `@di-framework/ai` | [AI](ai.md) |
 | `@di-framework/ai-utils` | [Agent Skills](ai-utils.md) — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |
-| `@di-framework/wasmcloud` | [Native service bindings](wasmcloud.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
-| `@di-framework/cli-plugin-wasmcloud` | [wasmCloud](wasmcloud.md) — WASI 0.3 build, development, and deployment extension |
-| `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis/NATS backing services](backing-services.md) used by kube and the wasmCloud extension |
+| `@di-framework/bindings` | [Native service bindings](wasmcloud.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
+| `@di-framework/cli-plugin-platform` | [wasmCloud](wasmcloud.md) — WASI 0.3 build, development, and deployment extension |
+| `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, and PostgreSQL backing services](backing-services.md) used by kube and the platform CLI |
+| `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |
 
 For a local Kubernetes platform and live service-binding examples, use the separate
 [di-framework-kube CLI](kube.md). It requires Node.js, npm, and Pulumi, and installs the shared
-platform package from npm. The example workspace pins the framework packages and
-wasmCloud extension to 5.3.0.
+platform package from npm. That example workspace still pins framework packages and
+`@di-framework/wasmcloud` to 5.3.0. New applications use `@di-framework/bindings@^6` and
+`@di-framework/cli-plugin-platform@^6`.
 
 ## Next Steps
 

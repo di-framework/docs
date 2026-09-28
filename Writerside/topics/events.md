@@ -184,6 +184,6 @@ Transactional outbox/inbox, schema registry / Avro, request-reply, and additiona
 
 ## Example
 
-A worked example with memory transport lives in the [events example package](https://github.com/di-framework/di-framework/tree/main/examples/packages/events).
+A worked example with memory transport lives in the [events example package](https://github.com/di-framework/examples/tree/main/framework/events).
 
 For durable jobs (leases, retries, dead letters), see [Queues](queues.md).

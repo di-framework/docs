@@ -42,7 +42,7 @@ import {
 
 ## Receipt worker walkthrough
 
-The [receipt-worker example](https://github.com/di-framework/di-framework/tree/main/examples/receipt-worker)
+The [receipt-worker example](https://github.com/di-framework/examples/tree/main/platform/receipt-worker)
 is the runnable end-to-end guide.
 
 ### Producer

@@ -112,7 +112,7 @@ await runtime.deactivate(CounterActor, 'primary');
 await runtime.clear();
 ```
 
-The [counter-actor example](https://github.com/di-framework/di-framework/tree/main/examples/packages/counter-actor)
+The [counter-actor example](https://github.com/di-framework/examples/tree/main/framework/counter-actor)
 is the runnable local walkthrough (`bun run index.ts` / `bun test`).
 
 ## Mailbox, concurrency, and errors
@@ -336,7 +336,7 @@ di-framework actor clean …   # alias for reset
 Default `--dir` is `.actors`. Inspect does not dump private state unless `--show-state`. Reset
 requires `--actor`, `--namespace`, or `--all` (exit 2 otherwise).
 
-The [counter-actor example](https://github.com/di-framework/di-framework/tree/main/examples/packages/counter-actor)
+The [counter-actor example](https://github.com/di-framework/examples/tree/main/framework/counter-actor)
 walks concurrent calls, persistence across restart, and these commands with `--namespace examples`.
 
 Programmatic equivalents: `runtime.listActors`, `runtime.inspect(..., { showState })`,

@@ -22,14 +22,17 @@ Prefer **builders**: `SkillsAgent.builder()`, `SkillsToolbox.builder()`, `Skills
 ## Installation
 
 ```bash
-bun add @di-framework/ai-utils @di-framework/ai @di-framework/core
+bun add @di-framework/ai-utils@^6 @di-framework/ai@^6 @di-framework/core@^5
 ```
 
 ```bash
-npm install @di-framework/ai-utils @di-framework/ai @di-framework/core
+npm install @di-framework/ai-utils@^6 @di-framework/ai@^6 @di-framework/core@^5
 ```
 
-Peer: `@di-framework/ai` and `@di-framework/core` (required for decorator DX; builders work with both installed as shown above).
+`@di-framework/ai-utils` **6.x** publishes from the same
+[di-framework/ai](https://github.com/di-framework/ai) repository as `@di-framework/ai`.
+Peer: `@di-framework/ai@^6` and `@di-framework/core@^5` (core is required for decorator DX;
+builders work with both installed as shown above).
 
 ## Quick start
 
@@ -63,9 +66,9 @@ const tools = SkillsToolbox.builder()
 const client = ChatClient.builder(model).defaultTools(...tools).build();
 ```
 
-The [`ai-skills`](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-skills) example has scripted tests (no API key) and a live `bun start` path that reviews `fixtures/sample-user.ts` with `OpenAiChatModel` (`process.env.OPENAI_API_KEY`).
+The [`ai-skills`](https://github.com/di-framework/examples/tree/main/framework/ai-skills) example has scripted tests (no API key) and a live `bun start` path that reviews `fixtures/sample-user.ts` with `OpenAiChatModel` (`process.env.OPENAI_API_KEY`).
 
-The [`ai-plugins`](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-plugins) example validates the published [`@di-framework/plugin`](https://www.npmjs.com/package/@di-framework/plugin) package, expands `${pluginDir}` in `mcp_config.json`, and electively starts its stdio MCP (no API keys for local tools such as `di_scaffold_provider`).
+The [`ai-plugins`](https://github.com/di-framework/examples/tree/main/framework/ai-plugins) example validates the published [`@di-framework/plugin`](https://www.npmjs.com/package/@di-framework/plugin) package, expands `${pluginDir}` in `mcp_config.json`, and electively starts its stdio MCP (no API keys for local tools such as `di_scaffold_provider`).
 
 ## Skill folders
 
@@ -365,7 +368,7 @@ MCP is elective the same way: read `plugin.mcpConfig.mcpServers` and register
 those entries with your MCP client (expand `${pluginDir}` when present). Hooks
 stay data until you interpret `hooks.json`.
 
-See the [`ai-plugins`](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-plugins)
+See the [`ai-plugins`](https://github.com/di-framework/examples/tree/main/framework/ai-plugins)
 example for official `@di-framework/plugin` discovery plus elective MCP wiring.
 
 ## Related
@@ -373,6 +376,6 @@ example for official `@di-framework/plugin` discovery plus elective MCP wiring.
 - [SkillsAgent on kube](kube.md#using-a-skillsagent) — guest filesystem, model transport, and tool requirements before a complete agent deployment
 - [AI](ai.md) — chat, tools, RAG, MCP, and agents (`@di-framework/ai`)
 - [Agent configuration](agent-foundations.md) — neutral sources, validation, instructions, plugins, and `.aiignore`
-- [Package README](https://github.com/di-framework/di-framework/blob/main/packages/di-framework-ai-utils/README.md)
-- [Skills example](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-skills)
-- [Plugins example](https://github.com/di-framework/di-framework/tree/main/examples/packages/ai-plugins)
+- [Package README](https://github.com/di-framework/ai/blob/main/ai-utils/README.md)
+- [Skills example](https://github.com/di-framework/examples/tree/main/framework/ai-skills)
+- [Plugins example](https://github.com/di-framework/examples/tree/main/framework/ai-plugins)

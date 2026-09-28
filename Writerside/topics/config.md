@@ -205,4 +205,4 @@ Remote config providers, live reload / watch, and secret managers. Implement `Co
 
 ## Example
 
-A worked example lives in the [config example package](https://github.com/di-framework/di-framework/tree/main/examples/packages/config).
+A worked example lives in the [config example package](https://github.com/di-framework/examples/tree/main/framework/config).

@@ -42,7 +42,7 @@ import {
 
 ## Checkout calling inventory
 
-The [checkout-inventory example](https://github.com/di-framework/di-framework/tree/main/examples/checkout-inventory)
+The [checkout-inventory example](https://github.com/di-framework/examples/tree/main/platform/checkout-inventory)
 is the runnable walkthrough.
 
 ### 1. Declare the contract

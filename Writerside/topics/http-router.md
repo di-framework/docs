@@ -294,7 +294,7 @@ router, or `@HttpRouter({ static })`.
 
 ### Local serving
 
-The [http-router example](https://github.com/di-framework/di-framework/tree/main/examples/packages/http-router)
+The [http-router example](https://github.com/di-framework/examples/tree/main/framework/http-router)
 mounts `public/` at `/static` next to `POST /echo` and `GET /`:
 
 ```typescript

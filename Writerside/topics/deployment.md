@@ -6,29 +6,29 @@ WebAssembly components for wasmCloud. Choose the integration that matches the ta
 | Target | Integration | Use it for |
 | --- | --- | --- |
 | [Cloud Foundry](cloudfoundry.md) | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |
-| [wasmCloud](wasmcloud.md) | `@di-framework/cli-plugin-wasmcloud` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |
+| [wasmCloud](wasmcloud.md) | `@di-framework/cli-plugin-platform` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |
 | [Kubernetes with di-framework-kube](kube.md) | `di-framework-kube` and the wasmCloud extension | Create a local Kubesolo cluster with the wasmCloud operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |
 
 The Cloud Foundry package configures an application at runtime; the platform CLI and manifest
 remain responsible for pushing it. The wasmCloud extension provides its build, development,
 application deploy and destroy, backing-service commands, and managed-platform commands through
 the main `di-framework` executable. Application deploy never runs Pulumi; Pulumi is used only for explicit
-`wasmcloud platform` lifecycle of a managed target and for kube platform provisioning.
+`platform cluster` lifecycle of a managed target and for kube platform provisioning.
 
-Both platform entrypoints use the TypeScript `@di-framework/platform` package. The extension's
-local entrypoint provisions Docker/k0s and a registry; kube manages Kubesolo and invokes the
-shared existing-cluster entrypoint through its persistent Pulumi stack. Kube installs an exact
+Both platform entrypoints use `@di-framework/platform` **6.x** from
+[di-framework/platform](https://github.com/di-framework/platform). The extension's local
+entrypoint provisions Docker/k0s and a registry; kube manages Kubesolo and invokes the shared
+existing-cluster entrypoint through its persistent Pulumi stack. Kube installs an exact
 published package version from npm by default; local tarballs are a development option. Its
 embedded Helm client remains for status inspection and legacy cleanup.
-Its example workspace uses an external deployment target and pins the framework to 5.3.0.
-Native services are consumed through `@di-framework/wasmcloud`; the platform and example
-helpers provision their backends and credentials. See [native service bindings](wasmcloud.md#native-service-bindings)
-for the build and runtime contract.
+Its example workspace uses an external deployment target and still pins the framework to 5.3.0,
+including `@di-framework/wasmcloud`. New applications import `@di-framework/bindings`. See
+[native service bindings](wasmcloud.md#native-service-bindings) for the build and runtime contract.
 
-In 5.3.6, [wasmCloud backing services](backing-services.md) add independently requested Redis
-and NATS instances. Tenant developers create `BackingService` resources with `wasmcloud service`;
-the platform controller provisions them and projects Kubernetes `ServiceBinding` configuration.
-Automatic wiring into application deployments remains outside this release.
+[wasmCloud backing services](backing-services.md) let tenant developers create `BackingService`
+resources with `platform service`. Redis and NATS landed in 5.3.6. Dedicated PostgreSQL ships
+in platform 6.0, and `platform deploy` wires a `Postgres` binding that sets `serviceName`.
+Redis and NATS still use explicit `ServiceBinding` resources.
 
 Application-authored [private service bindings](service-bindings.md) (`@ExportService` /
 `@ServiceBinding`) are a separate in-process contract: callers receive a named DI proxy and do

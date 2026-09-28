@@ -28,11 +28,11 @@ Published docs at [docs.di-framework.dev](https://docs.di-framework.dev) include
 - **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.
 - **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.
 - **Actors**: `@di-framework/actors` provides a local virtual-actor runtime with serialized mailboxes and typed references. No Wasm host is required for local use.
-- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`.
+- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`. Both publish at 6.x from [di-framework/ai](https://github.com/di-framework/ai) and peer `@di-framework/core@^5`.
 - **Unified CLI**: `di-framework` is the only public executable for application, skills, HTTP, agent, and monorepo workflows.
 - **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).
-- **wasmCloud backing services**: Tenant-scoped Redis/NATS provisioning through `BackingService` requests, with protected `ServiceBinding` configuration and Kubernetes admission policies in 5.3.6. See [backing services](backing-services.md).
-- **WebAssembly deployment**: Build WASI 0.3 HTTP components with the wasmCloud CLI extension and consume native service bindings. The [kube platform](kube.md) provides a local cluster and live verification examples.
+- **wasmCloud backing services**: Tenant-scoped Redis, NATS, and dedicated PostgreSQL through `BackingService` requests, with protected `ServiceBinding` configuration. Redis and NATS landed in 5.3.6; PostgreSQL ships in platform 6.0. See [backing services](backing-services.md).
+- **WebAssembly deployment**: Build WASI 0.3 HTTP components with `@di-framework/cli-plugin-platform` (`di-framework platform`) and consume native service bindings from `@di-framework/bindings`. Both publish at 6.x. The [kube platform](kube.md) provides a local cluster and live verification examples.
 
 ## Why Use This Framework?
 
