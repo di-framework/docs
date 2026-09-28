@@ -6,7 +6,7 @@ WebAssembly components for the platform. Choose the integration that matches the
 | Target | Integration | Use it for |
 | --- | --- | --- |
 | [Cloud Foundry](cloudfoundry.md) | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |
-| [Platform](wasmcloud.md) | `@di-framework/cli-plugin-platform` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |
+| [Platform](platform.md) | `@di-framework/cli-plugin-platform` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. |
 | [Kubernetes with di-framework-kube](kube.md) | `di-framework-kube` and the platform extension | Create a local Kubesolo cluster with the platform operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |
 
 The Cloud Foundry package configures an application at runtime; the platform CLI and manifest
@@ -23,7 +23,7 @@ published package version from npm by default; local tarballs are a development 
 embedded Helm client remains for status inspection and legacy cleanup.
 Its example workspace uses an external deployment target and still pins the framework to 5.3.0,
 including `@di-framework/wasmcloud`. New applications import `@di-framework/bindings`. See
-[native service bindings](wasmcloud.md#native-service-bindings) for the build and runtime contract.
+[native service bindings](platform.md#native-service-bindings) for the build and runtime contract.
 
 [Platform backing services](backing-services.md) let tenant developers create `BackingService`
 resources with `platform service`. Redis and NATS landed in 5.3.6. Dedicated PostgreSQL ships
@@ -38,11 +38,11 @@ independently deployed components by the CLI.
 ## Next steps
 
 - [Cloud Foundry](cloudfoundry.md) - Connect an application to platform metadata and bound services
-- [Platform](wasmcloud.md) - Build and deploy WebAssembly components
+- [Platform](platform.md) - Build and deploy WebAssembly components
 - [Platform backing services](backing-services.md) - Request Redis/NATS instances and project tenant binding configuration
 - [Kubernetes with di-framework-kube](kube.md) - Deploy examples and verify real service bindings
 - [Private service bindings](service-bindings.md) - Named in-process contracts without URLs
 - [Remote actors](actors-distributed.md) - Cross-process actor RPC independent of wasmCloud
-- [Platform actors](wasmcloud.md#actors) - Single-host actor workloads and hostPath storage
+- [Platform actors](platform.md#actors) - Single-host actor workloads and hostPath storage
 - [HTTP static assets](http-router.md#static-assets) - Live directory serving and host-side packaging
 - [CLI](cli.md) - Install extensions and use the canonical command tree

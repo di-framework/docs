@@ -50,7 +50,7 @@ A User declaration does not issue a kubeconfig; credential issuance remains an a
 operation. See [tenants and users](kube.md#tenants-and-users).
 
 Service commands use `kubectl` with the credentials resolved from the selected
-[`di-framework.deploy.toml` target](wasmcloud.md#deployment-manifest). They create custom
+[`di-framework.deploy.toml` target](platform.md#deployment-manifest). They create custom
 resources through the Kubernetes API; the platform controller provisions the backend.
 For an external target, use the caller's tenant kubeconfig:
 
@@ -190,7 +190,7 @@ in the workload's inline `config`.
 
 **Redis and NATS decorator wiring is not included in 5.3.6 or 6.0.** Creating those services
 and bindings does not modify an existing workload or change its guest imports. The
-[QuickJS native binding path](wasmcloud.md#binding-changes-in-530) still emits unnamed provider
+[QuickJS native binding path](platform.md#binding-changes-in-530) still emits unnamed provider
 requirements for those capabilities. End-to-end named-backend deployment wiring is tracked in
 [issue #455](https://github.com/di-framework/di-framework/issues/455).
 

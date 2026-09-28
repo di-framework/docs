@@ -6,7 +6,7 @@ Deduplication caches committed results so a retried `requestId` does not re-run 
 
 This guide is independent of wasmCloud. Multi-host wasmCloud routing is **not** wired to this
 protocol. Single-host wasmCloud deploy remains `replicas: 1` with a hostPath volume; see
-[Actors on the platform](wasmcloud.md#actors).
+[Actors on the platform](platform.md#actors).
 
 > These APIs landed on di-framework `main` after the
 > [v5.3.0](https://github.com/di-framework/di-framework/releases/tag/v5.3.0) tag
@@ -54,7 +54,7 @@ Implemented transports:
 There is **no** HTTP/TCP/wasmCloud cluster transport in this package. wasmCloud uses a plugin
 adapter at `POST /_actors/invoke`, not `RemoteActorClient`. That adapter sets `callerId` from
 the authenticated control identity and ignores a client-supplied `callerId`. See
-[Control HTTP](wasmcloud.md#control-http).
+[Control HTTP](platform.md#control-http).
 
 The client retries the same `requestId` unless the error is `ActorAuthorizationError`,
 `StaleOwnerWriteError`, `ActorBackpressureError`, `ActorDeadlineExceededError`, or an

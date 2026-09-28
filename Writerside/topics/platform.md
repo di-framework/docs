@@ -451,7 +451,7 @@ uses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and
 `QUEUE_DB_PATH=/data/queue.db`. A ClusterIP Service still exists for control routes. Queue retry
 requires `admin`; see [Control HTTP](#control-http).
 
-See [Queues](queues.md#wasmcloud-workers).
+See [Queues](queues.md#platform-workers).
 
 ## Static assets
 

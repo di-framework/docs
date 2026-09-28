@@ -196,7 +196,7 @@ JSON `data` through the public CLI envelope: `{ queues }` for list, `{ jobs }` f
 `{ retried }` for retry. Missing `@di-framework/queues` exits `3`
 (`QUEUES_PACKAGE_UNAVAILABLE`).
 
-## wasmCloud workers
+## Platform workers
 
 Build discovers `@QueueHandler('name', { numeric options })`. A project is a queue worker when
 handlers exist and either `applicationType` is `"worker"` or the sources have no HTTP controller
@@ -218,7 +218,7 @@ SQLite-backed workloads cannot use more than one replica (WASI VFS has no file l
 Deployed HTTP workloads always receive `DI_CONTROL_TOKEN`. Unconfigured local/dev may invoke
 without a token (enqueue, list, inspect) but cannot retry. `pump()` runs after those control
 requests. Control paths reject `X-Forwarded-*` and are not reachable through public ingress.
-See [Control HTTP](wasmcloud.md#control-http).
+See [Control HTTP](platform.md#control-http).
 
 You can still [schedule](scheduling.md) work that enqueues jobs; neither feature requires the
 other.
@@ -248,4 +248,4 @@ other.
 - [Scheduling](scheduling.md) - Optional `@Cron` that can enqueue work
 - [CLI](cli.md) - `queue list` / `inspect` / `retry`
 - [Testing](testing.md) - Isolated containers and in-memory backends
-- [Platform](wasmcloud.md) - Worker deploy without public ingress
+- [Platform](platform.md) - Worker deploy without public ingress
