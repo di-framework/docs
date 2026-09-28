@@ -29,22 +29,9 @@ di-framework
 ├── build
 ├── check
 ├── generate
-├── skills
-│   ├── index
-│   │   ├── build
-│   │   ├── inspect
-│   │   ├── validate
-│   │   ├── query
-│   │   └── migrate
-│   └── validate
 ├── http
 │   └── openapi
 │       └── generate
-├── agent
-│   ├── audit
-│   ├── init
-│   ├── inspect
-│   └── migrate
 ├── actor
 │   ├── list
 │   ├── inspect
@@ -80,13 +67,7 @@ installed [CLI extension](#extensions).
 | `build` | Build an application, including configured runtime type transforms. |
 | `check` | Typecheck an application without emitting output. |
 | `generate` | Generate configured application surfaces. |
-| `skills index build\|inspect\|validate\|query\|migrate` | Build, examine, validate, search, or migrate the skills index. |
-| `skills validate` | Validate skill catalogs and report diagnostics. |
 | `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |
-| `agent audit` | Audit resolved agent configuration and actionable findings without writing files. |
-| `agent init` | Preview or create requested neutral agent-configuration assets. |
-| `agent inspect` | Inspect resolved agent instructions, skills, precedence, and ignore policy without writing files. |
-| `agent migrate` | Preview or apply audited migrations into neutral agent paths. |
 | `actor list\|inspect\|reset\|clean` | List, inspect, or reset local actor activations and SQLite files. |
 | `mx build\|test\|typecheck\|publish` | Run di-framework monorepo maintainer workflows. |
 | `migrations status\|execute` | Show or apply decorator, SQL, and manifest database migrations. |
@@ -141,21 +122,24 @@ Existing files are skipped unless `--force` is set.
 
 ## Skills index commands
 
-The five index leaves delegate to the typed `@di-framework/ai-utils` operations;
-the CLI only maps arguments and presents their results:
+Install `@di-framework/cli-plugin-ai` (`di-framework extensions install ai`). The
+`ai` command group then provides these leaves. They delegate to the typed
+`@di-framework/ai-utils` operations; the extension only maps arguments and
+presents their results. The project must be able to resolve
+`@di-framework/ai-utils`.
 
 ```bash
-di-framework skills index build \
+di-framework ai skills index build \
   --skills-dir ./.agents/skills \
   --output ./.di-framework/skills-index.json
-di-framework skills index inspect --input ./.di-framework/skills-index.json
-di-framework skills index validate \
+di-framework ai skills index inspect --input ./.di-framework/skills-index.json
+di-framework ai skills index validate \
   --input ./.di-framework/skills-index.json \
   --skills-dir ./.agents/skills
-di-framework skills index query \
+di-framework ai skills index query \
   --input ./.di-framework/skills-index.json \
   --query 'review TypeScript authorization'
-di-framework skills index migrate \
+di-framework ai skills index migrate \
   --input ./older-skills-index.json \
   --output ./.di-framework/skills-index.json
 ```
@@ -181,16 +165,16 @@ operation failures exit `3`.
 
 ```bash
 # Workspace and user neutral defaults.
-di-framework skills validate
+di-framework ai skills validate
 
 # Explicit sources before the defaults.
-di-framework skills validate \
+di-framework ai skills validate \
   --workspace . \
   --skills-dir ./team-skills \
   --skills-package @example/shared-skills
 
 # Explicit sources only.
-di-framework skills validate \
+di-framework ai skills validate \
   --skills-dir ./team-skills \
   --source-mode replace \
   --json
@@ -228,7 +212,8 @@ contains `controllerModules`, `outputPath`, and `bytes`. Usage failures exit
 
 ## Agent configuration commands
 
-All four leaves delegate agent-configuration decisions to typed
+These leaves are also part of `@di-framework/cli-plugin-ai` (`di-framework ai agent`).
+All four delegate agent-configuration decisions to typed
 `@di-framework/ai-utils` APIs. They only discover the neutral `AGENTS.md`,
 `.agents/skills`, `~/.agents/skills`, and root `.aiignore` conventions
 automatically. An audit may report known vendor assets as migration
@@ -238,8 +223,8 @@ command creates a vendor-specific path or compatibility adapter.
 ### Audit
 
 ```bash
-di-framework agent audit
-di-framework agent audit \
+di-framework ai agent audit
+di-framework ai agent audit \
   --working-directory packages/api \
   --skills-dir ./team-skills \
   --json
@@ -272,8 +257,8 @@ execution failure exits `3`.
 ### Inspect
 
 ```bash
-di-framework agent inspect
-di-framework agent inspect --working-directory packages/api --json
+di-framework ai agent inspect
+di-framework ai agent inspect --working-directory packages/api --json
 ```
 
 `agent inspect` is also read-only. It delegates source resolution, catalog
@@ -288,15 +273,15 @@ above except `--allowed-directory`.
 
 ```bash
 # Preview all four assets without writing (the default).
-di-framework agent init
+di-framework ai agent init
 
 # Preview a selected subset.
-di-framework agent init \
+di-framework ai agent init \
   --asset AGENTS.md \
   --asset .agents/skills
 
 # Apply the generated plan after reviewing the preview.
-di-framework agent init \
+di-framework ai agent init \
   --asset AGENTS.md \
   --asset .agents/skills \
   --apply
@@ -318,16 +303,16 @@ or unexpected failures exit `3`.
 
 ```bash
 # Planning is the default and never writes.
-di-framework agent migrate
-di-framework agent migrate --plan --json
+di-framework ai agent migrate
+di-framework ai agent migrate --plan --json
 
 # Select exact audited source paths.
-di-framework agent migrate \
+di-framework ai agent migrate \
   --source ./legacy-agent-instructions.md \
   --source ./legacy-skills
 
 # Generate and apply that invocation's exact plan.
-di-framework agent migrate --apply
+di-framework ai agent migrate --apply
 ```
 
 `agent migrate` calls the audit API, passes its report directly to the
@@ -457,6 +442,10 @@ extension adds one top-level command named after it:
 di-framework extensions install platform
 di-framework platform doctor
 
+di-framework extensions install ai
+di-framework ai agent audit
+di-framework ai skills validate
+
 di-framework extensions list
 di-framework extensions uninstall platform
 ```
@@ -492,8 +481,9 @@ Dispatch rules:
 - Mounted extension commands inherit this page's contract in full: help forms, the JSON envelope,
   and the exit-status table all behave exactly as for built-in commands.
 
-Root help lists installed extensions alongside the built-in tree. The first available extension is
-[wasmCloud deployment](wasmcloud.md); authors of new extensions start from
+Root help lists installed extensions alongside the built-in tree. First-party extensions are
+[platform deployment](wasmcloud.md) (`@di-framework/cli-plugin-platform`) and agent configuration
+(`@di-framework/cli-plugin-ai`, documented above). Authors of new extensions start from
 `@di-framework/cli-extension`, which provides the manifest contract, the command-node types, and
 `CommandFailure`.
 
@@ -523,7 +513,7 @@ A successful result has this envelope:
 ```json
 {
   "schemaVersion": 1,
-  "command": "skills validate",
+  "command": "ai skills validate",
   "ok": true,
   "data": {}
 }
@@ -535,7 +525,7 @@ command-specific object. A failure omits `data` and uses a stable error code:
 ```json
 {
   "schemaVersion": 1,
-  "command": "skills validate",
+  "command": "ai skills validate",
   "ok": false,
   "error": {
     "code": "INVALID_USAGE",
