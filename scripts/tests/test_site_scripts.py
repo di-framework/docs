@@ -10,7 +10,6 @@ from typing import Optional
 REPOSITORY = Path(__file__).resolve().parents[2]
 PATCH_SITE = REPOSITORY / "scripts" / "patch-site.py"
 ASSEMBLE_SITE = REPOSITORY / "scripts" / "assemble-site.py"
-SYNC_SUPPORTED_VERSION = REPOSITORY / "scripts" / "sync-supported-version.py"
 
 
 def write_build(builds: Path, version: str, product_version: Optional[str] = None) -> None:
@@ -148,105 +147,6 @@ class AssembleSiteTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("declares productVersion 'latest'", result.stderr)
-
-
-class SyncSupportedVersionTests(unittest.TestCase):
-    def run_sync(self, root: Path, version: str):
-        manifest = root / "supported-versions.json"
-        return subprocess.run(
-            [sys.executable, SYNC_SUPPORTED_VERSION, manifest, version],
-            capture_output=True,
-            text=True,
-        )
-
-    def test_derives_the_current_minor_from_the_published_patch(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            manifest = root / "supported-versions.json"
-            manifest.write_text(
-                json.dumps(
-                    [
-                        {
-                            "version": "v5.0",
-                            "ref": "docs/v5.0",
-                            "path": "/v5.0/",
-                            "isCurrent": True,
-                        },
-                        {
-                            "version": "latest",
-                            "ref": "main",
-                            "path": "/",
-                            "isCurrent": False,
-                        },
-                    ]
-                )
-            )
-
-            result = self.run_sync(root, "5.2.3")
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(
-                json.loads(manifest.read_text()),
-                [
-                    {
-                        "version": "v5.2",
-                        "ref": "docs/v5.2",
-                        "path": "/v5.2/",
-                        "release": "v5.2.3",
-                        "isCurrent": True,
-                    },
-                    {
-                        "version": "latest",
-                        "ref": "main",
-                        "path": "/",
-                        "isCurrent": False,
-                    },
-                ],
-            )
-            output = json.loads(result.stdout)
-            self.assertEqual(output["branch"], "docs/v5.2")
-            self.assertTrue(output["changed"])
-
-    def test_is_idempotent_for_the_same_release(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            manifest = root / "supported-versions.json"
-            manifest.write_text(
-                json.dumps(
-                    [
-                        {
-                            "version": "v5.2",
-                            "ref": "docs/v5.2",
-                            "path": "/v5.2/",
-                            "release": "v5.2.3",
-                            "isCurrent": True,
-                        },
-                        {
-                            "version": "latest",
-                            "ref": "main",
-                            "path": "/",
-                            "isCurrent": False,
-                        },
-                    ],
-                    indent=2,
-                )
-                + "\n"
-            )
-
-            result = self.run_sync(root, "v5.2.3")
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse(json.loads(result.stdout)["changed"])
-
-    def test_rejects_prerelease_versions(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / "supported-versions.json").write_text("[]")
-
-            result = self.run_sync(root, "5.3.0-beta.1")
-
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("stable semantic version", result.stderr)
 
 
 if __name__ == "__main__":

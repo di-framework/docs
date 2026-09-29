@@ -1,5 +1,40 @@
 [
   {
+    "version": "v1.0",
+    "ref": "docs/v1.0",
+    "path": "/v1.0/",
+    "release": "v1.0.1",
+    "isCurrent": false
+  },
+  {
+    "version": "v2.0",
+    "ref": "docs/v2.0",
+    "path": "/v2.0/",
+    "release": "v2.0.4",
+    "isCurrent": false
+  },
+  {
+    "version": "v3.0",
+    "ref": "docs/v3.0",
+    "path": "/v3.0/",
+    "release": "v3.0.4",
+    "isCurrent": false
+  },
+  {
+    "version": "v4.3",
+    "ref": "docs/v4.3",
+    "path": "/v4.3/",
+    "release": "v4.3.3",
+    "isCurrent": false
+  },
+  {
+    "version": "v5.3",
+    "ref": "docs/v5.3",
+    "path": "/v5.3/",
+    "release": "v5.3.7",
+    "isCurrent": false
+  },
+  {
     "version": "v6.0",
     "ref": "docs/v6.0",
     "path": "/v6.0/",

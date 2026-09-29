@@ -5,9 +5,10 @@ This repository owns the source, versioned builds, search Worker, and deployment
 ## Automated version model
 
 - `main` publishes the rolling `latest` documentation at `/` and `/latest/`.
-- The latest stable `@di-framework/core` minor publishes at `/vMAJOR.MINOR/` from an automatically managed `docs/vMAJOR.MINOR` snapshot branch.
-- Every deployment checks npm for the current stable framework version. An hourly schedule repairs missed cross-repository release notifications without human intervention.
-- A new release updates `supported-versions.json` and snapshots the newest docs commit that existed when the framework tag was created. This keeps unreleased documentation out of the stable version.
+- Each framework major keeps one frozen snapshot, the last published minor of that major, at `/vMAJOR.MINOR/` from a `docs/vMAJOR.MINOR` branch.
+- The latest stable `@di-framework/core` minor is the current snapshot. A newer minor of that major replaces it. Older majors stay in the selector.
+- Every deployment checks npm for the current stable framework version. An hourly schedule repairs missed cross-repository release notifications without human intervention. When the snapshot and selector already match, that run does not rebuild the site.
+- A new release updates the current major in `supported-versions.json` and snapshots the newest docs commit that existed when the framework tag was created. This keeps unreleased documentation out of the stable version.
 - The version selector is generated only after every listed version builds successfully. Do not edit `supported-versions.json` or its snapshot branch by hand.
 
 `latest` appears as EAP in the selector; the npm-derived minor is marked as the current stable version.
