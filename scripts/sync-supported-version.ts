@@ -31,6 +31,16 @@ function minorParts(version: string): [number, number] | undefined {
   return [Number(match[1]), Number(match[2])];
 }
 
+function releaseParts(release: string): [number, number, number] | undefined {
+  const match = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(release);
+  if (!match) return undefined;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function compareRelease(left: [number, number, number], right: [number, number, number]): number {
+  return left[0] - right[0] || left[1] - right[1] || left[2] - right[2];
+}
+
 const manifestPath = process.argv[2];
 const rawVersion = process.argv[3];
 if (!manifestPath || rawVersion == null) {
@@ -54,6 +64,22 @@ if (!Array.isArray(versions)) fail('supported versions must be a list');
 const entries = versions as VersionEntry[];
 const latest = entries.find((item) => item.version === 'latest');
 if (!latest) fail('supported versions must contain a latest entry');
+
+const existing = entries.find(
+  (item) => item.version !== 'latest' && minorParts(item.version)?.[0] === syncedMajor,
+);
+if (existing?.release) {
+  const recorded = releaseParts(existing.release);
+  if (!recorded) {
+    fail(
+      `existing snapshot release is not a stable semantic version: ${JSON.stringify(existing.release)}`,
+    );
+  }
+  const incoming: [number, number, number] = [syncedMajor, Number(minor), Number(patch)];
+  if (compareRelease(incoming, recorded) < 0) {
+    fail(`refusing to move the v${major} snapshot backward from ${existing.release} to ${tag}`);
+  }
+}
 
 const kept = entries
   .filter((item) => item.version !== 'latest')
