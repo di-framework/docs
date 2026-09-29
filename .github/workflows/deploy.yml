@@ -41,6 +41,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - id: release
         name: Resolve the current npm release and matching docs snapshot
         env:
@@ -75,7 +76,7 @@ jobs:
           SNAPSHOT_SHA: ${{ steps.release.outputs.snapshot_sha }}
         run: |
           set -euo pipefail
-          result="$(python3 scripts/sync-supported-version.py supported-versions.json "$VERSION")"
+          result="$(bun scripts/sync-supported-version.ts supported-versions.json "$VERSION")"
           branch="$(jq -r .branch <<<"$result")"
           remote_sha="$(git ls-remote --heads origin "refs/heads/$branch" | awk '{print $1}')"
           changed=false
