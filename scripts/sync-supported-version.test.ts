@@ -126,6 +126,48 @@ describe('sync-supported-version', () => {
     expect(JSON.parse(result.stdout).changed).toBe(false);
   });
 
+  test('accepts a newer patch of the current minor', () => {
+    const result = runSync('6.0.2', [
+      {
+        version: 'v6.0',
+        ref: 'docs/v6.0',
+        path: '/v6.0/',
+        release: 'v6.0.1',
+        isCurrent: true,
+      },
+      latest,
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(result.manifest[0]).toMatchObject({
+      version: 'v6.0',
+      release: 'v6.0.2',
+      isCurrent: true,
+    });
+  });
+
+  test('refuses to replace the current major snapshot with an older release', () => {
+    const manifest = [
+      {
+        version: 'v6.1',
+        ref: 'docs/v6.1',
+        path: '/v6.1/',
+        release: 'v6.1.2',
+        isCurrent: true,
+      },
+      latest,
+    ];
+
+    for (const version of ['6.0.9', '6.1.1']) {
+      const result = runSync(version, manifest);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(
+        `refusing to move the v6 snapshot backward from v6.1.2 to v${version}`,
+      );
+      expect(result.manifest).toEqual(manifest);
+    }
+  });
+
   test('rejects prerelease versions', () => {
     const result = runSync('5.3.0-beta.1', []);
 
