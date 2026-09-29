@@ -294,7 +294,7 @@ jobs:
           fi
           if [[ -n "$pinned_repo" ]]; then
             case "$pinned_repo" in
-              di-framework/di-framework|di-framework/platform|di-framework/cli-extensions) ;;
+              di-framework/di-framework|di-framework/platform|di-framework/cli-extensions|di-framework/ai) ;;
               *)
                 echo "::warning::pinned repository '$pinned_repo' is not a coverage source; using the latest successful main Test artifact for each repository"
                 pinned_repo=""
@@ -335,6 +335,7 @@ jobs:
           fetch_repo di-framework/di-framework
           fetch_repo di-framework/platform
           fetch_repo di-framework/cli-extensions
+          fetch_repo di-framework/ai
           echo "Installed $(find coverage -type f -name '*.json' | wc -l | tr -d '[:space:]') coverage badge(s) in total"
       - name: Normalize artifact layout and assemble
         run: |
@@ -379,7 +380,7 @@ jobs:
             curl -fsS "https://docs.di-framework.dev${path%/}/overview.html" >/dev/null
             curl -fsS "$SEARCH_URL/preview-search/Writerside/d/$version?query=installation" | jq -e 'has("hits") or has("results")' >/dev/null
           done < <(jq -r '.[] | [.version,.path] | @tsv' supported-versions.json)
-          for slug in core actors queues cli-extension cli-plugin-platform cloudfoundry platform; do
+          for slug in core actors queues cli-extension cli-plugin-platform cloudfoundry platform ai ai-utils ml; do
             curl -fsS "https://docs.di-framework.dev/coverage/${slug}.json" \
               | jq -e '.schemaVersion == 1 and .label == "line coverage" and (.message | length > 0)' >/dev/null
           done
