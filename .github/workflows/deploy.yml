@@ -292,6 +292,16 @@ jobs:
           if [[ -n "$pinned_run" && -z "$pinned_repo" ]]; then
             pinned_repo="di-framework/di-framework"
           fi
+          if [[ -n "$pinned_repo" ]]; then
+            case "$pinned_repo" in
+              di-framework/di-framework|di-framework/platform|di-framework/cli-extensions) ;;
+              *)
+                echo "::warning::pinned repository '$pinned_repo' is not a coverage source; using the latest successful main Test artifact for each repository"
+                pinned_repo=""
+                pinned_run=""
+                ;;
+            esac
+          fi
 
           fetch_repo() {
             local repo="$1"
