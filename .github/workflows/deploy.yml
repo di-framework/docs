@@ -188,8 +188,12 @@ jobs:
           mkdir -p "built/${{ matrix.docs.version }}"
           unzip -O UTF-8 -qq artifacts/webHelpD2-all.zip -d "built/${{ matrix.docs.version }}"
           python3 tooling/scripts/patch-site.py "built/${{ matrix.docs.version }}" "${{ matrix.docs.version }}" "$SEARCH_URL"
-          cp source/Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.png"
-          cp source/Writerside/images/favicon.png "built/${{ matrix.docs.version }}/favicon.ico"
+          favicon="source/Writerside/images/favicon.png"
+          if [[ ! -f "$favicon" ]]; then
+            favicon="tooling/Writerside/images/favicon.png"
+          fi
+          cp "$favicon" "built/${{ matrix.docs.version }}/favicon.png"
+          cp "$favicon" "built/${{ matrix.docs.version }}/favicon.ico"
       - uses: actions/upload-artifact@v4
         with:
           name: site-${{ matrix.docs.version }}
