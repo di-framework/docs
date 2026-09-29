@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE buildprofiles SYSTEM "https://resources.jetbrains.com/writerside/1.0/build-profiles.dtd">
+<buildprofiles xsi:noNamespaceSchemaLocation="https://resources.jetbrains.com/writerside/1.0/build-profiles.xsd"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <!--
+      search-endpoint must be under top-level <variables> (Writerside docs).
+      It should bake searchService/searchServiceUrl into config.json.
+      CI also patches config.json after the build as a safety net.
+    -->
+    <variables>
+        <search-endpoint>https://di-framework-docs-search.seemueller.workers.dev/api/docs/search</search-endpoint>
+        <favicon>favicon.png</favicon>
+    </variables>
+    <build-profile instance="d">
+        <variables>
+            <noindex-content>true</noindex-content>
+            <custom-css>footer.css</custom-css>
+            <favicon>favicon.png</favicon>
+            <!-- Same endpoint at instance level in case the builder only merges profile vars -->
+            <search-endpoint>https://di-framework-docs-search.seemueller.workers.dev/api/docs/search</search-endpoint>
+        </variables>
+    </build-profile>
+
+</buildprofiles>
