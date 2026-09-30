@@ -19,15 +19,18 @@ The kube CLI's built-in defaults remain Kubesolo **1.2.0**, wasmCloud runtime op
 and the platform package version compiled into that CLI. Those defaults are independent of
 application framework versions. The published platform package to select for 6.0 APIs is
 `@di-framework/platform@6.0.1`. The
-[kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) still pins
-DI Framework **5.3.0** and `@di-framework/wasmcloud`, and includes fourteen apps covering
-PostgreSQL, configuration, secrets, key-value, blobstore, messaging, outgoing HTTP, and Node
-compatibility.
+[kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) targets
+DI Framework **6** with `@di-framework/bindings` and `@di-framework/cli-plugin-platform`
+(`di-framework platform` commands). It includes fifteen HTTP apps covering PostgreSQL,
+configuration, secrets, key-value, blobstore, messaging, outgoing HTTP, Node compatibility,
+and additional verification apps for static assets, actors, cron, queues, and migrations.
 
 ## Build and start the platform
 
-Container mode supports macOS and Linux on amd64 and arm64. Install a running Docker Engine,
-Node.js, npm, and the Pulumi CLI. Source builds also require Go 1.26+.
+Container mode supports macOS and Linux on amd64 and arm64. Install a running container engine
+(Docker or Podman), Node.js, npm, and the Pulumi CLI. Source builds also require Go 1.26+.
+When both Docker and Podman are installed, set `DI_CONTAINER_CLI=podman` if Podman should run
+Kubesolo containers and build the optional TLS host image.
 Use a kube build containing the [shared-platform integration](https://github.com/di-framework/kube/pull/6);
 older Helm-only builds do not expose `--platform-package` or `--platform-config`.
 
@@ -123,25 +126,32 @@ data can survive platform resource cleanup, but purging the cluster removes its 
 
 The example fixtures below run in the administrator-managed platform namespace. They are not a
 recipe for bypassing tenant admission or granting tenant developers access to platform Secrets.
-To use the 6.0 backing-service APIs, upgrade the existing instance's platform package and install
-`@di-framework/cli-plugin-platform` explicitly:
+The example workspace already uses 6.0 bindings and the platform CLI extension. Older kube
+instances may still need an explicit platform package upgrade and `di-framework extensions install
+platform` before tenant backing-service commands match the docs:
 
 ```bash
 ./bin/di-framework-kube up --platform-package @di-framework/platform@6.0.1
 di-framework extensions install platform
 ```
 
-The kube CLI default and the 5.3.0 example pins do not change automatically. See
-[Platform backing services](backing-services.md) for tenant prerequisites, CLI commands, and
-binding projection. Existing example backends and warehouse data are not migrated by this upgrade.
+See [Platform backing services](backing-services.md) for tenant prerequisites, CLI commands, and
+binding projection. Upgrading the platform package does not migrate existing example backends or
+warehouse data automatically.
 
 ## Deploy the examples
 
 In addition to the platform prerequisites and built binary, install Bun 1.3+, Node.js 22+,
-`kubectl`, and `oras`. From the repository root:
+`kubectl`, `oras`, and the platform extension (`di-framework extensions install platform`). From
+the repository root:
 
 ```bash
 cd examples-apps
+# Sibling checkouts: ../../di-framework, ../../cli-extensions, ../../platform
+(cd ../../di-framework && bun install)
+(cd ../../cli-extensions && bun install)
+(cd ../../platform && bun install)
+bun run link:framework
 bun install --frozen-lockfile
 bun run check
 bun test
@@ -149,8 +159,9 @@ bun run deploy
 bun run smoke
 ```
 
-The workspace pins framework dependencies and overrides to 5.3.0. That release includes
-the binding fixes, so no Bun compatibility patch is required.
+The workspace links DI Framework **6** packages from those checkouts (core, HTTP, CLI,
+`@di-framework/bindings`, and `@di-framework/cli-plugin-platform`) through Bun overrides. Re-run
+`link:framework` after switching branches in a linked checkout.
 
 The deploy helper starts or updates the selected instance, provisions fixtures needed by
 the selected apps, and installs a local OCI registry with a 2Gi persistent-volume claim.
@@ -222,11 +233,10 @@ import { Postgres, WasmCloudBinding } from '@di-framework/bindings';
 export class ExampleDatabase extends Postgres {}
 ```
 
-The 5.3.0 example imports `@di-framework/wasmcloud`. 6.0 applications import
-`@di-framework/bindings`, as shown above. The application resolves the class at module startup and calls native
-`wasmcloud:postgres/query@0.2.0` through `queryBatch`. No Node PostgreSQL driver is needed.
-Guest initialization precedes application evaluation in 5.3.0, and the generated host
-declaration matches the unlabeled QuickJS import.
+Applications import `@di-framework/bindings`, as shown above. The application resolves the class
+at module startup and calls native `wasmcloud:postgres/query@0.2.0` through `queryBatch`. No Node
+PostgreSQL driver is needed. Guest initialization precedes application evaluation, and the generated
+host declaration matches the unlabeled QuickJS import.
 
 The deployment helper creates `examples-postgres`, its ClusterIP service, and a 1Gi persistent
 volume claim. It generates a password and connection URL in the `examples-postgres-binding`
@@ -277,10 +287,10 @@ localResources:
     - http://binding-echo:8080
 ```
 
-Without this grant the runtime returns `HTTP-request-denied`. The 5.3.0 framework project
-configuration does not expose `allowedHosts`, so the helper applies it after application
-deployment and before live health checks. WASI socket DNS permissions instead use the
-project's `allowedIpNameLookups`; the two settings serve different networking paths.
+Without this grant the runtime returns `HTTP-request-denied`. Project configuration does not yet
+expose `allowedHosts`, so the helper applies it after application deployment and before live
+health checks. WASI socket DNS permissions instead use the project's `allowedIpNameLookups`; the
+two settings serve different networking paths.
 
 ## Verification
 
@@ -296,11 +306,11 @@ Redis instance while an outside probe was rejected; the default host and operato
 restarted successfully under network policies. That verification did not rerun the fourteen
 application examples or exercise an npm-installed artifact.
 
-On 2026-09-08, the earlier **patched 5.2.13** workspace passed **61/61 live API checks across
-14 apps**, typechecking, and **40 local tests** on Kubesolo 1.2.0 with operator 2.8.0. Those
-results cover the changes merged into 5.3.0; they are not a fresh deployment result for the
-published 5.3.0 packages. The workspace now resolves 5.3.0 without the patch. Run the commands
-above to verify that release in your environment.
+On 2026-09-08, an earlier **patched 5.2.13** workspace passed **61/61 live API checks across
+14 apps**, typechecking, and **40 local tests** on Kubesolo 1.2.0 with operator 2.8.0. That run
+predates the move to DI Framework **6**, `@di-framework/bindings`, and `di-framework platform`
+deploy. Run the commands above on your machine to verify the current linked workspace (Docker or
+Podman container mode).
 
 The Node probes do not cover TLS/HTTPS or child processes, which remain mocks in the guest
 compatibility layer. The PostgreSQL and other service probes use native WIT bindings.
@@ -329,7 +339,7 @@ DI_KUBE_NAME=examples bun run smoke
 ```
 
 `DI_KUBE_BIN` selects an absolute binary path. For an existing instance, keep the HTTP port
-chosen when it was created; Docker port mappings are fixed at container creation.
+chosen when it was created; container-engine port mappings are fixed at container creation.
 
 Use its private kubeconfig when inspecting resources:
 

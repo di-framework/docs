@@ -100,10 +100,9 @@ Install `@di-framework/bindings` alongside core and HTTP. In 6.0, `@di-framework
 [di-framework/platform](https://github.com/di-framework/platform) at **6.x**, and the CLI
 extension publishes from
 [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) at **6.x**.
-Through 5.x the bindings package was `@di-framework/wasmcloud`. Core packages that stayed in
-[di-framework/di-framework](https://github.com/di-framework/di-framework) remain on the published
-**5.x** line (`@di-framework/core@^5`). The kube example workspace still pins 5.3.0.
-Declare exported binding classes in `src/bindings.ts`, or select another file with
+Through 5.x the bindings package was `@di-framework/wasmcloud`. The
+[kube example workspace](kube.md#deploy-the-examples) links DI Framework **6** packages from
+sibling checkouts for local verification. Declare exported binding classes in `src/bindings.ts`, or select another file with
 `"bindings": "src/services/bindings.ts"` in the project configuration:
 
 ```typescript

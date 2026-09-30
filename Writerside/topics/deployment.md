@@ -21,9 +21,10 @@ entrypoint provisions Docker/k0s and a registry; kube manages Kubesolo and invok
 existing-cluster entrypoint through its persistent Pulumi stack. Kube installs an exact
 published package version from npm by default; local tarballs are a development option. Its
 embedded Helm client remains for status inspection and legacy cleanup.
-Its example workspace uses an external deployment target and still pins the framework to 5.3.0,
-including `@di-framework/wasmcloud`. New applications import `@di-framework/bindings`. See
-[native service bindings](platform.md#native-service-bindings) for the build and runtime contract.
+Its example workspace uses an external deployment target and links DI Framework **6** with
+`@di-framework/bindings` and `@di-framework/cli-plugin-platform` (`di-framework platform`
+deploy). See [native service bindings](platform.md#native-service-bindings) for the build and
+runtime contract.
 
 [Platform backing services](backing-services.md) let tenant developers create `BackingService`
 resources with `platform service`. Redis and NATS landed in 5.3.6. Dedicated PostgreSQL ships

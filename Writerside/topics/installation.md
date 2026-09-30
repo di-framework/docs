@@ -179,9 +179,9 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 
 For a local Kubernetes platform and live service-binding examples, use the separate
 [di-framework-kube CLI](kube.md). It requires Node.js, npm, and Pulumi, and installs the shared
-platform package from npm. That example workspace still pins framework packages and
-`@di-framework/wasmcloud` to 5.3.0. New applications use `@di-framework/bindings@^6` and
-`@di-framework/cli-plugin-platform@^6`.
+platform package from npm. Its [example workspace](kube.md#deploy-the-examples) links DI Framework
+**6** with `@di-framework/bindings` and `@di-framework/cli-plugin-platform` for builds and
+`di-framework platform deploy`. Published applications use the same packages at `@^6`.
 
 ## Next Steps
 
