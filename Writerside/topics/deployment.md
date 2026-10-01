@@ -27,9 +27,9 @@ deploy). See [native service bindings](platform.md#native-service-bindings) for 
 runtime contract.
 
 [Platform backing services](backing-services.md) let tenant developers create `BackingService`
-resources with `platform service`. Redis and NATS landed in 5.3.6. Dedicated PostgreSQL ships
-in platform 6.0, and `platform deploy` wires a `Postgres` binding that sets `serviceName`.
-Redis and NATS still use explicit `ServiceBinding` resources.
+resources with `platform service` for Redis, NATS, and dedicated PostgreSQL.
+`platform deploy` can wire a `Postgres` binding that sets `serviceName`; Redis and NATS still
+use explicit `ServiceBinding` resources.
 
 Application-authored [private service bindings](service-bindings.md) (`@ExportService` /
 `@ServiceBinding`) are a separate in-process contract: callers receive a named DI proxy and do

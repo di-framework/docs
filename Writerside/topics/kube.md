@@ -7,7 +7,6 @@ local k0s platform. Operator configuration, Tenant/User CRDs, the tenancy contro
 policies, and HTTP routing come from one implementation. `@di-framework/platform` **6.0.1**
 publishes from [di-framework/platform](https://github.com/di-framework/platform) and includes
 [requestable Redis, NATS, and dedicated PostgreSQL backing services](backing-services.md).
-Redis and NATS landed in 5.3.6.
 
 Kubesolo creation and deletion remain owned by `di-framework-kube`. Application builds and
 deployments remain owned by the framework extension and use an external target in
@@ -15,11 +14,10 @@ deployments remain owned by the framework extension and use an external target i
 use. Its embedded Helm client is retained for status inspection and legacy cleanup; new
 installations and updates run through Pulumi.
 
-The kube CLI's built-in defaults remain Kubesolo **1.2.0**, wasmCloud runtime operator **2.8.0**,
-and the platform package version compiled into that CLI. Those defaults are independent of
-application framework versions. The published platform package to select for 6.0 APIs is
-`@di-framework/platform@6.0.1`. The
-[kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) targets
+The kube CLI's built-in defaults are Kubesolo **1.2.0**, wasmCloud runtime operator **2.8.0**,
+and the `@di-framework/platform` version compiled into that CLI (override with
+`--platform-package`, for example `@di-framework/platform@6.0.1`). The
+[kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) uses
 DI Framework **6** with `@di-framework/bindings` and `@di-framework/cli-plugin-platform`
 (`di-framework platform` commands). It includes fifteen HTTP apps covering PostgreSQL,
 configuration, secrets, key-value, blobstore, messaging, outgoing HTTP, Node compatibility,
@@ -44,11 +42,7 @@ make build
 ```
 
 `up` installs the CLI's compiled `@di-framework/platform` version directly from npm. No local
-package build or tarball is required. To select the published 6.0 platform explicitly:
-
-```bash
-./bin/di-framework-kube up --platform-package @di-framework/platform@6.0.1
-```
+package build or tarball is required.
 
 The default instance is `local`. Its dedicated kubeconfig selects the cluster independently of
 your current kubectl context. `outputs` returns the kubeconfig path, namespace, and HTTP
@@ -126,18 +120,8 @@ data can survive platform resource cleanup, but purging the cluster removes its 
 
 The example fixtures below run in the administrator-managed platform namespace. They are not a
 recipe for bypassing tenant admission or granting tenant developers access to platform Secrets.
-The example workspace already uses 6.0 bindings and the platform CLI extension. Older kube
-instances may still need an explicit platform package upgrade and `di-framework extensions install
-platform` before tenant backing-service commands match the docs:
-
-```bash
-./bin/di-framework-kube up --platform-package @di-framework/platform@6.0.1
-di-framework extensions install platform
-```
-
-See [Platform backing services](backing-services.md) for tenant prerequisites, CLI commands, and
-binding projection. Upgrading the platform package does not migrate existing example backends or
-warehouse data automatically.
+See [Platform backing services](backing-services.md) for tenant `BackingService` requests,
+`platform service` commands, and binding projection.
 
 ## Deploy the examples
 
@@ -298,19 +282,6 @@ two settings serve different networking paths.
 components, checks status codes and response bodies, and includes the backend-dependent
 checks. Operator readiness alone cannot verify a binding. Run both local checks and smoke
 checks after changing framework dependencies.
-
-The shared-platform integration was verified on 2026-09-14 using a locally packed shared
-package on a fresh Kubesolo cluster: tenant/user readiness, an update preserving declarations,
-a repeat deployment with all 27 resources unchanged, and teardown. A tenant probe reached its
-Redis instance while an outside probe was rejected; the default host and operator also
-restarted successfully under network policies. That verification did not rerun the fourteen
-application examples or exercise an npm-installed artifact.
-
-On 2026-09-08, an earlier **patched 5.2.13** workspace passed **61/61 live API checks across
-14 apps**, typechecking, and **40 local tests** on Kubesolo 1.2.0 with operator 2.8.0. That run
-predates the move to DI Framework **6**, `@di-framework/bindings`, and `di-framework platform`
-deploy. Run the commands above on your machine to verify the current linked workspace (Docker or
-Podman container mode).
 
 The Node probes do not cover TLS/HTTPS or child processes, which remain mocks in the guest
 compatibility layer. The PostgreSQL and other service probes use native WIT bindings.

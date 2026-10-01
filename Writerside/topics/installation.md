@@ -127,28 +127,24 @@ bun run test.ts
 
 ## Version 6 package sources
 
-**6.0** publishes AI, the operated platform, and first-party CLI extensions from their own
-repositories. Application packages that stayed in the core monorepo are still published as **5.x**.
-Agent configuration and Agent Skills commands that shipped in `@di-framework/cli` through 5.x now
-install as `@di-framework/cli-plugin-ai`.
+Version **6** publishes from several repositories. Core application packages (`@di-framework/core`,
+`@di-framework/http`, and the other packages in the core monorepo) publish at **6.x** from
+[di-framework/di-framework](https://github.com/di-framework/di-framework). AI packages,
+the operated platform, bindings, and first-party CLI extensions publish from their own
+repositories at **6.x**:
 
-| Package | Version line | Repository |
-| --- | --- | --- |
-| `@di-framework/core` and the other packages in the core monorepo | 5.x | [di-framework/di-framework](https://github.com/di-framework/di-framework) |
-| `@di-framework/ai`, `@di-framework/ai-utils` | 6.x | [di-framework/ai](https://github.com/di-framework/ai) |
-| `@di-framework/platform`, `@di-framework/bindings`, `@di-framework/cloudfoundry` | 6.x | [di-framework/platform](https://github.com/di-framework/platform) |
-| `@di-framework/cli-plugin-platform` | 6.x | [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) |
+| Package | Repository |
+| --- | --- |
+| `@di-framework/core`, `@di-framework/http`, `@di-framework/cli`, and companion core packages | [di-framework/di-framework](https://github.com/di-framework/di-framework) |
+| `@di-framework/ai`, `@di-framework/ai-utils` | [di-framework/ai](https://github.com/di-framework/ai) |
+| `@di-framework/platform`, `@di-framework/bindings`, `@di-framework/cloudfoundry` | [di-framework/platform](https://github.com/di-framework/platform) |
+| `@di-framework/cli-plugin-platform`, `@di-framework/cli-plugin-ai` | [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) |
 
-`@di-framework/bindings` replaces `@di-framework/wasmcloud`.
-`@di-framework/cli-plugin-platform` replaces `@di-framework/cli-plugin-wasmcloud`. Install it with
-`di-framework extensions install platform`; the command group is `platform`, and cluster lifecycle
-is `platform cluster`. `@di-framework/cli-plugin-ai` (`di-framework extensions install ai`) provides
-`di-framework ai agent` and `di-framework ai skills`. Those leaves used to be built into
-`@di-framework/cli`; see [AI CLI](ai-cli.md). Sample apps live in
+Install platform and AI extensions with `di-framework extensions install platform` and
+`di-framework extensions install ai`. Platform commands use the `platform` group (including
+`platform cluster` for managed Pulumi targets). See [AI CLI](ai-cli.md) and
+[Platform](platform.md). Sample apps live in
 [di-framework/examples](https://github.com/di-framework/examples).
-
-`@di-framework/ai` and `@di-framework/bindings` declare `@di-framework/core@^5` as a peer until the
-core repository publishes 6.0.0.
 
 ## Optional Packages
 
@@ -173,7 +169,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/ai-utils` | [Agent Skills](ai-utils.md) — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |
 | `@di-framework/bindings` | [Native service bindings](platform.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
 | `@di-framework/cli-plugin-platform` | [Platform](platform.md) — WASI 0.3 build, development, and deployment extension |
-| `@di-framework/cli-plugin-ai` | [AI CLI](ai-cli.md) — `ai agent` and `ai skills`, moved out of `@di-framework/cli` in 6.0 |
+| `@di-framework/cli-plugin-ai` | [AI CLI](ai-cli.md) — `ai agent` and `ai skills` |
 | `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, and PostgreSQL backing services](backing-services.md) used by kube and the platform CLI |
 | `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |
 
