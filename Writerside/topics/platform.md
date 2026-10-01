@@ -4,10 +4,9 @@
 di-framework HTTP application into a WASI 0.3 WebAssembly component, serves it locally, and
 deploys it from a workspace manifest.
 
-In **6.0** the extension publishes from
-[di-framework/cli-extensions](https://github.com/di-framework/cli-extensions). Through 5.x the
-package was `@di-framework/cli-plugin-wasmcloud` and the command group was `wasmcloud`. Cluster
-lifecycle moved from `wasmcloud platform deploy` to `platform cluster up`.
+The extension publishes from
+[di-framework/cli-extensions](https://github.com/di-framework/cli-extensions). Managed cluster
+lifecycle is `platform cluster up` and `platform cluster destroy`.
 
 ```bash
 di-framework extensions install platform
@@ -61,8 +60,8 @@ instances from tenant `BackingService` requests and projects `ServiceBinding` co
 protected ConfigMaps and Secrets. Use `platform service` to create and inspect requests. The
 controller owns provisioning; CLI commands use the target kubeconfig and Kubernetes RBAC.
 
-Redis and NATS requests landed in 5.3.6. Dedicated PostgreSQL, and `serviceName` wiring on a
-`Postgres` binding, ship in 6.0. See [Platform backing services](backing-services.md).
+Dedicated PostgreSQL requests and `serviceName` wiring on a `Postgres` binding are supported.
+See [Platform backing services](backing-services.md).
 
 ## Project convention
 
@@ -95,15 +94,11 @@ component is written to the configured `output` path. JSON `data` contains `appl
 
 ## Native service bindings
 
-Install `@di-framework/bindings` alongside core and HTTP. In 6.0, `@di-framework/bindings` and
+Install `@di-framework/bindings` alongside core and HTTP. `@di-framework/bindings` and
 `@di-framework/platform` publish from
-[di-framework/platform](https://github.com/di-framework/platform) at **6.x**, and the CLI
-extension publishes from
-[di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) at **6.x**.
-Through 5.x the bindings package was `@di-framework/wasmcloud`. Core packages that stayed in
-[di-framework/di-framework](https://github.com/di-framework/di-framework) remain on the published
-**5.x** line (`@di-framework/core@^5`). The kube example workspace still pins 5.3.0.
-Declare exported binding classes in `src/bindings.ts`, or select another file with
+[di-framework/platform](https://github.com/di-framework/platform). The
+[kube example workspace](kube.md#deploy-the-examples) links DI Framework **6** packages from
+sibling checkouts for local verification. Declare exported binding classes in `src/bindings.ts`, or select another file with
 `"bindings": "src/services/bindings.ts"` in the project configuration:
 
 ```typescript
@@ -146,8 +141,8 @@ includes services resolved at module startup.
 | `OutgoingHttp` | `wasi:http/client` | `0.3.0` |
 
 These WIT package versions are independent of both the framework version and the WASI 0.3
-component-model preview. The bindings consume services. In 5.3.6, the platform can provision
-Redis/NATS through [BackingService requests](backing-services.md); other backends still require
+component-model preview. The bindings consume services. The platform can provision Redis and
+NATS through [BackingService requests](backing-services.md); other backends still require
 infrastructure provisioning. Application host configuration must match the guest imports.
 `configFrom` references a ConfigMap and `secretFrom` references a Kubernetes Secret. For capabilities that use a Secret,
 an omitted `secretFrom` defaults to `<application>-<binding>`. Keep credentials out of inline
@@ -158,9 +153,9 @@ the database with the binding's `config.database`. A Secret reference on the bin
 does not configure that host connection. See the [working PostgreSQL example](kube.md#postgresql-binding)
 for provisioning and verification.
 
-### Binding changes in 5.3.0
+### Host interface discovery
 
-QuickJS emits unlabeled WIT imports. The extension now omits `hostInterfaces[].name` for
+QuickJS emits unlabeled WIT imports. The extension omits `hostInterfaces[].name` for
 PostgreSQL, key-value, blobstore, messaging, and secrets so the host selects the provider route
 that can link those imports. Binding names still select the guest and configuration overlay.
 Unnamed config and outgoing HTTP requirements also retain their class's `config`, `configFrom`,
@@ -168,8 +163,7 @@ and `secretFrom` overlays.
 
 HTTP ingress and outgoing requirements share one unnamed host declaration per WIT version.
 The runtime links HTTP `client` and key-value `types` internally, so they remain in guest WIT
-imports but are omitted from host discovery. These changes and the binding startup fix are
-included in 5.3.0; consumers no longer need the earlier Bun compatibility patch.
+imports but are omitted from host discovery.
 
 The kube examples verify one binding of each kind. Multiple labeled, independently
 credentialed backends are outside that verification; the QuickJS PostgreSQL path uses the
@@ -194,8 +188,7 @@ compatibility layer inside QuickJS, with a different filesystem and process mode
 | `node:https` | HTTP/1.1 `request` / `get` and an Agent over the TLS implementation; requests wait for verified `secureConnect` before sending. Incoming HTTPS terminates at host ingress. |
 | `node:child_process` | Remains an unenv mock. |
 
-Text encoding and Fetch globals initialize before application imports. The fixes carried
-forward from 5.2.13 cover startup, async context, timers, and chunked HTTP. The bundler lowers
+Text encoding and Fetch globals initialize before application imports. The bundler lowers
 async functions and `for await` loops to instrumented Promise continuations; native
 async-generator bodies and dynamically evaluated async code are not instrumented.
 
@@ -417,9 +410,8 @@ Workloads set `DI_CONTROL_REJECT_FORWARDED=1` and `DI_CONTROL_HTTP_HOST` to the 
 name. Requests with `X-Forwarded-*` return 404. Local/dev leaves those unset, so auth still
 applies but the host filter does not.
 
-This contract is the v5.3.3 control-plane behavior
-([PR #430](https://github.com/di-framework/di-framework/pull/430),
-[PR #431](https://github.com/di-framework/di-framework/pull/431)).
+See [PR #430](https://github.com/di-framework/di-framework/pull/430) and
+[PR #431](https://github.com/di-framework/di-framework/pull/431) for the control-plane design.
 
 ## Scheduled jobs
 
@@ -461,11 +453,6 @@ The extension does not scan `.static()` mounts. Package files on the build host 
 [HTTP static assets](http-router.md#static-assets).
 
 ## Actors
-
-> Actor wasmCloud integration landed in
-> [PR #422](https://github.com/di-framework/di-framework/pull/422)
-> (closing [di-framework#411](https://github.com/di-framework/di-framework/issues/411)), after
-> the v5.3.0 tag.
 
 Carry a local actor into a **single-host** wasmCloud workload. Mailboxes live in the guest.
 SQLite files live on a hostPath volume. Multi-host relocation is not implemented; see
