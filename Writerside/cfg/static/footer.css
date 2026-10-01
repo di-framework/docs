@@ -1,6 +1,29 @@
 /* Hide "Powered by JetBrains Writerside" (must live under cfg/static/) */
 .footer__powered {
-  display: none;
+  display: none !important;
+}
+
+/* GitHub org link — in header switchers, immediately left of the theme toggle */
+.wh-header__switchers .di-github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.88;
+  text-decoration: none;
+}
+
+.wh-header__switchers .di-github-link:hover {
+  opacity: 1;
+}
+
+.wh-header__switchers .di-github-link svg {
+  width: 22px;
+  height: 22px;
 }
 
 /* Header brand mark: smaller than the default 48px, lightly rounded */

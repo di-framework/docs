@@ -45,6 +45,13 @@ class PatchSiteTests(unittest.TestCase):
                 config["searchServiceUrl"],
                 "https://search.example.test/base/preview-search/Writerside/d/v5.0",
             )
+            self.assertTrue((site / "github-header.js").is_file())
+            self.assertTrue((site / "footer.css").is_file())
+            html = (site / "overview.html").read_text()
+            self.assertIn('src="github-header.js"', html)
+            self.assertIn('href="footer.css"', html)
+            self.assertIn("github.com/di-framework", (site / "github-header.js").read_text())
+            self.assertIn(".footer__powered", (site / "footer.css").read_text())
 
 
 class AssembleSiteTests(unittest.TestCase):
