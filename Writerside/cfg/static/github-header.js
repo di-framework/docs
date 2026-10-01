@@ -7,16 +7,28 @@
 
   function attach() {
     var header = document.querySelector(".wh-header");
-    if (!header || header.querySelector(".di-github-link")) return;
-    var link = document.createElement("a");
-    link.className = "di-github-link";
-    link.href = orgUrl;
-    link.title = "di-framework on GitHub";
-    link.setAttribute("aria-label", "di-framework on GitHub");
-    link.rel = "noopener noreferrer";
-    link.target = "_blank";
-    link.innerHTML = icon;
-    header.insertBefore(link, header.firstChild);
+    if (!header) return;
+
+    var switchers = header.querySelector(".wh-header__switchers");
+    var themeBtn = header.querySelector('[data-test="theme-switcher"]');
+    if (!switchers) return;
+
+    var link = header.querySelector(".di-github-link");
+    if (!link) {
+      link = document.createElement("a");
+      link.className = "di-github-link";
+      link.href = orgUrl;
+      link.title = "di-framework on GitHub";
+      link.setAttribute("aria-label", "di-framework on GitHub");
+      link.rel = "noopener noreferrer";
+      link.target = "_blank";
+      link.innerHTML = icon;
+    }
+
+    var anchor = themeBtn || switchers.firstElementChild;
+    if (link.parentNode !== switchers || link.nextElementSibling !== anchor) {
+      switchers.insertBefore(link, anchor);
+    }
   }
 
   if (document.readyState === "loading") {

@@ -7,6 +7,7 @@
         <!-- The deploy workflow injects the favicon link; custom-favicons leaks its value into the page body. -->
         <search-endpoint>https://di-framework-docs-search.seemueller.workers.dev/api/docs/search</search-endpoint>
         <header-logo>header-logo.png</header-logo>
+        <custom-css>footer.css</custom-css>
         <!-- Hosted at the GitHub Pages root; regenerated on each docs deploy. -->
         <versions-switcher>https://docs.di-framework.dev/versions.json</versions-switcher>
     </variables>
@@ -14,6 +15,8 @@
         <variables>
             <noindex-content>true</noindex-content>
             <custom-css>footer.css</custom-css>
+            <!-- contribute-url shows a header GitHub icon but must target the docs topics folder (edit/contribute), not the org homepage. -->
+            <include-after-body>github-header.html</include-after-body>
             <header-logo>header-logo.png</header-logo>
             <!-- Same endpoint at instance level in case the builder only merges profile vars -->
             <search-endpoint>https://di-framework-docs-search.seemueller.workers.dev/api/docs/search</search-endpoint>
