@@ -79,7 +79,7 @@ installed [CLI extension](#extensions).
 | `init` | Scaffold an application. |
 | `build` | Build an application, including configured runtime type transforms. |
 | `check` | Typecheck an application without emitting output. |
-| `generate` | Generate configured application surfaces. |
+| `generate` | Generate configured application surfaces from [schema manifests](codegen.md). |
 | `skills index build\|inspect\|validate\|query\|migrate` | Build, examine, validate, search, or migrate the skills index. |
 | `skills validate` | Validate skill catalogs and report diagnostics. |
 | `http openapi generate` | Generate an OpenAPI document from HTTP controllers. |
@@ -135,6 +135,25 @@ di-framework init [name] [--dir path] [--name package-name] [--force]
 | `--help`, `-h` | Show help. |
 
 Existing files are skipped unless `--force` is set.
+
+### `generate` options
+
+```text
+di-framework generate [--config <path>] [--outDir <path>] [--init] [--check] [--clean]
+```
+
+| Flag | Description |
+| --- | --- |
+| `--config <path>` | Codegen config file (default: `di-framework.codegen.ts` in the working directory). |
+| `--outDir <path>` | Override the generated output directory. |
+| `--init` | Create missing handler and policy skeletons without overwriting existing files. |
+| `--check` | Report drift between manifests and generated files without writing. Exits `1` on drift. |
+| `--clean` | Delete stale generated files that carry the codegen ownership header. |
+
+`generate` delegates to `@di-framework/codegen`, which must be resolvable from the project.
+JSON `data` is the codegen `GenerateResult`: `success`, `drifted`, `files`, `ledgerPath`, and
+`diagnostics`. Unknown arguments exit `2`. See [Schema codegen](codegen.md) for manifests,
+emitted surfaces, and the ownership ledger.
 
 ## Skills index commands
 
