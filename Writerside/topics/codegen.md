@@ -1,6 +1,6 @@
 # Schema codegen
 
-`@di-framework/codegen` turns versioned, typed **schema manifests** into deterministic application surfaces: validation helpers, an [`@HttpRouter`](http-router.md) controller, [`@EventBridge`](events.md) routes, and opt-in [RPC](rpc.md) services and [AI tools](ai.md). You write the schemas, the manifest, and the handler; the generator writes the glue and keeps it in sync.
+`@di-framework/codegen` turns versioned, typed **schema manifests** into deterministic application surfaces: validation helpers, an [HTTP controller](http-router.md) with OpenAPI metadata, [`@EventBridge`](events.md) routes, and opt-in [RPC](rpc.md) services and [AI tools](ai.md). You write the schemas, the manifest, and the handler; the generator writes the glue and keeps it in sync.
 
 `di-framework generate` is the only entry point most projects need. The package also exposes a typed `generate()` function for build scripts.
 
@@ -8,7 +8,8 @@
 
 - **Typed manifests**: plain TypeScript objects checked with `satisfies SchemaCodegenManifest`. No DSL, no `.proto`, no YAML.
 - **Deterministic emitters**: every surface is sorted and stable, so repeated runs produce byte-identical output and clean diffs.
-- **One handler, many transports**: HTTP, RPC, and tool surfaces validate input, call the same handler method, and validate output. The handler receives the transport name.
+- **One handler, many transports**: HTTP, RPC, and tool surfaces validate input, call the same handler method, and validate output. The handler receives the transport name, and the HTTP route also passes the request.
+- **OpenAPI for free**: generated routes carry `@Endpoint` metadata built from the manifest and the schemas' `jsonSchema`, so `di-framework http openapi generate` documents them.
 - **Companion skeletons** (`--init`): creates missing handler classes and `@Policy` skeletons once and never overwrites them.
 - **Ownership ledger**: generated files are listed in `.codegen-ledger.json` and start with an ownership header. Only files that carry the header are ever deleted.
 - **Drift check** (`--check`): verifies committed output matches the manifests without writing anything. Exit code `1` on drift.
@@ -144,6 +145,10 @@ export default {
         path: '/orders',
         successStatus: 201,
         summary: 'Create an order',
+        description: 'Creates an order for the caller.',
+        parameters: [
+          { name: 'verbose', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
       },
 
       events: {
@@ -188,7 +193,7 @@ Each operation needs `input`, `output`, and `handler`. Everything else is opt-in
 | Key | Surface | Notes |
 | --- | --- | --- |
 | `handler` | all | `module` is relative to the manifest. `export` is a class, `method` a method on it. |
-| `http` | `http.ts` | `method`, `path`, optional `successStatus`, `summary`, `description`. Default status is `201` for `POST` and `200` otherwise. |
+| `http` | `http.ts` | `method`, `path`, optional `successStatus`, `summary`, `description`, and `parameters`. Default status is `201` for `POST` and `200` otherwise. `parameters` holds OpenAPI parameter objects for query and header inputs; path parameters come from the route. |
 | `events` | `events.ts` | `inbound` and `outbound` each take `topic` and `event`. Either may be omitted. |
 | `rpc` | `rpc.ts` | `package` is required. `inputFields` and `outputFields` map field names to protobuf field numbers. |
 | `authorization` | `--init`, `tools.ts` | `resource` and `action`. `policyModule` defaults to `<policiesDir>/<resource>.policy.ts`. |
@@ -212,11 +217,69 @@ One `validate<Schema>(input: unknown): <Schema>` function per schema, delegating
 
 ### `http.ts`
 
-An `@HttpRouter` controller named `<Name><Version>HttpController` with the manifest's `prefix`. Each HTTP operation becomes a route that reads the JSON body, validates it as the input schema, calls the handler with `{ transport: 'http' }`, validates the result as the output schema, and returns it with `json(...)` and the configured status. Routes carry `@Endpoint` metadata built from `summary`, `description`, and the schemas' `jsonSchema`, so `di-framework http openapi generate` documents them without extra annotations.
+A `@Controller` class named `<Name><Version>HttpController` plus a module-level `TypedRouter` exported as `routes`. Each HTTP operation becomes a static route field on the controller, registered on `routes` at the manifest `prefix` joined with the operation `path`, so `prefix: '/v1'` and `path: '/orders'` register `/v1/orders`.
 
-Input always comes from the request body. `GET` and `HEAD` routes fall back to `{}` when the body is empty, so path and query parameters are not mapped onto the input schema.
+The route resolves the controller from the container, takes the parsed request content, validates it as the input schema, and calls the handler with `{ transport: 'http', request }`. If the handler returns a `Response` it is sent as is, which is the escape hatch for redirects, streams, and custom headers. Any other result is validated as the output schema and returned with `json(...)` and the configured status.
+
+```ts
+// src/generated/orders/v1/http.ts (excerpt)
+const routes = TypedRouter();
+
+@Controller()
+export class OrdersV1HttpController {
+  @Component(OrderHandlers)
+  private handlers!: OrderHandlers;
+
+  @Endpoint({
+    summary: 'Create an order',
+    description: 'Creates an order for the caller.',
+    parameters: [{"name":"verbose","in":"query","required":false,"schema":{"type":"boolean"}}],
+    requestBody: {
+      content: { 'application/json': { schema: CreateOrder.jsonSchema } },
+      required: true,
+    },
+    responses: {
+      '201': {
+        description: 'Create an order',
+        content: { 'application/json': { schema: Order.jsonSchema } },
+      },
+    },
+  })
+  static createOrder = routes.post('/v1/orders', async (request) => {
+    const self = useContainer().resolve(OrdersV1HttpController);
+    const body = (request as { content?: unknown }).content;
+    const command = validateCreateOrder(body);
+
+    const output = await self.handlers.createOrder(command, {
+      transport: 'http' as const,
+      request,
+    });
+
+    if (output instanceof Response) return output;
+    return json(validateOrder(output), { status: 201 });
+  });
+}
+
+export { routes };
+```
+
+Every route carries `@Endpoint` metadata: `summary`, `description`, and `parameters` from the manifest, a JSON `requestBody` built from the input schema for `POST`, `PUT`, and `PATCH`, and a response for `successStatus` built from the output schema. A `204` response has no body. Run `di-framework http openapi generate --controllers ./src/generated/orders/v1/http.ts` to emit the document.
+
+Input always comes from the request content. `GET` and `HEAD` routes fall back to `{}` when there is no body, so path and query parameters are documented through `parameters` but are not mapped onto the input schema.
 
 Handlers are injected with `@Component`. When every HTTP operation in a manifest shares one handler class the property is named `handlers`; otherwise each class gets its own property.
+
+Serve the routes by importing the module, which also registers the controller with the container:
+
+```ts
+import { routes } from './generated/orders/v1/http';
+
+export default {
+  fetch: (request: Request, env: unknown, ctx: unknown) => routes.fetch(request, env, ctx),
+};
+```
+
+Each manifest version exports its own `routes`. Mount several with one outer `TypedRouter` or serve them from separate entry points.
 
 ### `events.ts`
 
@@ -247,6 +310,7 @@ import type {
 
 export type IngressContext = {
   transport: 'http' | 'event' | 'rpc' | 'ai-tool';
+  request?: Request;
 };
 
 @Container()
@@ -273,6 +337,8 @@ export class OrderPolicy {
   // With no matching allow rule, authorization remains denied.
 }
 ```
+
+The HTTP route passes the incoming `Request` in the context, so declare `request?: Request` on `IngressContext` as shown if your handler needs headers, cookies, or the URL.
 
 Generated surfaces do not import the policy. Bind it to the controller or resolver as described in [Resource Authorization](authorization.md).
 
@@ -333,7 +399,7 @@ Lower-level exports are available for custom pipelines: `loadConfig`, `findManif
 
 ## Versioning contracts
 
-Add a new manifest rather than editing a published one. `orders-v2.codegen.ts` with `version: 'v2'` emits into `src/generated/orders/v2/` and a separate `OrdersV2HttpController`, so both versions serve side by side until you delete the `v1` manifest and run `--clean`.
+Add a new manifest rather than editing a published one. `orders-v2.codegen.ts` with `version: 'v2'` and `http: { prefix: '/v2' }` emits into `src/generated/orders/v2/` with its own `OrdersV2HttpController` and `routes`, so both versions serve side by side until you delete the `v1` manifest and run `--clean`.
 
 ## Next Steps
 
