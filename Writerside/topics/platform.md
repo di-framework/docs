@@ -12,6 +12,12 @@ lifecycle is `platform cluster up` and `platform cluster destroy`.
 di-framework extensions install platform
 ```
 
+The release containing the local platform work adds tenant kubeconfigs, the HTTP gateway,
+blobstore, egress, and the console behavior described below. Publication is pending; keep the
+existing **6.0.1** install pins until publish is approved. For local verification, use the built
+platform and CLI extension checkouts; these additions are not an instruction to install an
+unpublished npm version.
+
 The extension mounts one command group:
 
 ```text
@@ -20,6 +26,7 @@ di-framework platform
 ├── dev
 ├── deploy
 ├── destroy
+├── console
 ├── service
 │   ├── create
 │   ├── list
@@ -39,14 +46,18 @@ di-framework platform
 | `dev` | Build, then serve locally with wasmtime, wash, or jco. |
 | `deploy [name]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project. |
 | `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service`. Never tears down the platform. |
-| `service create <keyvalue\|messaging\|postgres> --name <name>` | Request an independent Redis, NATS, or dedicated PostgreSQL BackingService in a tenant namespace. |
+| `service create <keyvalue\|messaging\|blobstore\|postgres\|egress> --name <name>` | Request Redis, NATS, blobstore, dedicated PostgreSQL, or approved egress in a tenant namespace. |
+| `console [--port <port>]` | Open the tenant control panel on loopback. |
 | `service list` / `service get <name>` | Inspect BackingService readiness, class, and endpoint summaries. |
 | `service delete <name>` | Delete the BackingService request according to its retention policy. |
 | `service classes` | Discover cluster classes, with a fallback to built-in defaults. |
 | `cluster init` | Generate `deploy/platform` from extension templates and register it as the default `local` target. |
-| `cluster up <target>` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator). |
-| `cluster destroy <target>` | Tear down a managed platform target (`pulumi destroy`) only. |
+| `cluster up [<target>]` | Provision a managed platform target (`pulumi up`: k0s, registry, wasmCloud operator). |
+| `cluster destroy [<target>]` | Tear down a managed platform target (`pulumi destroy`) only. |
 | `doctor` | Check the project and local toolchain for wasmCloud readiness. |
+
+`--target` is optional for `deploy`, `destroy`, `console`, `service`, `cluster up`, and
+`cluster destroy` when `default-target` is set. Cluster commands also accept a positional target.
 
 Run these commands directly. Do not wrap them in `package.json` scripts.
 
@@ -60,7 +71,8 @@ instances from tenant `BackingService` requests and projects `ServiceBinding` co
 protected ConfigMaps and Secrets. Use `platform service` to create and inspect requests. The
 controller owns provisioning; CLI commands use the target kubeconfig and Kubernetes RBAC.
 
-Dedicated PostgreSQL requests and `serviceName` wiring on a `Postgres` binding are supported.
+The upcoming release also adds blobstore and egress requests. Dedicated PostgreSQL requests
+and `serviceName` wiring on a `Postgres` binding are supported; blobstore uses `configFrom`.
 See [Platform backing services](backing-services.md).
 
 ## Project convention
@@ -91,6 +103,17 @@ used by native service bindings. Set `DI_FRAMEWORK_COMPONENTIZE_QJS` to override
 Intermediate build state lives in the disposable `.di-framework/` directory; the finished
 component is written to the configured `output` path. JSON `data` contains `application`,
 `component`, `entry`, and `profile`.
+
+Logs are on by default. To opt out in `di-framework.config.json`:
+
+```json
+{ "name": "quiet-app", "entry": "src/app.ts", "logs": false }
+```
+
+`logs` must be a boolean and applies per workload member. With `false`, build emits no
+`wasi:logging` import and deploy sets annotation `di-framework.dev/logs: "false"`. Guest console
+lines are not published. Host WARN/ERROR lines for that workload still are, including a failed
+start; the console still marks the failure. Omitting the flag or setting `true` keeps logs on.
 
 ## Native service bindings
 
@@ -142,8 +165,8 @@ includes services resolved at module startup.
 
 These WIT package versions are independent of both the framework version and the WASI 0.3
 component-model preview. The bindings consume services. The platform can provision Redis and
-NATS through [BackingService requests](backing-services.md); other backends still require
-infrastructure provisioning. Application host configuration must match the guest imports.
+NATS, blobstore, and dedicated PostgreSQL through [BackingService requests](backing-services.md).
+Application host configuration must match the guest imports.
 `configFrom` references a ConfigMap and `secretFrom` references a Kubernetes Secret. For capabilities that use a Secret,
 an omitted `secretFrom` defaults to `<application>-<binding>`. Keep credentials out of inline
 `config` and project files.
@@ -177,7 +200,7 @@ compatibility layer inside QuickJS, with a different filesystem and process mode
 | API | Guest behavior |
 | --- | --- |
 | `node:path`, `Buffer` | Provided through the Node compatibility preset. |
-| `node:fs` | In-memory filesystem; missing files report `ENOENT`. Selected project config files are seeded at build time. Writes do not establish durable storage. |
+| `node:fs` | In-memory except under the storage mount (`/data`, or `DI_STORAGE_DIR`), which uses the host preopen. Missing files report `ENOENT`; selected project config files are seeded at build time. |
 | `process`, `node:module` | Guest-shaped environment and working directory; `createRequire` reports `MODULE_NOT_FOUND`. |
 | `node:net`, `node:dgram` | TCP, UDP, and name lookup over WASI 0.3 sockets. |
 | `node:http` | HTTP/1.1 over the TCP implementation, including chunked request and response bodies and upgrade support. |
@@ -206,8 +229,9 @@ WASI DNS lookups require an explicit project allowlist:
 }
 ```
 
-The deployer writes this list to the component's `localResources.allowedIpNameLookups`.
-Omission leaves the host's default denial in place. Socket, clock, randomness, and TLS imports
+On targets without a `hostgroup`, deploy writes this list to
+`localResources.allowedIpNameLookups`. Tenant targets request platform-approved egress instead
+(see below). Omission leaves default denial in place. Socket, clock, randomness, and TLS imports
 are runtime WASI capabilities, not wasmCloud `hostInterfaces`.
 
 TLS requires a host with the opt-in `wasi-tls` feature: Wasmtime 48 with
@@ -233,10 +257,24 @@ req.on('timeout', () => req.destroy(new Error('HTTPS request timed out')));
 req.on('error', (error) => console.error(error));
 ```
 
+### Tenant egress and TLS
+
 Native `OutgoingHttp` requests separately require the destination in the workload component's
-`localResources.allowedHosts`. The binding does not grant egress access. Framework project
-configuration does not yet expose that field; the [kube deployment helper](kube.md#outgoing-http-permissions)
-applies an endpoint-specific grant after deployment.
+`localResources.allowedHosts`. The binding does not grant egress access. For the
+admin-namespace fixture, the
+[kube deployment helper](kube.md#outgoing-http-permissions) patches that field after deployment.
+
+On a tenant target (`hostgroup` set), deploy does not write `allowedHosts` or
+`allowedIpNameLookups` onto the WorkloadDeployment. It turns project `allowedIpNameLookups` into
+BackingService `<deployment>-egress` (`spec.type: egress`) and a ServiceBinding. The controller
+patches both allow-lists after approval through platform `egressAllowedDestinations` (empty
+approves nothing). `"*"` is rejected. Deploy succeeds when the service is `NotApproved`, but
+outbound connections remain blocked until approved. See [Egress](backing-services.md#egress).
+
+Stock `ghcr.io/wasmcloud/wash:<version>` has no `wasi:tls` provider. Tenant hosts need an image
+whose tag contains `wasi-tls`, selected with `tenantHostImage`. The platform example builds
+`deploy/tenant-host` locally with wash 2.8.0 plus `wasi-tls`; no published ghcr TLS image is
+available here. Deploy warns rather than fails when the tenant host image tag lacks `wasi-tls`.
 
 ## Local development
 
@@ -280,6 +318,11 @@ namespace = "wasmcloud"
 push = "https://registry.example.com/team"
 pull = "registry.internal.example.com/team"
 insecure = false
+
+[targets.warehouse]
+kubeconfig = "${WAREHOUSE_KUBECONFIG}"
+tenant = "warehouse"
+registry = "registry.example.com/warehouse"
 ```
 
 - `di-framework platform deploy` with no name uses the nearest `di-framework.config.json`.
@@ -297,6 +340,18 @@ Optional `[discovery]` `include` / `exclude` glob lists refine the search. Direc
 A missing or malformed manifest reports `WASMCLOUD_DEPLOY_MANIFEST_NOT_FOUND` or
 `WASMCLOUD_DEPLOY_MANIFEST_INVALID` and exits `2`.
 
+### Targets and tenants
+
+A target is one `[targets.<name>]` table: credential, namespace, host group, and registry.
+A tenant is the platform isolation unit: workload namespace `di-tenant-<t>`, runtime namespace
+`di-runtime-<t>`, and host group `tenant-<t>`. One tenant can have several targets, for example
+one per user. A target points at no tenant or exactly one.
+
+`tenant = "<t>"` fills `namespace = "di-tenant-<t>"` and `hostgroup = "tenant-<t>"`; explicit
+`namespace` or `hostgroup` overrides the fill-in. An external target needs `kubeconfig`,
+`registry`, and either `tenant` or `namespace`. The `development` example above remains an
+admin/plain-cluster target.
+
 ### Managed Pulumi target
 
 A managed target has `platform` (a directory inside the workspace that contains `Pulumi.yaml`) and
@@ -307,7 +362,6 @@ the wasmCloud platform:
 
 ```bash
 di-framework platform cluster init
-di-framework platform cluster up local --yes
 ```
 
 `cluster init` writes `deploy/platform` and creates or updates `di-framework.deploy.toml` so
@@ -315,7 +369,7 @@ di-framework platform cluster up local --yes
 left alone unless you pass `--force` / `-f`. When it finishes it prints the exact start command:
 
 ```text
-di-framework platform cluster up local --yes
+di-framework platform cluster up --yes
 ```
 
 The generated `index.ts` imports `@di-framework/platform/local`; its `package.json` pins the
@@ -331,7 +385,30 @@ loopback ports are Kubernetes `26443`, registry `25000`, and HTTP `28180`; confi
 The generated Pulumi project provisions only platform concerns. It must not contain application
 names, component builds, Kubernetes Services for apps, or `WorkloadDeployment` objects.
 
-The local entrypoint creates Docker resources for k0s, its network, and persistent volumes.
+Choose the local engine before the first `pulumi up`: `containerCli` defaults to `docker`
+and accepts `podman` or another Docker-compatible CLI. In `deploy/platform`, for example:
+
+```bash
+cd deploy/platform
+pulumi config set containerCli podman
+pulumi config set --path 'registryMirrors["docker.io"][0]' https://mirror.gcr.io
+```
+
+`registryMirrors` maps registry hosts to ordered mirror URLs. containerd tries those mirrors
+in order, then falls back upstream. Set mirrors before the first `pulumi up` too. Switching
+engines or changing mirrors requires destroying and deploying the platform again, removing
+cluster state. Declare a tenant and user in that same stack, then start from the workspace root:
+
+```bash
+pulumi config set --path 'tenants[0].name' meshtastic
+pulumi config set --path 'users[0].name' dev
+pulumi config set --path 'users[0].memberships[0].tenant' meshtastic
+pulumi config set --path 'users[0].memberships[0].role' developer
+cd ../..
+di-framework platform cluster up --yes
+```
+
+The local entrypoint creates container-engine resources for k0s, its network, and persistent volumes.
 Once k0s yields a kubeconfig, the shared implementation provisions the registry as a Kubernetes
 Deployment and Service and installs the operator through Pulumi `kubernetes.helm.v3.Release`
 (`oci://ghcr.io/wasmcloud/charts/runtime-operator`). Kube's existing-cluster profile leaves
@@ -351,13 +428,15 @@ The CLI reads a small output contract from `pulumi stack output --json`:
 | `namespace` | yes | Kubernetes namespace for workloads |
 | `registry` | yes | OCI registry prefix, or `{ push, pull, insecure }` transport object |
 | `context` | no | kubectl context |
+| `kubeconfigs` | no | Secret tenant credentials: `{ [tenant]: { [user]: string } }`. |
+| `routeUrlPattern` | no | Tenant gateway URL template. |
 | `endpoints.http` / `endpoints.kubernetes` / `endpoints.registry` | no | optional URLs |
 
 Provision and tear down that stack explicitly. Application `destroy` never runs `pulumi destroy`.
 
 ```bash
-di-framework platform cluster up local --yes
-di-framework platform cluster destroy local --yes
+di-framework platform cluster up --yes
+di-framework platform cluster destroy --yes
 ```
 
 `--yes` skips the Pulumi confirmation prompt on `cluster up` and `cluster destroy`.
@@ -379,7 +458,8 @@ A stack that has not been deployed, or whose outputs do not match the contract, 
 ### Existing cluster
 
 When kubeconfig and a registry are already available, declare an **external** target with only
-access information: `kubeconfig`, `namespace`, and `registry`, plus optional `context`. Deploy:
+access information: `kubeconfig`, `registry`, and either `tenant` or `namespace`, plus optional
+`context` and `hostgroup`. Deploy:
 
 ```bash
 export KUBECONFIG="$HOME/.kube/config"
@@ -393,6 +473,69 @@ The registry object separates the address used by ORAS to push from the address 
 cluster to pull. A string registry remains supported. An `http://` push URL or `insecure = true`
 enables ORAS plain HTTP for that target. See [Kubernetes with di-framework-kube](kube.md) for
 an external-target workflow using a loopback publisher and an in-cluster registry service.
+
+## Tenant kubeconfigs and HTTP gateway
+
+The controller writes a long-lived ServiceAccount token Secret per user membership. After
+`pulumi up`, both platform entrypoints export secret `kubeconfigs`; previews do not read token
+Secrets. Upgrading an installation whose users are already Ready can require a second
+`pulumi up` after the controller creates their Secrets. From the platform stack directory,
+write only the intended user's tenant credential (requires `jq`):
+
+```bash
+pulumi stack output kubeconfigs --show-secrets | jq -r '.meshtastic.dev' > tenant.kubeconfig
+chmod 600 tenant.kubeconfig
+```
+
+Set `KUBECONFIG` to the absolute path of that file. From the application workspace, declare
+an external tenant target in `di-framework.deploy.toml` (use the platform registry output):
+
+```toml
+default-target = "meshtastic"
+
+[targets.meshtastic]
+kubeconfig = "${KUBECONFIG}"
+tenant = "meshtastic"
+
+[targets.meshtastic.registry]
+push = "http://127.0.0.1:25000"
+pull = "di-framework-registry.wasmcloud.svc.cluster.local:5000"
+insecure = true
+```
+Do not distribute the admin kubeconfig. These credentials use ServiceAccount tokens, not an
+identity provider. `di-framework-kube` does not yet re-export `kubeconfigs` or `routeUrlPattern`;
+use the platform stack directly for credentials.
+
+Tenant HTTP uses the gateway on the published HTTP port, without a port-forward of `svc/di-http`.
+`routeUrlPattern` defaults locally to `http://{host}.{tenant}.localhost:<httpPort>`; the CLI local
+port is **28180**, for example `http://mesh-site.meshtastic.localhost:28180/`. `*.localhost`
+resolves to loopback. The controller publishes ConfigMap `di-platform-routes` with
+`data.urlTemplate` in each tenant namespace. Other Host values still reach the default host
+group. Gateway requests cannot reach `/_di/*` (`DI_CONTROL_REJECT_FORWARDED=1`). Kube's default
+HTTP port remains **28080**; see its [release limitation](kube.md#tenant-http-gateway).
+
+## Console
+
+With a tenant target selected as `default-target`:
+
+```bash
+di-framework platform console
+di-framework platform console --port 8790
+```
+
+The console is a loopback control panel for one tenant credential, with no login. It refuses
+the platform admin kubeconfig. A viewer sees the same screens and cannot change them. Without
+`--port`, the OS picks a free port; the process prints `Console listening on <url>`, including
+when stdout is redirected. `--port 8790` pins the port.
+
+Applications show workloads of services and components, route links to the gateway URL,
+environment, bindings, and logs. Routes can be turned on or off without rebuilding. Bindings
+“Class” means the backing-service class (for example `blobstore-nats`), not the capability.
+Refresh reloads the open application; the service list polls until Ready. When setting an
+environment variable, choose the part that receives it. On a narrow window, choosing a section
+closes the navigation. The dashboard and Logs show host start failures and mark failed workloads.
+The create form omits egress because it does not collect destinations; bind egress from the
+Bindings tab for single-part applications only.
 
 ## Control HTTP
 
@@ -439,8 +582,9 @@ decorators.
 
 Generated guests import WASI SQLite, export `wasi:http/handler`, and `pump()` jobs on control
 HTTP (`/_di/queues/`) rather than starting poll loops. Public ingress is omitted. The workload
-uses `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, and
-`QUEUE_DB_PATH=/data/queue.db`. A ClusterIP Service still exists for control routes. Queue retry
+uses `replicas: 1`, `deployPolicy: Recreate`, and `QUEUE_DB_PATH=/data/queue.db`. Targets
+without a `hostgroup` use the `storage` pool and hostPath; tenant targets use
+[platform-managed workload storage](#deployed-storage). A ClusterIP Service still exists for control routes. Queue retry
 requires `admin`; see [Control HTTP](#control-http).
 
 See [Queues](queues.md#platform-workers).
@@ -455,7 +599,8 @@ The extension does not scan `.static()` mounts. Package files on the build host 
 ## Actors
 
 Carry a local actor into a **single-host** wasmCloud workload. Mailboxes live in the guest.
-SQLite files live on a hostPath volume. Multi-host relocation is not implemented; see
+SQLite files live on platform-managed tenant storage, or a hostPath volume for targets without
+a `hostgroup`. Multi-host relocation is not implemented; see
 [remote actors](actors-distributed.md) for the out-of-band ownership protocol.
 
 The [wasmcloud-actor-counter example](https://github.com/di-framework/examples/tree/main/platform/wasmcloud-actor-counter)
@@ -492,7 +637,7 @@ See [Control HTTP](#control-http). Error JSON uses stable `error.name`; handler 
 
 ### Deployed storage
 
-Generated `WorkloadDeployment`:
+Generated `WorkloadDeployment` on a target without a `hostgroup`:
 
 - `spec.replicas: 1` (any other value throws `WASMCLOUD_STORAGE_REPLICA_CONSTRAINT`)
 - `deployPolicy: Recreate` — drain in-flight calls and release the volume before the new
@@ -501,7 +646,16 @@ Generated `WorkloadDeployment`:
 - hostPath `/var/lib/di-framework/storage/<wit-name>` mounted at `/data/actors`
 - Env: `ACTOR_STORAGE_DIR=/data/actors`
 
-There is no PersistentVolumeClaim. Process restart on the same hostPath keeps SQLite files.
+On a tenant target (`hostgroup` set), actors, queues, workers, and `persistentStorage: true`
+do not ship a hostPath. The controller creates
+`<storageRoot>/di-tenants/<tenant uid>/workloads/<workload>`, shared by members of one
+`di-framework.dev/workload` and private to that tenant. The host preopen mounts this directory
+for guest filesystem access; actor storage remains at `/data/actors`. `replicas: 1` and
+`deployPolicy: Recreate` still apply. Targets without a `hostgroup` keep the host path under
+`/var/lib/di-framework/storage` on the `storage` pool.
+
+There is no PersistentVolumeClaim for workload storage. Process restart on the same directory
+keeps SQLite files.
 **Host loss loses the files** unless the operator backs that directory. Multi-replica and
 multi-host failover are not supported with this storage.
 
@@ -534,7 +688,8 @@ For the selected project the extension:
    `kubectl`, and waits until the workload is ready.
 
 For the generated Pulumi platform, call an app with
-`curl -H 'Host: greeter' http://127.0.0.1:28180/`. The kube platform uses port `28080` by default.
+`curl -H 'Host: greeter' http://127.0.0.1:28180/`. This curl selects the default host group; tenant workloads use the
+`{host}.{tenant}.localhost` gateway URL. The kube platform uses port `28080` by default.
 Readiness does not prove a service binding works: follow deployment with requests that exercise
 the actual backend, as in the [kube smoke checks](kube.md#verification).
 
@@ -552,11 +707,11 @@ di-framework platform doctor
 ```
 
 `doctor` verifies the project loads and probes the local toolchain: Bun, Node.js,
-`@di-framework/core` and `@di-framework/http` resolvable from the project, Pulumi, Docker, kubectl,
+`@di-framework/core` and `@di-framework/http` resolvable from the project, Pulumi, Docker or Podman, kubectl,
 and oras. JSON `data` lists every check with its result; any failed check exits `1`.
 
 Bun runs the CLI, but `jco` itself requires a real Node.js installation on `PATH` — `build`, `dev`,
-and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker are needed for
+and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker or Podman are needed for
 `cluster up` and `cluster destroy`. kubectl and oras are needed for application `deploy` and
 `destroy`.
 

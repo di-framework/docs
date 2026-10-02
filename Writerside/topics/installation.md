@@ -144,7 +144,13 @@ Install platform and AI extensions with `di-framework extensions install platfor
 `di-framework extensions install ai`. Platform commands use the `platform` group (including
 `platform cluster` for managed Pulumi targets). See [AI CLI](ai-cli.md) and
 [Platform](platform.md). Sample apps live in
-[di-framework/examples](https://github.com/di-framework/examples).
+[di-framework/examples](https://github.com/di-framework/examples), including
+[platform-examples](deployment.md#one-command-local-platform-example) for a single-command
+local platform deploy. This is distinct from kube
+[examples-apps](kube.md#deploy-the-examples), its application verification workspace.
+
+The local platform release adds blobstore, egress, tenant kubeconfigs, and the gateway;
+publication is pending. Keep the existing 6.0.1 platform install pins until approval.
 
 ## Optional Packages
 
@@ -170,7 +176,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/bindings` | [Native service bindings](platform.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
 | `@di-framework/cli-plugin-platform` | [Platform](platform.md) — WASI 0.3 build, development, and deployment extension |
 | `@di-framework/cli-plugin-ai` | [AI CLI](ai-cli.md) — `ai agent` and `ai skills` |
-| `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, and PostgreSQL backing services](backing-services.md) used by kube and the platform CLI |
+| `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, blobstore, PostgreSQL, and egress backing services](backing-services.md), tenant kubeconfigs, and the HTTP gateway used by kube and the platform CLI |
 | `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |
 
 For a local Kubernetes platform and live service-binding examples, use the separate

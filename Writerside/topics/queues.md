@@ -208,8 +208,11 @@ Implemented deploy path:
 - Generated module constructs `WasmSqliteQueueBackend` and **`pump()`s** on control HTTP
   (request-scoped Wasm tasks do not start `setTimeout` poll loops)
 - Control prefix `/_di/queues/` for list, enqueue, inspect, and retry
-- Workload `replicas: 1`, `deployPolicy: Recreate`, `hostgroup: storage`, hostPath volume,
-  `QUEUE_DB_PATH=/data/queue.db`, `DI_SQLITE_BACKEND=wasm`
+- Workload `replicas: 1`, `deployPolicy: Recreate`, `QUEUE_DB_PATH=/data/queue.db`,
+  `DI_SQLITE_BACKEND=wasm`; `hostgroup: storage` and the hostPath under
+  `/var/lib/di-framework/storage` apply only to targets without a `hostgroup`. Tenant targets
+  use the [platform-managed workload directory](platform.md#deployed-storage), shared by
+  workload members and private to the tenant.
 - Public ingress is omitted for workers; a ClusterIP Service still exists for control HTTP
 - List / enqueue / inspect require `invoke`; retry requires `admin`
 

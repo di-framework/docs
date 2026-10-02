@@ -1,7 +1,7 @@
 # Platform backing services
 
-In **6.0**, tenant developers request independent Redis, NATS, and dedicated PostgreSQL
-instances through `di-framework platform service`. `@di-framework/platform` publishes from
+With the local platform release, tenant developers request Redis, NATS, blobstore, dedicated PostgreSQL, and egress
+services through `di-framework platform service`. `@di-framework/platform` publishes from
 [di-framework/platform](https://github.com/di-framework/platform) and installs their Kubernetes
 APIs, provisions the backends, and projects connection configuration for bindings. The CLI
 commands live in `@di-framework/cli-plugin-platform` from
@@ -9,14 +9,16 @@ commands live in `@di-framework/cli-plugin-platform` from
 
 Redis and NATS requests, and the `BackingService` / `ServiceBinding` APIs, landed in **5.3.6**.
 Dedicated PostgreSQL and `Postgres` `serviceName` wiring ship in **6.0**. Use platform **6.0.1**
-(or newer 6.x) with the CLI extension from the same major line.
+with the CLI extension from the same major line. Blobstore, egress, tenant kubeconfigs, and
+the gateway arrive with the release containing the local platform work; publication is pending.
+Keep the 6.0.1 install pin until publish is approved and use built local packages to verify additions.
 
-## What changed in 5.3.6
+## Resources and capabilities
 
 | Resource | Scope | Purpose |
 | --- | --- | --- |
 | `BackingServiceClass` | Cluster | Administrator-owned provider, sizing defaults, limits, and tenant visibility. |
-| `BackingService` | Tenant namespace | Request an independent `keyvalue` (Redis), `messaging` (NATS), or `postgres` instance. `postgres` is a 6.0 capability. |
+| `BackingService` | Tenant namespace | Request `keyvalue` (Redis), `messaging` (NATS), `blobstore`, `postgres`, or `egress`. |
 | `ServiceBinding` | Tenant namespace | Associate a binding name with a service and create protected host configuration. |
 
 All three use `apiVersion: platform.di-framework.dev/v1alpha1`. The release adds their
@@ -46,8 +48,10 @@ select the platform package through [kube's existing instance](kube.md#build-and
 avoid creating a second stack for the same cluster.
 
 The administrator must have declared the tenant and granted the caller a developer membership.
-A User declaration does not issue a kubeconfig; credential issuance remains an administrator
-operation. See [tenants and users](kube.md#tenants-and-users).
+The controller issues a ServiceAccount token per membership; the platform secret output
+`kubeconfigs` provides tenant kubeconfigs after `pulumi up`. See
+[tenant kubeconfigs](platform.md#tenant-kubeconfigs-and-http-gateway). Distribute the tenant
+credential, never the admin kubeconfig. The kube CLI does not yet re-export that output.
 
 Service commands use `kubectl` with the credentials resolved from the selected
 [`di-framework.deploy.toml` target](platform.md#deployment-manifest). They create custom
@@ -59,7 +63,7 @@ default-target = "alpha"
 
 [targets.alpha]
 kubeconfig = "${KUBECONFIG}"
-namespace = "di-tenant-alpha"
+tenant = "alpha"
 registry = "registry.example.test/team"
 ```
 
@@ -82,6 +86,9 @@ di-framework platform service get stock --target alpha --json
 | --- | --- | --- | --- |
 | `keyvalue` | `keyvalue-redis` | Redis | `128Mi` memory, `250m` CPU, `1Gi` storage parameter |
 | `messaging` | `messaging-nats` | NATS with JetStream | `128Mi` memory, `250m` CPU, `1Gi` storage parameter |
+| `blobstore` | `blobstore-nats` | NATS JetStream object store | `128Mi` memory, `250m` CPU, `1Gi` storage parameter |
+| `postgres` | `postgres-dedicated` | PostgreSQL 18 | `512Mi` memory, `250m` CPU, `1Gi` PVC |
+| `egress` | `egress-public` | Approved outbound destinations | No backend instance |
 
 Names contain lowercase letters and digits separated by hyphens, start with a letter, and have
 at most 40 characters. `create` requires a type and `--name`; it rejects an existing name.
@@ -105,14 +112,16 @@ listing does not prove those classes are installed or that the caller can use th
 
 ### Class configuration and limits
 
-Platform installation seeds `keyvalue-redis`, `messaging-nats`, and `postgres-dedicated` by
+Platform installation seeds `keyvalue-redis`, `messaging-nats`, `blobstore-nats`,
+`postgres-dedicated`, and `egress-public` by
 default. The Pulumi `seedDefaultBackingClasses` setting disables automatic seeding when
 `false`; `backingServiceClasses` supplies named class declarations that replace matching
 defaults or add classes. Classes support `AllTenants` and `SelectedTenants` visibility; the
 latter uses `allowedTenants`.
 
 5.3.6 admission accepted only `keyvalue-redis` and `messaging-nats`. 6.0 also accepts
-`postgres-dedicated`. Adding another class name still does not make it usable by tenant
+`postgres-dedicated`; the local platform release adds `blobstore-nats` and `egress-public`.
+Adding another class name still does not make it usable by tenant
 requests. Administrators can adjust the approved classes' sizing and visibility while
 retaining their names.
 
@@ -121,8 +130,8 @@ parameter. Requests must also fit the tenant's CPU and memory budget. Tenant res
 `backingServices` and `serviceBindings` cap custom-resource counts, with defaults of 10 and 40.
 Runtime ResourceQuota also covers compute and declares a `50Gi` storage-request budget.
 
-Backends currently use node-local hostPath storage. The storage parameter is validated, but it
-does not allocate a PVC or enforce a filesystem size limit. The storage-request quota does not
+Redis and NATS backends currently use node-local hostPath storage. Their storage parameter is
+validated, but does not allocate a PVC or enforce a filesystem size limit. PostgreSQL uses a PVC. The storage-request quota does not
 limit bytes written to those host paths.
 
 ## Project a binding
@@ -201,6 +210,67 @@ See [Dedicated PostgreSQL](#dedicated-postgresql).
 The Kubernetes `ServiceBinding` resource is also separate from the in-process
 [`@ServiceBinding` decorator](service-bindings.md).
 
+## Blobstore
+
+Create a NATS JetStream object store using the default `blobstore-nats` class:
+
+```bash
+di-framework platform service create blobstore --name catalog --wait
+```
+
+Bind it in the console or apply a ServiceBinding with the tenant kubeconfig:
+
+```yaml
+apiVersion: platform.di-framework.dev/v1alpha1
+kind: ServiceBinding
+metadata:
+  name: catalog-objects
+  namespace: di-tenant-alpha
+spec:
+  serviceName: catalog
+  bindingName: objects
+  capability: blobstore
+```
+
+The guest selects the projected configuration while the host interface stays unnamed:
+
+```typescript
+import { Blobstore, WasmCloudBinding } from '@di-framework/bindings';
+
+@WasmCloudBinding('objects', { configFrom: 'di-binding-objects' })
+export class Objects extends Blobstore {}
+```
+
+Each guest container is its own bucket. Without `configFrom`, wash 2.8 gives each component a
+private in-memory store. Members that share objects must bind a created service; `serviceName`
+on a binding decorator remains PostgreSQL-only. The
+[platform example](deployment.md#one-command-local-platform-example) shares `mesh-objects`
+between the collector and site. NATS blobstore needs more than the `128Mi` default under write
+churn; that example requests `512Mi` (`--memory 512Mi` when creating a service manually).
+
+## Egress
+
+Request destinations with repeatable `--destination`:
+
+```bash
+di-framework platform service create egress --name outbound \
+  --destination api.example.com:443 --destination '*.example.org'
+di-framework platform service get outbound
+```
+
+Accepted forms are `host`, `*.suffix`, `host:port`, and `*.suffix:port`. Platform
+`egressAllowedDestinations` controls approval; its empty default approves nothing. `get` shows
+requested destinations, approved `host:port` entries, and Ready. Bind the service through a
+ServiceBinding with `capability: egress`, `bindingName: egress`, and `workloadName` identifying
+the WorkloadDeployment, or use the console Bindings tab for a single-part application. The
+console create form does not collect destinations and therefore omits egress.
+
+On a tenant target, deploy turns `allowedIpNameLookups` into `<deployment>-egress` and its
+ServiceBinding, refuses to adopt resources it did not create, and updates or removes its own
+requests as configuration changes. An unapproved request does not fail deploy; outbound remains
+blocked until approval. See [tenant egress and TLS](platform.md#tenant-egress-and-tls) for the
+allow-list mapping and tenant host requirements.
+
 ## Tenant restrictions
 
 The tenant is the authorization boundary. Developer memberships can create, update, and delete
@@ -210,7 +280,7 @@ per-workload access; a Redis prefix is a key-naming convention, not authorizatio
 
 Kubernetes admission control checks requests before accepting them. Platform policies enforce
 ownership labels, approved classes, and same-namespace service references. Tenant workloads may
-use restricted `wasi` HTTP/config interfaces and `wasmcloud` keyvalue/messaging interfaces with
+use restricted `wasi` HTTP/config interfaces and `wasmcloud` keyvalue/messaging/blobstore/PostgreSQL interfaces with
 controller-managed references. Arbitrary backend URLs, user-supplied backend references, and
 host-volume mounts are rejected. Stock keyvalue and default NATS retain transitional exceptions;
 the stock ConfigMap cannot select a messaging backend.

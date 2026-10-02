@@ -413,7 +413,7 @@ typed package API is extended first.
 - [Installation](installation.md) - Core package and CLI setup
 - [Quick Start](quick-start.md) - Basics after scaffolding
 - [Platform](platform.md) - Build and deploy apps as WebAssembly components
-- [Platform backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis/NATS requests
+- [Platform backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis, NATS, blobstore, PostgreSQL, and egress requests; `platform console` opens the tenant panel
 - [Kubernetes with di-framework-kube](kube.md) - Separate platform CLI and live example deployment workflow
 - [HTTP Router](http-router.md) - HTTP routing, OpenAPI generation, and static assets
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)

@@ -23,6 +23,10 @@ DI Framework **6** with `@di-framework/bindings` and `@di-framework/cli-plugin-p
 configuration, secrets, key-value, blobstore, messaging, outgoing HTTP, Node compatibility,
 and additional verification apps for static assets, actors, cron, queues, and migrations.
 
+The release containing the local platform work adds blobstore, egress, tenant kubeconfigs,
+and the HTTP gateway. Publication is pending; keep the existing **6.0.1** install pins until
+approved and use a locally built platform package to verify these additions.
+
 ## Build and start the platform
 
 Container mode supports macOS and Linux on amd64 and arm64. Install a running container engine
@@ -47,11 +51,33 @@ package build or tarball is required.
 The default instance is `local`. Its dedicated kubeconfig selects the cluster independently of
 your current kubectl context. `outputs` returns the kubeconfig path, namespace, and HTTP
 and Kubernetes endpoints. Workload HTTP listens on `http://127.0.0.1:28080`, forwarded to
-the default host group through NodePort `30080`. HTTP routing uses the request's Host header.
+the default host group through NodePort `30080` with the pinned release. Tenant workloads
+use their own entrypoint; a platform build with the gateway routes them by tenant hostname
+on the published port, as described below.
 
 Re-running `up` updates the instance's existing Pulumi stack. Tool prerequisites are checked
 before creating Kubesolo. Platform commands do not require standalone `helm` or `kubectl`;
 the example deployment workflow uses `kubectl`.
+
+### Tenant HTTP gateway
+
+After installing a platform build containing the HTTP gateway, tenant workloads use
+`http://<route-host>.<tenant>.localhost:<http-port>/`, for example
+`http://mesh-site.meshtastic.localhost:28080/`. `*.localhost` resolves to loopback. Kube's
+published port stays **28080** unless `--http-port` changes; the CLI local platform uses **28180**.
+The platform output `routeUrlPattern` describes this URL, but `internal/platform/pulumi.go`
+does not yet re-export it or `kubeconfigs` through the kube wrapper.
+
+Until that platform release is installed, use this fallback with the administrator credential:
+
+```bash
+KUBECONFIG="$(./bin/di-framework-kube kubeconfig --name local)" \
+  kubectl -n di-runtime-alpha port-forward svc/di-http 28190:80
+curl -H 'Host: mesh-site' http://127.0.0.1:28190/
+```
+
+With the gateway installed, tenant apps need no `svc/di-http` port-forward. Curls below with
+`Host: greeter` against `127.0.0.1:28080` remain for the default host group.
 
 ## Platform state and ownership
 
@@ -93,8 +119,12 @@ Supply a JSON file with `--platform-config` to declare tenants and their users:
 
 The shared platform provisions tenant namespaces, runtimes, Redis/NATS backends, and RBAC.
 It reports Tenant/User readiness through their custom resources. A declaration for `alice`
-creates the Kubernetes service account and membership bindings; it does not issue a kubeconfig
-or configure an identity provider. Credential issuance remains an administrator operation.
+creates the ServiceAccount and membership bindings. The controller writes a long-lived token
+Secret per membership, and the platform secret output `kubeconfigs` issues one kubeconfig per
+membership after `pulumi up`. The kube CLI does not yet re-export that output; use the
+[platform stack output](platform.md#tenant-kubeconfigs-and-http-gateway). This is credential
+issuance through ServiceAccount tokens, not an identity provider. Give users their tenant
+kubeconfig, never the platform admin kubeconfig.
 
 Updates that omit `--platform-config` preserve existing declarations. Supplying the file
 replaces the declared tenant/user configuration; use explicit empty arrays when clearing it.
@@ -102,10 +132,18 @@ The file also accepts these platform settings:
 
 | Setting | Purpose |
 | --- | --- |
-| `tenantHostImage` | Runtime image for tenant hosts. |
+| `tenantHostImage` | Runtime image for tenant hosts; select a locally built wash 2.8.0 image with `wasi-tls` for TLS guests, as in `platform-examples/deploy/tenant-host`. No published ghcr TLS tag is available here. |
 | `tenantHostImagePullPolicy` | Kubernetes pull policy for that image. |
 | `storageRoot` | Node-local root for tenant data. |
+| `kubernetesEndpoint` | API URL for tenant kubeconfigs; kube supplies the selected cluster endpoint. |
+| `httpEndpoint` | Published HTTP URL; kube supplies its loopback HTTP endpoint. |
+| `routeUrlPattern` | Platform gateway template; the existing-cluster entrypoint can derive it from a loopback `httpEndpoint`. |
+| `egressAllowedDestinations` | Approved outbound destinations; empty approves nothing. |
 | `networkPolicyEngine` | `kube-router` installs the policy-only controller; `existing` uses a controller already supplied by the cluster. |
+
+These are shared platform settings. The kube wrapper does not yet pass `routeUrlPattern`
+through or re-export `routeUrlPattern` / `kubeconfigs`. `containerCli` is a local k0s entrypoint
+setting; kube selects its container engine through `DI_CONTAINER_CLI` instead.
 
 Managed Kubesolo uses the shared package's pinned kube-router **2.10.0** controller in
 policy-only mode, preserving its bridge networking and service proxy. External clusters default
@@ -271,10 +309,11 @@ localResources:
     - http://binding-echo:8080
 ```
 
-Without this grant the runtime returns `HTTP-request-denied`. Project configuration does not yet
-expose `allowedHosts`, so the helper applies it after application deployment and before live
-health checks. WASI socket DNS permissions instead use the project's `allowedIpNameLookups`; the
-two settings serve different networking paths.
+Without this grant the runtime returns `HTTP-request-denied`. This admin-namespace fixture
+is not a tenant target, so the helper patches `allowedHosts` after deployment and before health
+checks. On non-tenant targets, socket DNS permissions use project `allowedIpNameLookups`. On
+tenant targets, that setting instead becomes an [egress BackingService](backing-services.md#egress);
+the controller patches the networking allow-lists after approval.
 
 ## Verification
 
