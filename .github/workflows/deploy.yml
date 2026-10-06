@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     outputs:
       main_sha: ${{ steps.sync.outputs.main_sha }}
       should_deploy: ${{ steps.sync.outputs.should_deploy }}
@@ -74,6 +75,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           VERSION: ${{ steps.release.outputs.version }}
           SNAPSHOT_SHA: ${{ steps.release.outputs.snapshot_sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           result="$(bun scripts/sync-supported-version.ts supported-versions.json "$VERSION")"
@@ -97,7 +99,32 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add supported-versions.json
             git commit -m "chore(docs): track framework v$VERSION"
-            git push origin HEAD:main
+
+            # main only accepts pull requests. Squash-merge the selector update
+            # and skip the follow-up push workflow; this run publishes that commit.
+            track_branch="chore/track-framework-v${VERSION}"
+            git push --force origin "HEAD:refs/heads/${track_branch}"
+            pr_number="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$track_branch" --state open --json number --jq '.[0].number // empty')"
+            if [[ -z "$pr_number" ]]; then
+              gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$track_branch" \
+                --title "chore(docs): track framework v${VERSION}" \
+                --body "Updates the published snapshot selector to @di-framework/core v${VERSION}."
+              pr_number="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$track_branch" --state open --json number --jq '.[0].number // empty')"
+            fi
+            if [[ -z "$pr_number" ]]; then
+              echo "::error::could not open a pull request for ${track_branch}"
+              exit 1
+            fi
+            gh pr merge "$pr_number" --repo "$GITHUB_REPOSITORY" --squash --delete-branch \
+              --subject "chore(docs): track framework v${VERSION} [skip ci]" \
+              --body "Update the published snapshot selector to @di-framework/core v${VERSION}."
+            merged_sha="$(gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')"
+            if [[ -z "$merged_sha" ]]; then
+              echo "::error::selector pull request #$pr_number did not produce a merge commit"
+              exit 1
+            fi
+            git fetch origin "$merged_sha"
+            git checkout --detach "$merged_sha"
             changed=true
           fi
 
