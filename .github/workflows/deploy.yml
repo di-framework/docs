@@ -100,8 +100,9 @@ jobs:
             git add supported-versions.json
             git commit -m "chore(docs): track framework v$VERSION"
 
-            # main only accepts pull requests. Squash-merge the selector update
-            # and skip the follow-up push workflow; this run publishes that commit.
+            # main only accepts pull requests. Squash-merge the selector update here.
+            # This token does not start CI on that pull request, and main does not
+            # require those checks, so this run publishes the merge commit itself.
             track_branch="chore/track-framework-v${VERSION}"
             git push --force origin "HEAD:refs/heads/${track_branch}"
             pr_number="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$track_branch" --state open --json number --jq '.[0].number // empty')"
@@ -115,9 +116,34 @@ jobs:
               echo "::error::could not open a pull request for ${track_branch}"
               exit 1
             fi
-            gh pr merge "$pr_number" --repo "$GITHUB_REPOSITORY" --squash --delete-branch \
-              --subject "chore(docs): track framework v${VERSION} [skip ci]" \
-              --body "Update the published snapshot selector to @di-framework/core v${VERSION}."
+            merge_selector() {
+              gh pr merge "$pr_number" --repo "$GITHUB_REPOSITORY" --squash --delete-branch \
+                --subject "chore(docs): track framework v${VERSION} [skip ci]" \
+                --body "Update the published snapshot selector to @di-framework/core v${VERSION}."
+            }
+            if ! merge_selector; then
+              while IFS= read -r thread_id; do
+                [[ -z "$thread_id" ]] && continue
+                gh api graphql -f id="$thread_id" -f query='
+                  mutation($id: ID!) {
+                    resolveReviewThread(input: {threadId: $id}) { thread { isResolved } }
+                  }'
+              done < <(gh api graphql \
+                -f owner="${GITHUB_REPOSITORY%%/*}" \
+                -f name="${GITHUB_REPOSITORY#*/}" \
+                -F number="$pr_number" \
+                -f query='
+                  query($owner: String!, $name: String!, $number: Int!) {
+                    repository(owner: $owner, name: $name) {
+                      pullRequest(number: $number) {
+                        reviewThreads(first: 100) {
+                          nodes { id isResolved }
+                        }
+                      }
+                    }
+                  }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id')
+              merge_selector
+            fi
             merged_sha="$(gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')"
             if [[ -z "$merged_sha" ]]; then
               echo "::error::selector pull request #$pr_number did not produce a merge commit"
