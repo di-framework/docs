@@ -161,6 +161,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | --- | --- |
 | `@di-framework/cli` | [CLI](cli.md) |
 | `@di-framework/tsc` | [Runtime type checks](tsc.md) (default in `init`) |
+| `@di-framework/biome` | [Biome plugins](biome.md) — GritQL rules for framework mistakes |
 | `@di-framework/codegen` | [Schema codegen](codegen.md) — `di-framework generate` surfaces from schema manifests |
 | `@di-framework/repo` | [Repositories](repositories.md), including the [wasmCloud PostgreSQL codec](repositories.md#wasmcloud-postgresql-values) |
 | `@di-framework/http` | [HTTP Router](http-router.md) |

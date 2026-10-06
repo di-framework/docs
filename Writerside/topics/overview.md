@@ -32,6 +32,7 @@ Published docs at [docs.di-framework.dev](https://docs.di-framework.dev) include
 - **Unified CLI**: `di-framework` is the only public executable. Built-in application, HTTP, and monorepo commands ship in `@di-framework/cli`. Agent configuration and Agent Skills commands install as `@di-framework/cli-plugin-ai` (`di-framework ai`) from [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions).
 - **Schema codegen**: `@di-framework/codegen` turns versioned schema manifests into validation helpers, `@Controller` routes with OpenAPI `@Endpoint` metadata, `@EventBridge` routes, and opt-in RPC services and AI tools, with an ownership ledger and CI drift check (`di-framework generate`).
 - **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).
+- **Biome plugins**: `@di-framework/biome` flags framework mistakes in Biome — removed decorators and packages, binding secrets, cron expressions, and decorator compiler flags. See [Biome plugins](biome.md).
 - **Platform backing services**: Tenant-scoped Redis, NATS, blobstore, dedicated PostgreSQL, and egress through `BackingService` requests, with protected `ServiceBinding` configuration. Redis and NATS landed in 5.3.6; PostgreSQL, blobstore, egress, tenant kubeconfigs, and the HTTP gateway ship in the published platform 6.x line (current release **6.0.7**). See [backing services](backing-services.md).
 - **WebAssembly deployment**: Build WASI 0.3 HTTP components with `@di-framework/cli-plugin-platform` (`di-framework platform`) and consume native service bindings from `@di-framework/bindings`. Both publish at 6.x. The [kube platform](kube.md) provides a local cluster and live verification examples.
 
@@ -126,6 +127,7 @@ userService.getUser('123');
 - [CLI](cli.md) - Complete command tree, output contract, and package ownership
 - [Deployment](deployment.md) - Cloud Foundry, Cloudflare Workers, the platform, and local Kubernetes with di-framework-kube
 - [Runtime type checks](tsc.md) - Emit-time parameter guards (`@di-framework/tsc`; wired by `init`)
+- [Biome plugins](biome.md) - GritQL rules for framework mistakes (`@di-framework/biome`)
 - [Schema codegen](codegen.md) - Generate HTTP, event, RPC, and tool surfaces from schema manifests (`@di-framework/codegen`)
 - [HTTP Router](http-router.md) - Type-safe routes and OpenAPI generation
 - [GraphQL](graphql.md) - Domain classes as a GraphQL schema

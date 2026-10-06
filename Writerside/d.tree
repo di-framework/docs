@@ -19,6 +19,7 @@
         <toc-element topic="kube.md"/>
     </toc-element>
     <toc-element topic="tsc.md"/>
+    <toc-element topic="biome.md"/>
     <toc-element topic="codegen.md"/>
     <toc-element topic="repositories.md"/>
     <toc-element topic="http-router.md"/>
