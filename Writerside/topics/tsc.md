@@ -110,4 +110,5 @@ Class-typed parameters use `instanceof` when the checker can name an accessible 
 
 - [CLI](cli.md) - Complete command tree, output contract, and package ownership
 - [Installation](installation.md) - Core package setup
+- [Biome plugins](biome.md) - Source checks for framework mistakes
 - [Best Practices](best-practices.md) - Recommended patterns

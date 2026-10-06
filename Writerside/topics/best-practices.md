@@ -393,5 +393,6 @@ stop();
 
 ## Next Steps
 
+- [Biome plugins](biome.md) - Catch framework mistakes in `biome check`
 - [Testing](testing.md) - Learn how to test services effectively
 - [Error Handling](error-handling.md) - Handle errors properly

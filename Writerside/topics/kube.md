@@ -4,9 +4,10 @@
 its wasmCloud platform through the shared `@di-framework/platform` TypeScript/Pulumi package.
 The [platform CLI extension](platform.md#managed-pulumi-target) uses the same package for its
 local k0s platform. Operator configuration, Tenant/User CRDs, the tenancy controller, admission
-policies, and HTTP routing come from one implementation. `@di-framework/platform` **6.0.1**
-publishes from [di-framework/platform](https://github.com/di-framework/platform) and includes
-[requestable Redis, NATS, and dedicated PostgreSQL backing services](backing-services.md).
+policies, and HTTP routing come from one implementation. `@di-framework/platform` publishes from
+[di-framework/platform](https://github.com/di-framework/platform). The current release, **6.0.7**,
+includes [Redis, NATS, blobstore, dedicated PostgreSQL, and egress](backing-services.md), tenant
+kubeconfigs, and the HTTP gateway.
 
 Kubesolo creation and deletion remain owned by `di-framework-kube`. Application builds and
 deployments remain owned by the framework extension and use an external target in
@@ -15,24 +16,20 @@ use. Its embedded Helm client is retained for status inspection and legacy clean
 installations and updates run through Pulumi.
 
 The kube CLI's built-in defaults are Kubesolo **1.2.0**, wasmCloud runtime operator **2.8.0**,
-and the `@di-framework/platform` version compiled into that CLI (override with
-`--platform-package`, for example `@di-framework/platform@6.0.1`). The
-[kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) uses
+and `@di-framework/platform@6.0.2` (override with `--platform-package`; ranges are rejected).
+Pass `@di-framework/platform@6.0.7` for the published blobstore, egress, kubeconfig, and gateway
+behavior. The [kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) uses
 DI Framework **6** with `@di-framework/bindings` and `@di-framework/cli-plugin-platform`
 (`di-framework platform` commands). It includes fifteen HTTP apps covering PostgreSQL,
 configuration, secrets, key-value, blobstore, messaging, outgoing HTTP, Node compatibility,
 and additional verification apps for static assets, actors, cron, queues, and migrations.
-
-The release containing the local platform work adds blobstore, egress, tenant kubeconfigs,
-and the HTTP gateway. Publication is pending; keep the existing **6.0.1** install pins until
-approved and use a locally built platform package to verify these additions.
 
 ## Build and start the platform
 
 Container mode supports macOS and Linux on amd64 and arm64. Install a running container engine
 (Docker or Podman), Node.js, npm, and the Pulumi CLI. Source builds also require Go 1.26+.
 When both Docker and Podman are installed, set `DI_CONTAINER_CLI=podman` if Podman should run
-Kubesolo containers and build the optional TLS host image.
+Kubesolo containers. `up` imports the published wasi-tls host image; it does not compile wash.
 Use a kube build containing the [shared-platform integration](https://github.com/di-framework/kube/pull/6);
 older Helm-only builds do not expose `--platform-package` or `--platform-config`.
 
@@ -132,7 +129,7 @@ The file also accepts these platform settings:
 
 | Setting | Purpose |
 | --- | --- |
-| `tenantHostImage` | Runtime image for tenant hosts; select a locally built wash 2.8.0 image with `wasi-tls` for TLS guests, as in `platform-examples/deploy/tenant-host`. No published ghcr TLS tag is available here. |
+| `tenantHostImage` | Runtime image for tenant hosts. When omitted, `up` pins `ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:ee89fd4bce4f9f35f4cd09c63d3cbdd07bea3071b5d372f82c9f49b9741c3669`. Set this to override that digest. |
 | `tenantHostImagePullPolicy` | Kubernetes pull policy for that image. |
 | `storageRoot` | Node-local root for tenant data. |
 | `kubernetesEndpoint` | API URL for tenant kubeconfigs; kube supplies the selected cluster endpoint. |
@@ -411,7 +408,7 @@ npm pack --pack-destination /tmp
 
 # In the kube checkout:
 ./bin/di-framework-kube up --name shared-test --http-port 28089 \
-  --platform-package file:/tmp/di-framework-platform-6.0.1.tgz
+  --platform-package file:/tmp/di-framework-platform-6.0.7.tgz
 ```
 
 Use the filename produced by `npm pack` if its version differs. Regular installs use npm.

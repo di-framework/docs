@@ -8,10 +8,10 @@ commands live in `@di-framework/cli-plugin-platform` from
 [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions).
 
 Redis and NATS requests, and the `BackingService` / `ServiceBinding` APIs, landed in **5.3.6**.
-Dedicated PostgreSQL and `Postgres` `serviceName` wiring ship in **6.0**. Use platform **6.0.1**
-with the CLI extension from the same major line. Blobstore, egress, tenant kubeconfigs, and
-the gateway arrive with the release containing the local platform work; publication is pending.
-Keep the 6.0.1 install pin until publish is approved and use built local packages to verify additions.
+Dedicated PostgreSQL and `Postgres` `serviceName` wiring ship in **6.0**. Blobstore, egress,
+tenant kubeconfigs, and the gateway are in the published **6.x** line, current release
+**6.0.7**, with `@di-framework/cli-plugin-platform` **6.0.8**. `di-framework-kube` still
+installs `@di-framework/platform@6.0.2` unless you pass `--platform-package`.
 
 ## Resources and capabilities
 
@@ -31,14 +31,14 @@ Deployments, Services, and connection Secrets live in `di-runtime-alpha`. A serv
 
 ## Prepare the platform and target
 
-Use `@di-framework/platform` **6.0.1** and `@di-framework/cli-plugin-platform` **6.x**.
+Use `@di-framework/platform` **6.0.7** and `@di-framework/cli-plugin-platform` **6.x**.
 Updating application packages alone does not update the platform controller or CRDs.
 An administrator must update the platform package and apply the existing Pulumi stack. For
 an extension-managed project:
 
 ```bash
 cd deploy/platform
-npm install --save-exact @di-framework/platform@6.0.1
+npm install --save-exact @di-framework/platform@6.0.7
 pulumi preview --stack dev
 ```
 
