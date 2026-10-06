@@ -12,11 +12,11 @@ lifecycle is `platform cluster up` and `platform cluster destroy`.
 di-framework extensions install platform
 ```
 
-The release containing the local platform work adds tenant kubeconfigs, the HTTP gateway,
-blobstore, egress, and the console behavior described below. Publication is pending; keep the
-existing **6.0.1** install pins until publish is approved. For local verification, use the built
-platform and CLI extension checkouts; these additions are not an instruction to install an
-unpublished npm version.
+`@di-framework/platform` **6.0.7** and `@di-framework/cli-plugin-platform` **6.0.8** include
+tenant kubeconfigs, the HTTP gateway, blobstore, egress, and the console behavior described
+below. `di-framework-kube` still installs `@di-framework/platform@6.0.2` unless you pass
+`--platform-package @di-framework/platform@6.0.7`. See
+[Kubernetes with di-framework-kube](kube.md).
 
 The extension mounts one command group:
 
@@ -66,14 +66,14 @@ As with every extension, the commands follow the [CLI contract](cli.md): the sam
 
 ## Backing services
 
-`@di-framework/platform` **6.0** provisions independent Redis, NATS, and dedicated PostgreSQL
-instances from tenant `BackingService` requests and projects `ServiceBinding` configuration into
-protected ConfigMaps and Secrets. Use `platform service` to create and inspect requests. The
-controller owns provisioning; CLI commands use the target kubeconfig and Kubernetes RBAC.
+`@di-framework/platform` **6.x** provisions independent Redis, NATS, blobstore, dedicated
+PostgreSQL, and approved egress from tenant `BackingService` requests and projects
+`ServiceBinding` configuration into protected ConfigMaps and Secrets. Use `platform service` to
+create and inspect requests. The controller owns provisioning; CLI commands use the target
+kubeconfig and Kubernetes RBAC.
 
-The upcoming release also adds blobstore and egress requests. Dedicated PostgreSQL requests
-and `serviceName` wiring on a `Postgres` binding are supported; blobstore uses `configFrom`.
-See [Platform backing services](backing-services.md).
+Dedicated PostgreSQL requests and `serviceName` wiring on a `Postgres` binding are supported;
+blobstore uses `configFrom`. See [Platform backing services](backing-services.md).
 
 ## Project convention
 
@@ -174,7 +174,9 @@ an omitted `secretFrom` defaults to `<application>-<binding>`. Keep credentials 
 For PostgreSQL, configure the native host's connection through `WASH_POSTGRES_URL` and select
 the database with the binding's `config.database`. A Secret reference on the binding alone
 does not configure that host connection. See the [working PostgreSQL example](kube.md#postgresql-binding)
-for provisioning and verification.
+for provisioning and verification. Tag query parameters and decode result cells with
+[`@di-framework/repo/postgres`](repositories.md#wasmcloud-postgresql-values). The host binds
+parameters in binary, so an untagged value is rejected when the column type differs.
 
 ### Host interface discovery
 
@@ -210,6 +212,7 @@ compatibility layer inside QuickJS, with a different filesystem and process mode
 | `node:tls` | Client `connect` / `TLSSocket` over `wasi:tls/client@0.3.0-draft`, including STARTTLS on an existing `node:net` socket. Requires a TLS-enabled host. Guest `createServer` is unsupported. |
 | `node:https` | HTTP/1.1 `request` / `get` and an Agent over the TLS implementation; requests wait for verified `secureConnect` before sending. Incoming HTTPS terminates at host ingress. |
 | `node:child_process` | Remains an unenv mock. |
+| Fetch globals | `Request`, `Response`, `URL`, `URLSearchParams`, `Headers`, and `FormData` when the host global is missing or incomplete. `URLSearchParams` treats `+` as a space, and `set`, `append`, and `delete` write back to `URL.search`. `FormData` supports `request.formData()` and `multipart/form-data` posts, including file parts. `Headers` provides `keys`, `values`, and `getSetCookie`. Guest `POST` bodies complete on the WASI HTTP 0.3 body future. |
 
 Text encoding and Fetch globals initialize before application imports. The bundler lowers
 async functions and `for await` loops to instrumented Promise continuations; native
@@ -271,10 +274,14 @@ patches both allow-lists after approval through platform `egressAllowedDestinati
 approves nothing). `"*"` is rejected. Deploy succeeds when the service is `NotApproved`, but
 outbound connections remain blocked until approved. See [Egress](backing-services.md#egress).
 
-Stock `ghcr.io/wasmcloud/wash:<version>` has no `wasi:tls` provider. Tenant hosts need an image
-whose tag contains `wasi-tls`, selected with `tenantHostImage`. The platform example builds
-`deploy/tenant-host` locally with wash 2.8.0 plus `wasi-tls`; no published ghcr TLS image is
-available here. Deploy warns rather than fails when the tenant host image tag lacks `wasi-tls`.
+Stock `ghcr.io/wasmcloud/wash:<version>` has no `wasi:tls` provider. The default tenant host
+image is
+`ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:ee89fd4bce4f9f35f4cd09c63d3cbdd07bea3071b5d372f82c9f49b9741c3669`,
+with pull policy `IfNotPresent`. `tenantHostImage` overrides that reference.
+`di-framework-kube up` writes the same digest when the platform config omits `tenantHostImage`.
+The [platform-examples](deployment.md#one-command-local-platform-example) stack still builds wash
+and pushes that image into its cluster registry. Deploy warns rather than fails when the tenant
+host image tag lacks `wasi-tls`.
 
 ## Local development
 

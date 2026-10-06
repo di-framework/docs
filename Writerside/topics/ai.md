@@ -9,7 +9,8 @@ Spring AI–aligned chat, tools, RAG, MCP, and agents for TypeScript. Portable m
 - **Prototype builder**: inject `AiTokens.CHAT_CLIENT_BUILDER` (fresh per resolve), like Spring’s `ChatClient.Builder`.
 - **Providers**: `OpenAiChatModel` and `AnthropicChatModel` over `fetch` — no official SDKs.
   `createChatModel()` selects API or CLI subscription access (OpenAI, Anthropic, xAI, and
-  subscription-only CLIs).
+  subscription-only CLIs). `WorkersAiChatModel` and `WorkersAiEmbeddingModel` call a Cloudflare
+  Workers AI binding. `VectorizeVectorStore` queries a Vectorize index.
 - **Tools**: `functionToolCallback`, method-level `@Tool` on DI beans, automatic tool-calling loops.
 - **Structured output**: JSON Schema converters and `call().entity(...)`.
 - **Memory / RAG / MCP / agents**: same runtime as the imperative APIs, annotation-friendly.
@@ -209,7 +210,7 @@ class RememberingBot {
 
 ## RAG
 
-Imperative pieces: `SimpleVectorStore`, `FakeEmbeddingModel` / embedding models, `VectorStoreDocumentRetriever`, `RetrievalAugmentationAdvisor`. Annotation markers (`@VectorStoreAnn`, `@EmbeddingModelAnn`, `@Retriever`, `@IndexedDocument`, `@WithRag`) declare intent for scanning; wire stores and embeddings through `configureAi({ embeddingModel, vectorStore })` or manual registration under `AiTokens`.
+Imperative pieces: `SimpleVectorStore`, `FakeEmbeddingModel` / embedding models, `VectorStoreDocumentRetriever`, `RetrievalAugmentationAdvisor`, plus [`VectorizeVectorStore` and `WorkersAiEmbeddingModel`](#cloudflare-workers-ai-and-vectorize). Annotation markers (`@VectorStoreAnn`, `@EmbeddingModelAnn`, `@Retriever`, `@IndexedDocument`, `@WithRag`) declare intent for scanning; wire stores and embeddings through `configureAi({ embeddingModel, vectorStore })` or manual registration under `AiTokens`.
 
 ## Agents and workflows
 
@@ -341,6 +342,45 @@ new AnthropicChatModel({
 
 Both speak HTTP via `fetch`. Point `baseUrl` at any OpenAI-compatible gateway when needed.
 
+### Cloudflare Workers AI and Vectorize
+
+`WorkersAiChatModel` and `WorkersAiEmbeddingModel` call a Workers AI binding on each request.
+Pass `env.AI`, an `{ binding }` descriptor from
+[`@CloudflareBinding`](cloudflare.md), or a getter so the model can read the env after the
+Worker handler publishes it. The chat default model is `@cf/meta/llama-3.1-8b-instruct`. The
+embedding default is `@cf/baai/bge-base-en-v1.5`.
+
+`VectorizeVectorStore` takes the same three shapes for its Vectorize index, plus an
+`embeddingModel`. Publish the Worker env before the first call. See
+[Cloudflare Workers](cloudflare.md#workers-ai-and-vectorize).
+
+```typescript
+import { configureAi, VectorizeVectorStore, WorkersAiChatModel, WorkersAiEmbeddingModel } from '@di-framework/ai';
+import { getCloudflareBindings, setCloudflareBindings } from '@di-framework/cloudflare';
+
+configureAi({
+  chatModel: new WorkersAiChatModel({
+    binding: () => getCloudflareBindings()?.AI,
+  }),
+});
+
+export default {
+  fetch(_request: Request, env: Record<string, unknown>) {
+    setCloudflareBindings(env);
+    const embeddings = WorkersAiEmbeddingModel.of(() => env.AI);
+    const store = new VectorizeVectorStore({
+      index: () => env.VECTORS,
+      embeddingModel: embeddings,
+    });
+    return new Response(store.name);
+  },
+};
+```
+
+`WorkersAiChatModel.of(binding)` and `WorkersAiEmbeddingModel.of(binding)` are the same
+constructors with the binding argument first. Chat options such as `model`, `temperature`, and
+`maxTokens` pass through to `binding.run`.
+
 ### Select API or subscription access
 
 `createChatModel()` synchronously selects a model. There is no fallback from subscription to API
@@ -449,6 +489,8 @@ Prefer `AiTokens` over ad-hoc strings:
 | `configureAi` / `enableAi` | Bootstrap model, client, builder, annotations, A2A |
 | `ChatClient` / `ChatClientBuilder` | Fluent chat API |
 | `OpenAiChatModel` / `AnthropicChatModel` | HTTP providers |
+| `WorkersAiChatModel` / `WorkersAiEmbeddingModel` | Cloudflare Workers AI bindings |
+| `VectorizeVectorStore` | Cloudflare Vectorize index |
 | `AiService` / `Assistant` / `resolveAiService` | Annotated assistants |
 | `Agent` / `ChatAgentBean` / `resolveAnnotatedAgent` | Annotated agents |
 | `ChatAgent` / `ChatAgent.fromBuilder` | Imperative / builder agents |
@@ -475,7 +517,7 @@ Prefer `AiTokens` over ad-hoc strings:
 2. **Hosting / orchestration platforms** — no LangSmith, Bedrock Agents console, or cloud agent runtimes.
 3. **Full prompt IDE / playground** — library APIs and annotations only.
 4. **Authorization of tool calls** — tools run as wired; gate them in your handlers.
-5. **Persistent vector DBs as first-party drivers** — in-memory / simple store plus interfaces; plug your own `VectorStore`.
+5. **Other persistent vector databases** — first-party stores are in-memory and Cloudflare Vectorize. Plug another database in behind `VectorStore`.
 
 ## Example
 

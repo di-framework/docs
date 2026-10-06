@@ -12,6 +12,7 @@
     <toc-element topic="cli.md"/>
     <toc-element topic="deployment.md">
         <toc-element topic="cloudfoundry.md"/>
+        <toc-element topic="cloudflare.md"/>
         <toc-element topic="platform.md" accepts-web-file-names="wasmcloud.html">
             <toc-element topic="backing-services.md"/>
         </toc-element>

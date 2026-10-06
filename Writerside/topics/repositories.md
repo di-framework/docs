@@ -258,3 +258,43 @@ runner failures exit `1`.
 - wasmCloud does not scan `@Migration` classes at build time; actor migrations run in-guest
   before activation
 
+## wasmCloud PostgreSQL values
+
+`@di-framework/repo/postgres` encodes and decodes `wasmcloud:postgres` `pg-value` variants.
+The host binds parameters in binary, so tag values before `query`. A text payload in a `uuid`
+or `boolean` column is rejected. This module is not a `MigrationRunner` backend: Postgres
+schema history stays in the guest, and the runner's placeholders and transaction handle stay
+SQLite.
+
+```typescript
+import { isUniqueViolation, pgValue, readRows, text } from '@di-framework/repo/postgres';
+
+const parameters = [
+  pgValue('11111111-1111-4111-8111-111111111111'), // uuid
+  text('11111111-1111-4111-8111-111111111111'), // text column that looks like a uuid
+  pgValue(4), // int4
+  pgValue(new Date('2026-10-03T13:04:05.006Z')), // timestamp-tz
+];
+
+const rows = await readRows(queryResult);
+```
+
+Without a tag, `pgValue` infers one: `null` and `undefined` become `null`, a UUID-shaped string
+becomes `uuid`, other strings become `text`, booleans become `bool`, integers in the int4 range
+become `int4`, other safe integers and `bigint` values become `int8`, other finite numbers
+become `numeric`, `Date` becomes `timestamp-tz`, `Uint8Array` becomes `bytea`, and any other
+value becomes `jsonb`. Pass a second argument (`'text'`, `'uuid'`, `'bool'`, `'int4'`, `'int8'`,
+`'float8'`, `'numeric'`, `'timestamp-tz'`, `'bytea'`, or `'jsonb'`), or use `text`, `uuid`,
+`int8`, or `float8`, when the column type differs. `int8` keeps a `bigint` so values above 2^53
+are not rounded.
+
+`pgScalar` turns one result cell into a JSON value. `readRows` reads the column list and row
+stream from a query result and throws on an `err` variant. `assertBatch` throws when a batch
+result is an `err` variant. `postgresError` normalizes a binding failure into an `Error` whose
+message starts with `PostgreSQL`. `isUniqueViolation` is true for Postgres `23505` and for an
+error message that contains `duplicate key`.
+
+The same functions are re-exported by the portable wasmCloud build, which is what the
+`wasmcloud` export condition on `@di-framework/repo` selects. Import `@di-framework/repo/postgres`
+from application code. Shipped in `@di-framework/repo` **6.0.4**.
+

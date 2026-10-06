@@ -28,11 +28,11 @@ Published docs at [docs.di-framework.dev](https://docs.di-framework.dev) include
 - **Scheduling**: `@Cron` runs DI-managed methods on a 5-field expression or millisecond interval; wasmCloud deployments disable in-process timers and apply Kubernetes CronJobs.
 - **Durable queues**: `@di-framework/queues` persists jobs with at-least-once delivery, retries, and dead-letter inspection.
 - **Actors**: `@di-framework/actors` provides a local virtual-actor runtime with serialized mailboxes and typed references. No Wasm host is required for local use.
-- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`. Both publish at 6.x from [di-framework/ai](https://github.com/di-framework/ai) and peer `@di-framework/core@^5`.
+- **AI**: Annotation-driven chat, tools, RAG, MCP, and agents with `@di-framework/ai` (OpenAI-compatible and Anthropic HTTP adapters, plus Cloudflare Workers AI and Vectorize). Agent Skills (`SKILL.md`), plugin discovery (`.agents/plugins`), and the skills toolbox live in `@di-framework/ai-utils`. Both publish at 6.x from [di-framework/ai](https://github.com/di-framework/ai) and peer `@di-framework/core@^5`.
 - **Unified CLI**: `di-framework` is the only public executable. Built-in application, HTTP, and monorepo commands ship in `@di-framework/cli`. Agent configuration and Agent Skills commands install as `@di-framework/cli-plugin-ai` (`di-framework ai`) from [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions).
 - **Schema codegen**: `@di-framework/codegen` turns versioned schema manifests into validation helpers, `@Controller` routes with OpenAPI `@Endpoint` metadata, `@EventBridge` routes, and opt-in RPC services and AI tools, with an ownership ledger and CI drift check (`di-framework generate`).
 - **Runtime type checks**: `ttsc` transform `@di-framework/tsc` injects parameter guards from TypeScript types at emit time (`di-framework init` wires this by default).
-- **Platform backing services**: Tenant-scoped Redis, NATS, blobstore, dedicated PostgreSQL, and egress through `BackingService` requests, with protected `ServiceBinding` configuration. Redis and NATS landed in 5.3.6; PostgreSQL ships in platform 6.0; blobstore and egress arrive with the local platform release awaiting publication. See [backing services](backing-services.md).
+- **Platform backing services**: Tenant-scoped Redis, NATS, blobstore, dedicated PostgreSQL, and egress through `BackingService` requests, with protected `ServiceBinding` configuration. Redis and NATS landed in 5.3.6; PostgreSQL, blobstore, egress, tenant kubeconfigs, and the HTTP gateway ship in the published platform 6.x line (current release **6.0.7**). See [backing services](backing-services.md).
 - **WebAssembly deployment**: Build WASI 0.3 HTTP components with `@di-framework/cli-plugin-platform` (`di-framework platform`) and consume native service bindings from `@di-framework/bindings`. Both publish at 6.x. The [kube platform](kube.md) provides a local cluster and live verification examples.
 
 ## Why Use This Framework?
@@ -124,7 +124,7 @@ userService.getUser('123');
 - [Installation](installation.md) - Set up the framework in your project
 - [Quick Start](quick-start.md) - Learn the basics with simple examples
 - [CLI](cli.md) - Complete command tree, output contract, and package ownership
-- [Deployment](deployment.md) - Cloud Foundry, the platform, and local Kubernetes with di-framework-kube
+- [Deployment](deployment.md) - Cloud Foundry, Cloudflare Workers, the platform, and local Kubernetes with di-framework-kube
 - [Runtime type checks](tsc.md) - Emit-time parameter guards (`@di-framework/tsc`; wired by `init`)
 - [Schema codegen](codegen.md) - Generate HTTP, event, RPC, and tool surfaces from schema manifests (`@di-framework/codegen`)
 - [HTTP Router](http-router.md) - Type-safe routes and OpenAPI generation

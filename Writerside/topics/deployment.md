@@ -6,6 +6,7 @@ WebAssembly components for the platform. Choose the integration that matches the
 | Target | Integration | Use it for |
 | --- | --- | --- |
 | [Cloud Foundry](cloudfoundry.md) | `@di-framework/cloudfoundry` | Discover `VCAP_APPLICATION` and `VCAP_SERVICES`, normalize bound services, and inject them through the DI container. |
+| [Cloudflare Workers](cloudflare.md) | `@di-framework/cloudflare` | Classify Worker bindings, read wrangler declarations, and inject them through the DI container. |
 | [Platform](platform.md) | `@di-framework/cli-plugin-platform` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. Open the tenant console with `platform console`; tenant HTTP uses the gateway URL without a port-forward. |
 | [Kubernetes with di-framework-kube](kube.md) | `di-framework-kube` and the platform extension | Create a local Kubesolo cluster with the wasmCloud operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |
 
@@ -30,8 +31,8 @@ runtime contract.
 resources with `platform service` for Redis, NATS, blobstore, dedicated PostgreSQL, and egress.
 `platform deploy` wires PostgreSQL through `serviceName` and, on tenant targets, egress through
 `allowedIpNameLookups`. Blobstore uses `configFrom`, not `serviceName`; Redis and NATS use
-explicit `ServiceBinding` resources. These local platform additions arrive with the release
-containing this work; publication is pending and existing 6.0.1 pins remain in place.
+explicit `ServiceBinding` resources. Those capabilities are in published `@di-framework/platform`
+**6.0.7**. `di-framework-kube` still installs **6.0.2** unless you pass `--platform-package`.
 
 Application-authored [private service bindings](service-bindings.md) (`@ExportService` /
 `@ServiceBinding`) are a separate in-process contract: callers receive a named DI proxy and do
@@ -58,9 +59,10 @@ eval "$(pulumi stack output console)"
 `pulumi up` starts k0s and the registry, builds `deploy/tenant-host` locally (wash 2.8.0 plus
 `wasi-tls`), creates tenant `meshtastic` and user `dev`, approves MQTT egress, provisions the
 shared `mesh-objects` blobstore, writes the tenant kubeconfig, and deploys both services.
-The first host-image build compiles wash and can take about ten minutes. The deploy vendors
-the platform package until npm publication is approved; do not substitute an unpublished npm
-range or a published ghcr TLS image.
+The first host-image build compiles wash and can take about ten minutes. This example vendors
+`@di-framework/platform` **6.0.2** and pushes its own host image into the cluster registry.
+Other installs use published `@di-framework/platform` **6.0.7** and the
+[default wasi-tls host image](platform.md#tenant-egress-and-tls).
 
 `meshSiteUrl` is `http://mesh-site.meshtastic.localhost:28180/`. The console command prints its
 loopback URL on a free port. Re-running `pulumi up` redeploys changed sources; `pulumi destroy`
@@ -69,6 +71,7 @@ removes the cluster, volumes, network, and generated kubeconfigs.
 ## Next steps
 
 - [Cloud Foundry](cloudfoundry.md) - Connect an application to platform metadata and bound services
+- [Cloudflare Workers](cloudflare.md) - Inject Worker bindings through the DI container
 - [Platform](platform.md) - Build and deploy WebAssembly components
 - [Platform backing services](backing-services.md) - Request Redis, NATS, blobstore, PostgreSQL, and egress services
 - [Kubernetes with di-framework-kube](kube.md) - Deploy examples and verify real service bindings

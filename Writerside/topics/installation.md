@@ -137,7 +137,7 @@ repositories at **6.x**:
 | --- | --- |
 | `@di-framework/core`, `@di-framework/http`, `@di-framework/cli`, and companion core packages | [di-framework/di-framework](https://github.com/di-framework/di-framework) |
 | `@di-framework/ai`, `@di-framework/ai-utils` | [di-framework/ai](https://github.com/di-framework/ai) |
-| `@di-framework/platform`, `@di-framework/bindings`, `@di-framework/cloudfoundry` | [di-framework/platform](https://github.com/di-framework/platform) |
+| `@di-framework/platform`, `@di-framework/bindings`, `@di-framework/cloudfoundry`, `@di-framework/cloudflare` | [di-framework/platform](https://github.com/di-framework/platform) |
 | `@di-framework/cli-plugin-platform`, `@di-framework/cli-plugin-ai` | [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions) |
 
 Install platform and AI extensions with `di-framework extensions install platform` and
@@ -149,8 +149,9 @@ Install platform and AI extensions with `di-framework extensions install platfor
 local platform deploy. This is distinct from kube
 [examples-apps](kube.md#deploy-the-examples), its application verification workspace.
 
-The local platform release adds blobstore, egress, tenant kubeconfigs, and the gateway;
-publication is pending. Keep the existing 6.0.1 platform install pins until approval.
+`@di-framework/platform` **6.0.7** includes blobstore, egress, tenant kubeconfigs, and the HTTP
+gateway. `di-framework-kube` still installs `@di-framework/platform@6.0.2` unless you pass
+`--platform-package`. See [Kubernetes with di-framework-kube](kube.md).
 
 ## Optional Packages
 
@@ -161,7 +162,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/cli` | [CLI](cli.md) |
 | `@di-framework/tsc` | [Runtime type checks](tsc.md) (default in `init`) |
 | `@di-framework/codegen` | [Schema codegen](codegen.md) — `di-framework generate` surfaces from schema manifests |
-| `@di-framework/repo` | [Repositories](repositories.md) |
+| `@di-framework/repo` | [Repositories](repositories.md), including the [wasmCloud PostgreSQL codec](repositories.md#wasmcloud-postgresql-values) |
 | `@di-framework/http` | [HTTP Router](http-router.md) |
 | `@di-framework/graphql` | [GraphQL](graphql.md) |
 | `@di-framework/events` | [Events](events.md) |
@@ -179,6 +180,7 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/cli-plugin-ai` | [AI CLI](ai-cli.md) — `ai agent` and `ai skills` |
 | `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, blobstore, PostgreSQL, and egress backing services](backing-services.md), tenant kubeconfigs, and the HTTP gateway used by kube and the platform CLI |
 | `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |
+| `@di-framework/cloudflare` | [Cloudflare Workers](cloudflare.md) — binding discovery, wrangler config, and DI injection |
 
 For a local Kubernetes platform and live service-binding examples, use the separate
 [di-framework-kube CLI](kube.md). It requires Node.js, npm, and Pulumi, and installs the shared
