@@ -124,24 +124,24 @@ jobs:
             if ! merge_selector; then
               while IFS= read -r thread_id; do
                 [[ -z "$thread_id" ]] && continue
-                gh api graphql -f id="$thread_id" -f query='
-                  mutation($id: ID!) {
-                    resolveReviewThread(input: {threadId: $id}) { thread { isResolved } }
-                  }'
+                gh api graphql -f id="$thread_id" -f query="
+                  mutation(\$id: ID!) {
+                    resolveReviewThread(input: {threadId: \$id}) { thread { isResolved } }
+                  }"
               done < <(gh api graphql \
                 -f owner="${GITHUB_REPOSITORY%%/*}" \
                 -f name="${GITHUB_REPOSITORY#*/}" \
                 -F number="$pr_number" \
-                -f query='
-                  query($owner: String!, $name: String!, $number: Int!) {
-                    repository(owner: $owner, name: $name) {
-                      pullRequest(number: $number) {
+                -f query="
+                  query(\$owner: String!, \$name: String!, \$number: Int!) {
+                    repository(owner: \$owner, name: \$name) {
+                      pullRequest(number: \$number) {
                         reviewThreads(first: 100) {
                           nodes { id isResolved }
                         }
                       }
                     }
-                  }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id')
+                  }" --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id')
               merge_selector
             fi
             merged_sha="$(gh pr view "$pr_number" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')"
