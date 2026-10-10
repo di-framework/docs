@@ -510,7 +510,8 @@ pull = "di-framework-registry.wasmcloud.svc.cluster.local:5000"
 insecure = true
 ```
 Do not distribute the admin kubeconfig. These credentials use ServiceAccount tokens, not an
-identity provider. `di-framework-kube` does not yet re-export `kubeconfigs` or `routeUrlPattern`;
+identity provider. For identity-server login, a per-tenant console, and a tenant registry, see
+[Tenant access and registry](tenant-auth.md). `di-framework-kube` does not yet re-export `kubeconfigs` or `routeUrlPattern`;
 use the platform stack directly for credentials.
 
 Tenant HTTP uses the gateway on the published HTTP port, without a port-forward of `svc/di-http`.
@@ -530,7 +531,9 @@ di-framework platform console
 di-framework platform console --port 8790
 ```
 
-The console is a loopback control panel for one tenant credential, with no login. It refuses
+The console is a loopback control panel for one tenant credential, with no login. The
+in-cluster per-tenant console with identity-server sign-in is separate; see
+[Tenant access and registry](tenant-auth.md). It refuses
 the platform admin kubeconfig. A viewer sees the same screens and cannot change them. Without
 `--port`, the OS picks a free port; the process prints `Console listening on <url>`, including
 when stdout is redirected. `--port 8790` pins the port.
@@ -733,3 +736,4 @@ and `deploy` report `WASMCLOUD_NODE_REQUIRED` without it. Pulumi and Docker or P
 - [Remote actors](actors-distributed.md) - Ownership protocol (not wasmCloud multi-host routing)
 - [Installation](installation.md) - Core package and CLI setup
 - [Kubernetes with di-framework-kube](kube.md) - Local cluster and verified service-binding examples
+- [Tenant access and registry](tenant-auth.md) - Per-tenant controller, console, `di-tenant` login, and tenant registry
