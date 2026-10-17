@@ -139,7 +139,12 @@ The file also accepts these platform settings:
 | `networkPolicyEngine` | `kube-router` installs the policy-only controller; `existing` uses a controller already supplied by the cluster. |
 
 These are shared platform settings. The kube wrapper does not yet pass `routeUrlPattern`
-through or re-export `routeUrlPattern` / `kubeconfigs`. `containerCli` is a local k0s entrypoint
+through or re-export `routeUrlPattern` / `kubeconfigs`. `--platform-config` accepts only `tenants`, `users`,
+`tenantHostImage`, `tenantHostImagePullPolicy`, `networkPolicyEngine`, `storageRoot`, and
+`egressAllowedDestinations`. It rejects `tenantAuth`, so the per-tenant controller, console,
+and registry in
+[Tenant access and registry](tenant-auth.md) are not yet configurable through kube.
+<!-- TODO: confirm whether operators may set tenantAuth on the kube stack directly. --> `containerCli` is a local k0s entrypoint
 setting; kube selects its container engine through `DI_CONTAINER_CLI` instead.
 
 Managed Kubesolo uses the shared package's pinned kube-router **2.10.0** controller in
@@ -416,5 +421,6 @@ Use the filename produced by `npm pack` if its version differs. Regular installs
 ## Next steps
 
 - [Platform](platform.md) - Component builds, binding declarations, runtime behavior, and deployment targets
+- [Tenant access and registry](tenant-auth.md) - Per-tenant auth, gateway routes, tenant registry, and Tenant upgrades
 - [Example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) - Application sources, fixtures, deployment helper, and API checks
 - [Platform README](https://github.com/di-framework/kube/blob/main/README.md) - CLI options, supported modes, and release builds
