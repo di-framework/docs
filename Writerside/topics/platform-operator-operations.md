@@ -30,7 +30,8 @@ kubectl -n team-a patch pi one --type merge -p '{"spec":{"version":"<version>"}}
 kubectl get pi -A
 ```
 
-The next reconcile installs the new version with `Installed` reason `VersionChanged`. While the upgrade
+The next reconcile installs the new version with `Installed` reason `VersionChanged` (or `Retry` if
+the previous install failed: a retry takes precedence over a version change). While the upgrade
 runs, `kubectl get pi` shows the requested version under **Version** and the previous one under
 **Installed**; the Headlamp plugin shows both too. `status.installedVersion` changes only once the install
 succeeds.
@@ -109,8 +110,9 @@ succeeds.
 
 ## When an instance fails {id="when-an-instance-fails"}
 
-When an install or cleanup fails, the failing condition and `Ready` carry the same reason and message
-and `phase` becomes `Failed`. Read them with:
+When the target, an install or a cleanup fails, the failing condition and `Ready` carry the same reason
+and message, and `phase` becomes `Failed`, except while the instance is being deleted: a failed cleanup
+or uninstall leaves it in `Deleting`. Read them with:
 
 ```bash
 kubectl -n team-a get pi one -o jsonpath='{range .status.conditions[*]}{.type}={.status} {.reason}: {.message}{"\n"}{end}'
@@ -118,10 +120,11 @@ kubectl -n team-a get pi one -o jsonpath='{range .status.conditions[*]}{.type}={
 
 | Condition and reason | What it means | What to do |
 | --- | --- | --- |
-| `TargetReady=False`, `ControlPlanePending` or `KubeconfigPending` | The vCluster is still coming up. | Wait; the target is polled every `targetPoll` (10 seconds by default). |
+| `TargetReady=False`, `Creating`, `ControlPlanePending` or `KubeconfigPending` | The vCluster release was just installed (`Creating`, the first reason a new instance shows) or is still coming up. | Wait; the target is polled every `targetPoll` (10 seconds by default). |
 | `TargetReady=False`, `TargetUnreachable` | The vCluster API, named in the message, failed 3 consecutive checks, or a resync has waited more than three repair intervals at the stage the message names. | Check the vCluster pods in the host namespace. An installed instance goes straight back to `Ready` once the target answers. |
 | `TargetReady=False`, `Repairing` | A missing release object is being recreated from the stored release. | Nothing; it clears on its own. |
 | `TargetReady=False`, `RolledBack` | A repair of the vCluster release failed or was interrupted and was rolled back to the last deployed revision. | Nothing; the next round repairs again. |
+| `TargetReady=False`, `TargetError` | Ensuring the target failed; the message names the step and the error. Examples: the vCluster Helm install failed (`install vcluster 0.37.3: …`), the host namespace belongs to another instance, applying the NetworkPolicies or the admission policy failed, or a rollback failed. A release left `pending-install` or `failed` at revision 1 is removed and installed again ("removed it to install again"). | Read the message; check the vCluster release (`helm -n <host-namespace> list -a`) and pods in the host namespace. The operator retries with backoff. |
 | `TargetReady=False`, `KubeconfigMissing` or `Resyncing` | The owner Service or the vCluster's kubeconfig Secret was lost. | See [Owner-Service resync](#owner-service-resync). |
 | `Installed=False`, `InstallFailed` | The Pulumi install or repair failed; the message names the step, the version and the error. | Fix the cause the message names; each install needs egress to npm and the Pulumi plugin host. The operator retries with reason `Retry` and refreshes first. |
 | `Installed=False`, `TenantAuthSecretUnavailable` (also on `ConfigApplied`) | The Secret or key `tenantAuth.clientSecretRef` names can't be read. | Create it in the instance's namespace. The operator doesn't watch Secrets: the next retry picks it up, and the backoff reaches about 16 minutes. On an installed instance the platform keeps serving with the last applied secret meanwhile. |
@@ -157,17 +160,53 @@ If the Service is lost anyway, the operator notices: it records the Service's UI
 
 1. It re-applies the vCluster release if the Service is gone.
 2. It deletes `vcluster-0`, which its StatefulSet recreates, so the syncer writes `vc-vcluster` again and
-   syncs back the virtual objects that still exist. `TargetReady` is `False` with `KubeconfigMissing` for
-   the round that starts it and `Resyncing` after; `status.target.resyncServiceUID` and `resyncStarted`
-   describe the running resync.
+   syncs back to the host the virtual objects that survived. Not everything did: see
+   [What a resync doesn't bring back](#resync-losses). `TargetReady` is `False` with `Resyncing` (or
+   `KubeconfigMissing` on the round that starts a resync because `vc-vcluster` was missing);
+   `status.target.resyncServiceUID` and `resyncStarted` describe the running resync.
 3. Once the control plane, the Secret and the API answer, it reinstalls the platform at once, not at the
    next repair, which recreates the chart-rendered Secrets. That install reports `Installed` reason
    `Resync`. A failed reinstall keeps the resync pending and is retried.
 
 A resync still waiting more than three repair intervals after `resyncStarted` is reported as
-`TargetReady=False`, `TargetUnreachable`, naming the stage it waits at. Secrets that components inside
-the instance generated at runtime (tenant-auth signing keys, for example) are lost for good, so whatever
-they protected (issued tokens, sessions) has to be issued again.
+`TargetReady=False`, `TargetUnreachable`, naming the stage it waits at.
+
+### What a resync doesn't bring back {id="resync-losses"}
+
+A resync restores what the platform installs: the vCluster release, the platform's Helm Release and the
+objects its Pulumi program manages. The platform's own controllers also write some synced objects again
+on their next pass (the tenancy controller reissues `tenant-controller-tls` from its CA, for example).
+Every other ConfigMap and Secret inside the instance that vCluster synced to the host was
+garbage-collected with its host copy, and vCluster deleted the virtual copy too, so it is gone in both
+places and nothing outside the platform creates it again. vCluster (0.37.3, as the operator installs it)
+syncs only the ConfigMaps and Secrets a pod uses (`sync.toHost.configMaps.all` and `secrets.all` are
+`false`), so only those are lost; one no pod uses isn't affected:
+
+- **ConfigMaps and Secrets that pods use and that you or your tenants created inside the instance**,
+  with `kubectl` against an instance or tenant kubeconfig, with your own Helm charts or manifests, or by
+  any controller other than the platform. Pods that mount one stay in `ContainerCreating`
+  (`MountVolume.SetUp failed … configmap … not found`) until it is applied again, and whatever depends
+  on those pods stays down with them. For example, an OIDC issuer run inside the instance loses its
+  ConfigMap, the issuer pod never starts, and tenant-console, which waits for OIDC discovery of
+  `tenantAuth.issuer`, keeps restarting until the ConfigMap is applied again.
+- **Secrets that a component inside the instance generated at runtime and that a pod mounts** (a
+  workload's own keys or credentials, for example). They aren't in any chart or Pulumi program: they are
+  lost for good, and whatever they protected (issued tokens, sessions) has to be issued again.
+
+So:
+
+- Keep what the platform depends on outside the instance: run the OIDC issuer named by
+  `tenantAuth.issuer` (and any other service the platform or your tenants need) in the host cluster or
+  elsewhere, not inside the instance. The tenant-auth OAuth client secret is safe: the operator reads it
+  from `clientSecretRef` in the PlatformInstance's namespace and the Pulumi program writes the copy,
+  `platform-operator-tenant-auth`, again.
+- Keep the manifests for anything you create inside an instance, and apply them again once the resync
+  is done (`Ready=True`, with `Installed` at reason `Resync`).
+
+Deleting only `vc-vcluster` (`KubeconfigMissing`) restarts the syncer without touching
+`service/vcluster`, so nothing is garbage-collected and nothing else is lost. The admission policy above
+makes losing the owner Service possible only when the policy is bypassed or unavailable; this section
+describes what happens then.
 
 ## Back up the operator state
 

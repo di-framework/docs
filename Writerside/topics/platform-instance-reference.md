@@ -152,7 +152,7 @@ that Secret. The value never reaches the CR, its status, events or the operator 
 | `resyncServiceUID` | string | Set while a resync is running: the UID of the `service/vcluster` it restarted the vCluster control plane for. |
 | `resyncStarted` | date-time | When the running resync restarted the vCluster control plane. |
 
-## Conditions
+## Conditions {id="conditions"}
 
 | Type | True when |
 | --- | --- |
@@ -168,13 +168,15 @@ When an install, an uninstall or a cleanup fails, the failing condition and `Rea
 | Condition | Status | Reason | Meaning |
 | --- | --- | --- | --- |
 | `TargetReady` | True | `Ready` | The target cluster answers. |
+| `TargetReady` | False | `Creating` | The vCluster release was just installed; the control plane comes up next. The first reason a new instance shows, with `Ready=False`, `TargetPending` and `phase: Provisioning`. |
 | `TargetReady` | False | `ControlPlanePending` | The vCluster StatefulSet isn't ready. |
 | `TargetReady` | False | `KubeconfigPending` | vCluster's kubeconfig Secret doesn't exist yet. |
 | `TargetReady` | False | `KubeconfigMissing` | The Secret existed and was deleted; a resync starts. |
 | `TargetReady` | False | `Repairing` | A missing release object is being recreated. |
 | `TargetReady` | False | `RolledBack` | A failed or interrupted repair was rolled back to the last deployed revision. |
-| `TargetReady` | False | `Resyncing` | A resync is running after the owner Service changed. |
+| `TargetReady` | False | `Resyncing` | A resync is running: the owner Service was replaced, or it continues one started by `KubeconfigMissing`. |
 | `TargetReady` | False | `TargetUnreachable` | The Secret exists but the vCluster API, named in the message, failed 3 consecutive checks; or a resync has waited more than three repair intervals. |
+| `TargetReady` | False | `TargetError` | Ensuring the target failed without a reason of its own (for example the vCluster Helm install failed, or a release left `pending-install` or `failed` at revision 1 was removed to install again); the message names the step and the error, and the operator retries with backoff. `phase` becomes `Failed`. |
 | `TargetReady` | False | `TargetDeleteFailed` | Deleting the target failed during deletion. |
 | `Installed` | True | `FirstInstall`, `VersionChanged`, `SpecChanged`, `Retry`, `RepairDue`, `Resync` | Why the last successful install or repair ran. |
 | `Installed` | False | `InstallFailed` | The install or repair failed; the message names the step, version and error. |
