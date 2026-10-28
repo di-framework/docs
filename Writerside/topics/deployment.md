@@ -9,6 +9,7 @@ WebAssembly components for the platform. Choose the integration that matches the
 | [Cloudflare Workers](cloudflare.md) | `@di-framework/cloudflare` | Classify Worker bindings, read wrangler declarations, and inject them through the DI container. |
 | [Platform](platform.md) | `@di-framework/cli-plugin-platform` | Build a di-framework HTTP application as a WASI 0.3 component, develop locally, and deploy from a workspace `di-framework.deploy.toml` manifest. Open the tenant console with `platform console`; tenant HTTP uses the gateway URL without a port-forward. |
 | [Kubernetes with di-framework-kube](kube.md) | `di-framework-kube` and the platform extension | Create a local Kubesolo cluster with the wasmCloud operator and verify deployed apps against PostgreSQL, Redis, NATS, configuration, secrets, and HTTP services. |
+| [Platform operator](platform-operator.md) | `platform-operator` Helm chart and Headlamp plugin | Run isolated copies of the platform as `PlatformInstance` resources, each in its own vCluster on a KubeSolo host, and manage them from `kubectl` or Headlamp. |
 
 The Cloud Foundry package configures an application at runtime; the platform CLI and manifest
 remain responsible for pushing it. The platform extension provides its build, development,
