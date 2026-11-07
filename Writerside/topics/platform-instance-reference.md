@@ -151,9 +151,9 @@ that Secret. The value never reaches the CR, its status, events or the operator 
 | Field | Type | Description |
 | --- | --- | --- |
 | `serviceUID` | string | UID of the vCluster's `service/vcluster` when the platform was last installed or resynced. vCluster makes that Service the owner of every object it syncs into the host namespace, so a different UID means the synced state was garbage-collected and the instance needs a [resync](platform-operator-operations.md#owner-service-resync). |
-| `resyncServiceUID` | string | Set while a resync is running: the UID of the `service/vcluster` it restarted the vCluster control plane for. A resync after the host namespace was deleted starts with the marker `"host-namespace-deleted"` instead, while the namespace terminates and until the vCluster created again in its place has a `service/vcluster`; the field then holds that Service's UID. |
-| `resyncStarted` | date-time | When the running resync restarted the vCluster control plane (or started after host namespace deletion). |
-| `resyncCause` | string | Set while a resync that follows the loss of the target cluster is running: the reason that started it, such as `HostNamespaceDeleted` (describing the automatic target resync, with `Ready` and `TargetReady` messages prefixed by `host namespace was deleted` until the instance is `Ready` again, when it is cleared). A resync after a deleted `service/vcluster` leaves `resyncCause` empty. |
+| `resyncServiceUID` | string | Set while a resync is running: the UID of the `service/vcluster` it restarted the vCluster control plane for. |
+| `resyncStarted` | date-time | When the running resync started. |
+| `resyncCause` | string | Set while a resync that follows the loss of the target cluster is running: the reason that started it, such as `HostNamespaceDeleted` (cleared once the instance is `Ready` again). A resync after a deleted `service/vcluster` leaves `resyncCause` empty. |
 
 ## Conditions {id="conditions"}
 
@@ -175,7 +175,7 @@ When an install, an uninstall or a cleanup fails, the failing condition and `Rea
 | `TargetReady` | False | `ControlPlanePending` | The vCluster StatefulSet isn't ready. |
 | `TargetReady` | False | `KubeconfigPending` | vCluster's kubeconfig Secret doesn't exist yet. |
 | `TargetReady` | False | `KubeconfigMissing` | The Secret existed and was deleted; a resync starts. |
-| `TargetReady` | False | `HostNamespaceDeleted` | The host namespace (`pi-<namespace>-<name>-<hash>`) of an instance that had a vCluster is terminating or was deleted out of band, along with the vCluster and its data. The operator emits a `Warning` Event (`HostNamespaceDeleted`), drops the lost cluster's install state, records `status.target.resyncServiceUID: "host-namespace-deleted"` and `status.target.resyncCause: "HostNamespaceDeleted"`, recreates the namespace and vCluster once the old namespace is gone, and runs a fresh `pulumi up`. |
+| `TargetReady` | False | `HostNamespaceDeleted` | The host namespace (`pi-<namespace>-<name>-<hash>`) of an instance that had a vCluster is terminating or was deleted out of band, along with the vCluster and its data. The operator emits a `Warning` Event (`HostNamespaceDeleted`), drops the lost cluster's install state, recreates the namespace and vCluster once the old namespace is gone, and runs a fresh `pulumi up`. |
 | `TargetReady` | False | `HostNamespaceTerminating` | The host namespace of an instance that never had a vCluster is terminating; it is created again once it is gone. |
 | `TargetReady` | False | `Repairing` | A missing release object is being recreated. |
 | `TargetReady` | False | `RolledBack` | A failed or interrupted repair was rolled back to the last deployed revision. |
@@ -210,4 +210,3 @@ for each failure.
 | `platform.di-framework.dev/storage-cleaned` | `PlatformInstance` | operator | The instance UID once its default `storageRoot` was removed; any other value is ignored. |
 | `platform.di-framework.dev/storage-cleanup-failures` | `PlatformInstance` | operator | Count of failed cleanup Jobs, for the retry backoff. |
 | `platform.di-framework.dev/instance` | Host `Namespace` | operator | `<namespace>/<name>` of the `PlatformInstance` that owns `pi-<namespace>-<name>-<hash>`. |
-| `platform.di-framework.dev/resync-restart` | Host `Namespace` | operator | `<service uid>/<pod uid>` recorded before deleting `vcluster-0` for a resync (and cleared once the status write or restart completes), so a reconcile whose status write failed does not restart the control plane a second time. |

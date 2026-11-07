@@ -83,36 +83,6 @@ restart; once `tenant-console-oauth` holds the new value, restart them with the 
 kubectl --kubeconfig instance.kubeconfig -n di-runtime-<tenant> rollout restart deployment/tenant-console
 ```
 
-## Host-namespace isolation {id="host-namespace-isolation"}
-
-vCluster syncs the platform's `NetworkPolicy` objects into the instance's host namespace
-(`pi-<namespace>-<name>-<hash>`), where the host cluster's policy engine enforces them (including narrowed
-`/32` or `/128` Kubernetes API server endpoint egress rather than broad `0.0.0.0/0` RFC1918 egress). To
-isolate the vCluster control plane, CoreDNS, and initial bootstrap traffic, the operator reconciles these
-scoped ingress `NetworkPolicy` objects in every `vcluster` instance's host namespace (labelled
-`app.kubernetes.io/managed-by: platform-operator`):
-
-- `platform-operator-deny-ingress`: default ingress deny selecting every pod in the host namespace.
-- `platform-operator-allow-control-plane`: allows the instance's synced pods to reach the vCluster control
-  plane on TCP port 8443 (`svc/vcluster:443` and `vcluster-node-*` kubelet port `10250`), while synced
-  pods use the platform's narrowed `/32` or `/128` Kubernetes API server endpoint egress rules.
-- `platform-operator-allow-dns`: allows the instance's synced pods to reach the instance's CoreDNS
-  (`k8s-app=kube-dns` in virtual `kube-system`) on UDP and TCP port 53.
-- `platform-operator-allow-platform-nats`: allows the platform namespace's `hostgroup` and
-  `runtime-operator` pods (`vcluster.loft.sh/namespace=wasmcloud`) to reach NATS (`wasmcloud.com/name=nats`)
-  on TCP port 4222 so the initial wasmcloud Helm release becomes Ready before the platform's own
-  `di-platform-nats` policy is created.
-- `platform-operator-allow-issuer` (only when `spec.platform.tenantAuth.issuerUpstream` names a namespace
-  other than `wasmcloud`, `kube-system`, or `di-*`): allows `tenant-auth` pods
-  (`platform.di-framework.dev/component=tenant-auth`) and `di-platform-controller`
-  (`vcluster.loft.sh/namespace=wasmcloud`) to reach pods in the `issuerUpstream` namespace on its port
-  and `issuerUpstreamPodPort`.
-- `platform-operator-allow-same-namespace`: allows the vCluster control plane pods
-  (`app=vcluster,release=vcluster` without `vcluster.loft.sh/managed-by`) to reach every pod in the host
-  namespace for webhook calls, probes, and control-plane traffic.
-- `platform-operator-allow-operator`: allows the operator's own namespace to reach the vCluster API on
-  TCP port 8443.
-
 ## Delete and Retain {id="delete-and-retain"}
 
 `spec.deletionPolicy` decides what `kubectl delete pi` does. You can change it on a live instance before
@@ -200,15 +170,11 @@ If `service/vcluster` is lost anyway, the operator notices: it records the Servi
 `vc-vcluster` is missing, it resyncs:
 
 1. It re-applies the vCluster release if the Service is gone.
-2. It records `platform.di-framework.dev/resync-restart: <service uid>/<pod uid>` on the host namespace
-   (so a reconcile whose status write failed does not restart the control plane a second time), then
-   deletes `vcluster-0`, which its StatefulSet recreates so the syncer writes `vc-vcluster` again and
+2. It deletes `vcluster-0`, which its StatefulSet recreates so the syncer writes `vc-vcluster` again and
    syncs back to the host the virtual objects that survived. Not everything did: see
    [What a resync doesn't bring back](#resync-losses). `TargetReady` is `False` with `Resyncing` (or
    `KubeconfigMissing` on the round that starts a resync because `vc-vcluster` was missing);
-   `status.target.resyncServiceUID` and `resyncStarted` describe the running resync. The
-   `platform.di-framework.dev/resync-restart` annotation is cleared once the status records the resync or
-   the restarted syncer has written `vc-vcluster`.
+   `status.target.resyncServiceUID` and `resyncStarted` describe the running resync.
 3. Once the control plane, the Secret and the API answer, it reinstalls the platform at once, not at the
    next repair: it uninstalls the surviving `wasmcloud` Helm Release inside the vCluster, refreshes the
    stack state, and runs `pulumi up` to reinstall the chart and recreate the chart-rendered
@@ -217,21 +183,16 @@ If `service/vcluster` is lost anyway, the operator notices: it records the Servi
 
 ### Host-namespace deletion resync {id="host-namespace-resync"}
 
-In addition to watching the owner `Service` UID, the controller watches host namespaces
-(`platform.di-framework.dev/host-namespace=true`) and checks on every reconcile whether the target's host
+In addition to watching the owner `Service` UID, the controller checks whether the target's host
 namespace (`pi-<namespace>-<name>-<hash>`) still exists or is terminating:
 
 - **If the host namespace of an instance that had a vCluster was deleted out of band or is terminating**,
-  the vCluster and its data volume are gone with it. The operator immediately sets `TargetReady=False`
-  and `Ready=False` with reason `HostNamespaceDeleted`, emits a `Warning` Event (`HostNamespaceDeleted`),
-  drops the lost cluster's Pulumi install state (which held the old cluster's credentials), and records
-  `status.target.resyncServiceUID: "host-namespace-deleted"` and
-  `status.target.resyncCause: "HostNamespaceDeleted"`. Once the terminating namespace is gone, the
-  operator recreates the host namespace and installs a fresh vCluster (`TargetReady=False` with reason
-  `Resyncing` and `Ready=False` with reason `HostNamespaceDeleted`, both messages prefixed with
-  `host namespace was deleted`), transitions `status.target.resyncServiceUID` to the new
-  `service/vcluster` UID, and runs a fresh `pulumi up` (`Installed` reason `Resync`). Once the install
-  succeeds, `Ready` returns to `True` and `status.target.resyncCause` is cleared.
+  the vCluster and its data volume are gone with it. The operator sets `TargetReady=False`
+  and `Ready=False` with reason `HostNamespaceDeleted`, records
+  `status.target.resyncCause: "HostNamespaceDeleted"`, drops the lost cluster's install state, and—once
+  the terminating namespace is gone—recreates the host namespace, vCluster, and platform install
+  (`Installed` reason `Resync`). Once the install succeeds, `Ready` returns to `True` and
+  `status.target.resyncCause` is cleared.
 - **If the host namespace of an instance that never had a vCluster is terminating**, `TargetReady` is
   `False` with reason `HostNamespaceTerminating` until the namespace finishes terminating and is created
   again.

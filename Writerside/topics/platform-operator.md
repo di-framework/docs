@@ -45,21 +45,14 @@ The operator needs:
 
 ### Outbound traffic {id="outbound-traffic"}
 
-The operator container image bakes one install project at `/opt/platform-operator/project`
-(`--baked-project`): `@di-framework/platform` at the operator's default platform version (**6.0.30** in
-release `v6.0.30`, matching the chart and Headlamp plugin version) installed with `npm ci` against a
-committed lockfile, along with the matching Pulumi resource plugins (`@pulumi/kubernetes`,
-`@pulumi/command`, `@pulumi/random`, and `@pulumi/tls` provider plugins as required by the lockfile) at
-`/opt/platform-operator/pulumi-plugins` (`--baked-plugins`).
+The operator image includes its default `@di-framework/platform` release (**6.0.30** in `v6.0.30`) and
+matching Pulumi resource plugins:
 
-- When `spec.version` matches the operator's default platform version (`6.0.30` in `v6.0.30`), the
-  installer copies the baked `node_modules` into the instance's project on the state volume and links the
-  pre-installed plugins into `$PULUMI_HOME/plugins`. `pulumi up` runs directly from the pre-installed
-  package cache without downloading `@di-framework/platform` from `registry.npmjs.org` or Pulumi plugins
-  from `get.pulumi.com` / `api.github.com`.
-- Outbound access to `registry.npmjs.org` and the Pulumi plugin hosts (`get.pulumi.com` and
-  `api.github.com` / GitHub releases) is only needed when an instance pins a non-default `spec.version`
-  that is not pre-cached in the operator image.
+- When `spec.version` matches the operator's default platform version, `pulumi up` runs from the
+  pre-installed cache without downloading `@di-framework/platform` from `registry.npmjs.org` or Pulumi
+  plugins from `get.pulumi.com` / `api.github.com`.
+- Outbound access to `registry.npmjs.org` and the Pulumi plugin hosts is only needed when an instance
+  pins a non-default `spec.version`.
 
 ## Install the operator
 
@@ -218,13 +211,6 @@ instance's host namespace admits only the operator's namespace to that API. From
 `kubectl port-forward` to `svc/vcluster` in the host namespace (`pi-<namespace>-<name>-<hash>`, annotated
 `platform.di-framework.dev/instance: <namespace>/<name>`) and point the kubeconfig at the local port;
 the proxy certificate names `127.0.0.1` and `localhost`.
-
-For `vcluster` instances, the operator reconciles scoped ingress `NetworkPolicy` objects in the host
-namespace (`platform-operator-deny-ingress`, `platform-operator-allow-control-plane`,
-`platform-operator-allow-dns`, `platform-operator-allow-platform-nats`, `platform-operator-allow-issuer`,
-`platform-operator-allow-same-namespace`, and `platform-operator-allow-operator`) alongside the platform's
-synced policies (which narrow Kubernetes API server egress to `/32` or `/128` endpoints rather than broad
-`0.0.0.0/0` RFC1918 egress). See [Host-namespace isolation](platform-operator-operations.md#host-namespace-isolation).
 
 ### Tenants, users and tenant auth
 
