@@ -34,10 +34,12 @@ di-framework platform
 ├── secrets
 │   ├── list
 │   ├── set
+│   ├── update
 │   └── unset
 ├── vars
 │   ├── list
 │   ├── set
+│   ├── update
 │   └── unset
 ├── console
 ├── service
@@ -61,8 +63,8 @@ di-framework platform
 | `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service` (or delete the controller deployment). Never tears down the platform. |
 | `login` / `logout` / `whoami` | Log in to a tenant controller over `/v1` (OIDC browser PKCE or `--api-key`), revoke a stored credential, or display the authenticated principal and role. |
 | `logs [service]` | Read or follow service logs from the tenant controller over `/v1` (`--env`, `--deployment`, `--follow`, `--since`, `--tail`). |
-| `secrets <list\|set\|unset> [name]` | List, set, or unset environment secrets via the tenant controller `/v1` API (`--env`, `--from-file`, `--value`). |
-| `vars <list\|set\|unset> [name]` | List, set, or unset environment variables via the tenant controller `/v1` API (`--env`, `--from-file`, `--value`). |
+| `secrets <list\|set\|update\|unset> [name]` | List, set, update, or unset environment secrets via the tenant controller `/v1` API (`--env`, `--from-file`, `--value`). |
+| `vars <list\|set\|update\|unset> [name]` | List, set, update, or unset environment variables via the tenant controller `/v1` API (`--env`, `--from-file`, `--value`). |
 | `service create <keyvalue\|messaging\|blobstore\|postgres\|egress> --name <name>` | Request Redis, NATS, blobstore, dedicated PostgreSQL, or approved egress in a tenant namespace. |
 | `console [--port <port>]` | Open the tenant control panel on loopback. |
 | `service list` / `service get <name>` | Inspect BackingService readiness, class, and endpoint summaries. |
@@ -490,7 +492,7 @@ creating cluster or Kubernetes resources:
   `R6` deletes or retains `di-tenant-<t>`, `di-runtime-<t>`, and `di-apikeys-<t>`; `R7` removes
   the Tenant finalizer). If any step does not complete within its deadline (5–15 minutes), the
   Tenant reports `RemovalStuck=True` with the step ID (`R1`–`R7`) and pending resources.
-  Re-adding a tenant whose namespaces were kept by `Retain` fails with `Exists` (`#618`) because
+  Re-adding a tenant whose namespaces were kept by `Retain` fails with `Exists` because
   kept namespaces retain the previous Tenant UID and are never silently adopted; delete or adopt
   the kept namespaces out of band before re-creating the tenant.
 
@@ -570,27 +572,27 @@ controller = "https://acme.controller.localhost:28180"
 env = "prod"
 ```
 
-Controller-backed targets do not use a `kubeconfig` and require no local `kubectl` or `oras` for
-cluster apply when deploying `--bundle` artifacts through `POST /v1/deployments`:
+Controller-backed targets talk only to the tenant controller `/v1` API and the tenant registry, so
+they need no `kubeconfig` or `kubectl`:
 
 ```bash
-di-framework platform login --target acme
+di-framework platform login --target acme --ca-file ./tenant-ca.crt
 di-framework platform whoami --target acme
 di-framework platform build --bundle dist/greeter.bundle.json --target acme --env prod
 di-framework platform deploy greeter --target acme --preview
 di-framework platform deploy greeter --target acme --env prod
 di-framework platform logs greeter --target acme --env prod --follow
-di-framework platform secrets set API_KEY --value "$API_KEY" --target acme --env prod
+di-framework platform secrets set api-key --from-file ./api-key.txt --target acme --env prod
 di-framework platform vars set LOG_LEVEL --value info --target acme --env prod
 di-framework platform logout --target acme
 ```
 
 `login` authenticates via OIDC browser PKCE (or `--api-key <key>`) and stores credentials for the
 tenant account. `build --bundle <out.json>` builds the component, pushes it to the tenant registry
-advertised by the controller, and writes a `DeployBundle` JSON document. `deploy` submits that
-bundle to `POST /v1/deployments` (or previews the plan without applying when `--preview` is passed).
-`secrets <list|set|unset>` and `vars <list|set|unset>` manage per-environment configuration over
-`/v1`, and `logs` streams or queries service logs from the controller.
+advertised by `GET /v1/deploy/registry`, and writes a `DeployBundle` JSON document. `deploy`
+submits that bundle to `POST /v1/deploy` (or `POST /v1/deploy/preview` when `--preview` is passed).
+`secrets <list|set|update|unset>` and `vars <list|set|update|unset>` manage per-environment
+configuration over `/v1`, and `logs` streams or queries service logs from the controller.
 
 ## Tenant kubeconfigs and HTTP gateway
 
@@ -689,11 +691,11 @@ declare those key names in `di-framework.config.json`:
 ```
 
 Tenant developers have write-only Secret RBAC in `di-tenant-<name>` (`create`, `update`, `patch`,
-`delete`; no `get`, `list`, or `watch`). Because the CLI cannot read existing Secret values as a
-tenant developer, `platform secrets set` (`platform secret set`) and control Secret updates use
-create-or-patch (and dry-run admission checks against `tenant-secret-update` on `<deployment>-control`)
-without calling `get`. Once declared application keys are present in `<deployment>-control`,
-`platform deploy` preserves the existing Secret instead of overwriting those keys.
+`delete`; no `get`, `list`, or `watch`). Because a tenant developer kubeconfig cannot read existing
+Secret values, `platform deploy` updates `<deployment>-control` using create-or-patch (and dry-run
+admission checks against `tenant-secret-update`) without calling `get`. Once declared application
+keys are present in `<deployment>-control`, `platform deploy` preserves the existing Secret instead
+of overwriting those keys.
 
 ## Scheduled jobs
 

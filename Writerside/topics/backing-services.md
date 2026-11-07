@@ -201,7 +201,7 @@ in the workload's inline `config`.
 
 **Redis and NATS decorator wiring is not included in 5.3.6 or 6.0.** Creating those services
 and bindings does not modify an existing workload or change its guest imports. The
-[QuickJS native binding path](platform.md#binding-changes-in-530) still emits unnamed provider
+[QuickJS native binding path](platform.md#host-interface-discovery) still emits unnamed provider
 requirements for those capabilities. End-to-end named-backend deployment wiring is tracked in
 [issue #455](https://github.com/di-framework/di-framework/issues/455).
 
@@ -294,8 +294,8 @@ Tenant users cannot mutate the reserved `di-bs-*`, `di-binding-*`, and `di-tenan
 ConfigMaps/Secrets. Tenant Secrets in `di-tenant-<name>` are **write-only** for tenant developers
 (`create`, `update`, `patch`, and `delete` only — no `get`, `list`, or `watch`). `ServiceBinding`
 metadata and status expose only the projected Secret *name* (`status.secretName`), never Secret
-values, while the runtime reads Secret values using the runtime/operator ServiceAccount in
-`di-system-<name>` (`di-runtime-<name>` / `di-operator-<name>`). Backend network policies allow
+values, while the runtime reads Secret values using the runtime and operator ServiceAccounts in
+`di-runtime-<name>` and `di-operator-<name>`. Backend network policies allow
 ingress from the tenant hostgroup and require an enforcing network-policy engine; tenant
 developers still have runtime pod `portforward` access, so backends are not isolated from other
 developers within the same tenant. Shared hosts remain disabled.
