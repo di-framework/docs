@@ -5,9 +5,9 @@ its wasmCloud platform through the shared `@di-framework/platform` TypeScript/Pu
 The [platform CLI extension](platform.md#managed-pulumi-target) uses the same package for its
 local k0s platform. Operator configuration, Tenant/User CRDs, the tenancy controller, admission
 policies, and HTTP routing come from one implementation. `@di-framework/platform` publishes from
-[di-framework/platform](https://github.com/di-framework/platform). The current release, **6.0.7**,
+[di-framework/platform](https://github.com/di-framework/platform). The current release, **6.0.30**,
 includes [Redis, NATS, blobstore, dedicated PostgreSQL, and egress](backing-services.md), tenant
-kubeconfigs, and the HTTP gateway.
+kubeconfigs, per-tenant runtime operators, and the HTTP gateway.
 
 Kubesolo creation and deletion remain owned by `di-framework-kube`. Application builds and
 deployments remain owned by the framework extension and use an external target in
@@ -16,11 +16,11 @@ use. Its embedded Helm client is retained for status inspection and legacy clean
 installations and updates run through Pulumi.
 
 The kube CLI's built-in defaults are Kubesolo **1.2.0**, wasmCloud runtime operator **2.8.0**,
-and `@di-framework/platform@6.0.2` (override with `--platform-package`; ranges are rejected).
-Pass `@di-framework/platform@6.0.7` for the published blobstore, egress, kubeconfig, and gateway
-behavior. The [kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) uses
-DI Framework **6** with `@di-framework/bindings` and `@di-framework/cli-plugin-platform`
-(`di-framework platform` commands). It includes fifteen HTTP apps covering PostgreSQL,
+and `@di-framework/platform@6.0.29` (override with `--platform-package`; ranges are rejected).
+Pass `--platform-package @di-framework/platform@6.0.30` for the latest published platform release.
+The [kube example workspace](https://github.com/di-framework/kube/tree/main/examples-apps) uses
+DI Framework **6** with `@di-framework/bindings` (**6.0.30**) and `@di-framework/cli-plugin-platform`
+(**6.3.0**, `di-framework platform` commands). It includes fifteen HTTP apps covering PostgreSQL,
 configuration, secrets, key-value, blobstore, messaging, outgoing HTTP, Node compatibility,
 and additional verification apps for static assets, actors, cron, queues, and migrations.
 
@@ -55,6 +55,19 @@ on the published port, as described below.
 Re-running `up` updates the instance's existing Pulumi stack. Tool prerequisites are checked
 before creating Kubesolo. Platform commands do not require standalone `helm` or `kubectl`;
 the example deployment workflow uses `kubectl`.
+
+| `up` flag | Default | Purpose |
+| --- | --- | --- |
+| `--name <name>` | `local` | Isolated instance and state directory name. |
+| `--run-mode <mode>` | `container` | Kubesolo `container` or `service` mode. |
+| `--http-port <port>` | `28080` | Loopback workload HTTP port in container mode (`0` disables publishing). |
+| `--node-port <port>` | `30080` | Kubernetes NodePort for the wasmCloud host (`0` uses ClusterIP). |
+| `--namespace <ns>` | `wasmcloud` | Platform namespace. |
+| `--platform-package <spec>` | `@di-framework/platform@6.0.29` | Exact npm package version or `file:<absolute-tarball-path>`. |
+| `--platform-config <file>` | none | JSON file declaring `tenants`, `users`, and shared platform settings. |
+| `--allow-insecure-registries` | `false` | Permit plain-HTTP OCI registries on the shared host and enable tenant `insecureRegistries`. |
+| `--insecure-registry <host[:port]>` | none | Repeatable plain-HTTP registry `host[:port]` entry that tenant hosts may pull from; merged with `insecureRegistries` in `--platform-config` and persisted across later `up` runs (requires `--allow-insecure-registries`). |
+| `--values <file>`, `-f <file>` | none | Additional administrator Helm values file (repeatable). |
 
 ### Tenant HTTP gateway
 
@@ -129,8 +142,13 @@ The file also accepts these platform settings:
 
 | Setting | Purpose |
 | --- | --- |
-| `tenantHostImage` | Runtime image for tenant hosts. When omitted, `up` pins `ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:ee89fd4bce4f9f35f4cd09c63d3cbdd07bea3071b5d372f82c9f49b9741c3669`. Set this to override that digest. |
+| `tenantHostImage` | Runtime image for tenant hosts. When omitted, `up` pins `ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:bbe9587c508079074d43f4c27c53eadd92ed2825dc3541b7bcbc1f79a4e843a0` (and automatically upgrades stacks still pinned to earlier CLI default digests such as `ee89fd4b…`, `d88158b0…`, or `8f0ee9c5…`). Set this to override that digest (or use `wasi-tls-exclusive@sha256:fb1d4bd2d4cd2e3a9fd6b611121bdac26d1b5ca95896e5a4acfbb35439dc0465` for exclusive-instance workloads). |
 | `tenantHostImagePullPolicy` | Kubernetes pull policy for that image. |
+| `insecureRegistries` | Array of exact `<host>[:<port>]` plain-HTTP registries tenant hosts may pull from (merged with repeatable `--insecure-registry`; requires `--allow-insecure-registries`). |
+| `tenantAuth` | Per-tenant controller, console, and OCI registry configuration object passed through to the platform stack. |
+| `routeAliases` | Administrator HTTP gateway route aliases mapping `<route-host>.<tenant>` to `<route-host>.<target-tenant>`. |
+| `backingServiceClasses` | Array of `BackingServiceClass` declarations that override matching defaults or add classes. |
+| `seedDefaultBackingClasses` | Boolean controlling whether default `BackingServiceClass` resources are seeded (`true` by default). |
 | `storageRoot` | Node-local root for tenant data. |
 | `kubernetesEndpoint` | API URL for tenant kubeconfigs; kube supplies the selected cluster endpoint. |
 | `httpEndpoint` | Published HTTP URL; kube supplies its loopback HTTP endpoint. |
@@ -242,9 +260,9 @@ The PostgreSQL app declares its DI service in `apps/postgres/src/bindings.ts`:
 
 ```typescript
 import { Container } from '@di-framework/core/decorators';
-import { Postgres, WasmCloudBinding } from '@di-framework/bindings';
+import { PlatformBinding, Postgres } from '@di-framework/bindings';
 
-@WasmCloudBinding('example-database', {
+@PlatformBinding('example-database', {
   config: { database: 'examples' },
   secretFrom: 'examples-postgres-binding',
 })

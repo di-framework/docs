@@ -17,14 +17,14 @@ application deploy and destroy, backing-service commands, and managed-platform c
 the main `di-framework` executable. Application deploy never runs Pulumi; Pulumi is used only for explicit
 `platform cluster` lifecycle of a managed target and for kube platform provisioning.
 
-Both platform entrypoints use `@di-framework/platform` **6.x** from
+Both platform entrypoints use `@di-framework/platform` **6.0.30** from
 [di-framework/platform](https://github.com/di-framework/platform). The extension's local
 entrypoint provisions Docker or Podman/k0s and a registry; kube manages Kubesolo and invokes the shared
 existing-cluster entrypoint through its persistent Pulumi stack. Kube installs an exact
 published package version from npm by default; local tarballs are a development option. Its
 embedded Helm client remains for status inspection and legacy cleanup.
 Its example workspace uses an external deployment target and links DI Framework **6** with
-`@di-framework/bindings` and `@di-framework/cli-plugin-platform` (`di-framework platform`
+`@di-framework/bindings` (**6.0.30**) and `@di-framework/cli-plugin-platform` (**6.3.0**, `di-framework platform`
 deploy). See [native service bindings](platform.md#native-service-bindings) for the build and
 runtime contract.
 
@@ -33,7 +33,9 @@ resources with `platform service` for Redis, NATS, blobstore, dedicated PostgreS
 `platform deploy` wires PostgreSQL through `serviceName` and, on tenant targets, egress through
 `allowedIpNameLookups`. Blobstore uses `configFrom`, not `serviceName`; Redis and NATS use
 explicit `ServiceBinding` resources. Those capabilities are in published `@di-framework/platform`
-**6.0.7**. `di-framework-kube` still installs **6.0.2** unless you pass `--platform-package`.
+**6.0.30** (with `@di-framework/bindings` **6.0.30** and `@di-framework/cli-plugin-platform`
+**6.3.0**). `di-framework-kube` installs `@di-framework/platform@6.0.29` by default unless you
+pass `--platform-package`.
 
 Application-authored [private service bindings](service-bindings.md) (`@ExportService` /
 `@ServiceBinding`) are a separate in-process contract: callers receive a named DI proxy and do
@@ -62,7 +64,7 @@ eval "$(pulumi stack output console)"
 shared `mesh-objects` blobstore, writes the tenant kubeconfig, and deploys both services.
 The first host-image build compiles wash and can take about ten minutes. This example vendors
 `@di-framework/platform` **6.0.2** and pushes its own host image into the cluster registry.
-Other installs use published `@di-framework/platform` **6.0.7** and the
+Other installs use published `@di-framework/platform` **6.0.30** and the
 [default wasi-tls host image](platform.md#tenant-egress-and-tls).
 
 `meshSiteUrl` is `http://mesh-site.meshtastic.localhost:28180/`. The console command prints its

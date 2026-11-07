@@ -10,8 +10,9 @@ commands live in `@di-framework/cli-plugin-platform` from
 Redis and NATS requests, and the `BackingService` / `ServiceBinding` APIs, landed in **5.3.6**.
 Dedicated PostgreSQL and `Postgres` `serviceName` wiring ship in **6.0**. Blobstore, egress,
 tenant kubeconfigs, and the gateway are in the published **6.x** line, current release
-**6.0.7**, with `@di-framework/cli-plugin-platform` **6.0.8**. `di-framework-kube` still
-installs `@di-framework/platform@6.0.2` unless you pass `--platform-package`.
+**6.0.30** (`@di-framework/bindings` **6.0.30**), with `@di-framework/cli-plugin-platform`
+**6.3.0**. `di-framework-kube` installs `@di-framework/platform@6.0.29` by default unless you
+pass `--platform-package`.
 
 ## Resources and capabilities
 
@@ -31,14 +32,15 @@ Deployments, Services, and connection Secrets live in `di-runtime-alpha`. A serv
 
 ## Prepare the platform and target
 
-Use `@di-framework/platform` **6.0.7** and `@di-framework/cli-plugin-platform` **6.x**.
+Use `@di-framework/platform` **6.0.30**, `@di-framework/bindings` **6.0.30**, and
+`@di-framework/cli-plugin-platform` **6.3.0**.
 Updating application packages alone does not update the platform controller or CRDs.
 An administrator must update the platform package and apply the existing Pulumi stack. For
 an extension-managed project:
 
 ```bash
 cd deploy/platform
-npm install --save-exact @di-framework/platform@6.0.7
+npm install --save-exact @di-framework/platform@6.0.30
 pulumi preview --stack dev
 ```
 
@@ -235,11 +237,14 @@ spec:
 The guest selects the projected configuration while the host interface stays unnamed:
 
 ```typescript
-import { Blobstore, WasmCloudBinding } from '@di-framework/bindings';
+import { Blobstore, PlatformBinding } from '@di-framework/bindings';
 
-@WasmCloudBinding('objects', { configFrom: 'di-binding-objects' })
+@PlatformBinding('objects', { configFrom: 'di-binding-objects' })
 export class Objects extends Blobstore {}
 ```
+
+(`@WasmCloudBinding` remains exported as a deprecated alias of `@PlatformBinding` for backward
+compatibility.)
 
 Each guest container is its own bucket. Without `configFrom`, wash 2.8 gives each component a
 private in-memory store. Members that share objects must bind a created service; `serviceName`
@@ -286,10 +291,14 @@ host-volume mounts are rejected. Stock keyvalue and default NATS retain transiti
 the stock ConfigMap cannot select a messaging backend.
 
 Tenant users cannot mutate the reserved `di-bs-*`, `di-binding-*`, and `di-tenant-stock`
-ConfigMaps/Secrets. Backend network policies allow ingress from the tenant hostgroup and require
-an enforcing network-policy engine. Tenant developers still have Secret read access and runtime
-pod port-forward access, so this does not isolate credentials or backends from other developers
-within the same tenant. Shared hosts remain disabled.
+ConfigMaps/Secrets. Tenant Secrets in `di-tenant-<name>` are **write-only** for tenant developers
+(`create`, `update`, `patch`, and `delete` only — no `get`, `list`, or `watch`). `ServiceBinding`
+metadata and status expose only the projected Secret *name* (`status.secretName`), never Secret
+values, while the runtime reads Secret values using the runtime/operator ServiceAccount in
+`di-system-<name>` (`di-runtime-<name>` / `di-operator-<name>`). Backend network policies allow
+ingress from the tenant hostgroup and require an enforcing network-policy engine; tenant
+developers still have runtime pod `portforward` access, so backends are not isolated from other
+developers within the same tenant. Shared hosts remain disabled.
 
 ## Deletion and existing data
 
@@ -351,12 +360,12 @@ di-framework platform service create postgres --name audit --target alpha --wait
 Declare the bindings in `src/bindings.ts` (or the project's configured bindings file):
 
 ```typescript
-import { Postgres, WasmCloudBinding } from '@di-framework/bindings';
+import { PlatformBinding, Postgres } from '@di-framework/bindings';
 
-@WasmCloudBinding('orders-db', { serviceName: 'orders' })
+@PlatformBinding('orders-db', { serviceName: 'orders' })
 export class OrdersDatabase extends Postgres {}
 
-@WasmCloudBinding('audit-db', { serviceName: 'audit' })
+@PlatformBinding('audit-db', { serviceName: 'audit' })
 export class AuditDatabase extends Postgres {}
 ```
 
@@ -378,6 +387,41 @@ The application connects to database `app` as its non-superuser owner `app`.
 `secretFrom`, `configFrom`, or `config`. Managed binding names are DNS labels of at
 most 54 characters; service names are at most 40. Existing decorators without
 `serviceName` retain their existing configuration behavior.
+
+### Transaction semantics
+
+`wasmcloud:postgres@0.2.0` provides `query` and `queryBatch` with no transaction handle. Named
+and unnamed imports alike are served from a per-credential connection pool with no connection
+affinity across separate `query` calls: sending `BEGIN` in one `query` call does not pin a
+connection for the next statement, and a subsequent `COMMIT` can land on a different pooled
+connection while leaving the first connection `idle in transaction`.
+
+Keep atomic invariants inside a single statement:
+
+- a conditional `UPDATE … RETURNING`
+- a data-modifying CTE (`WITH … INSERT / UPDATE / DELETE`)
+- `INSERT … SELECT … WHERE NOT EXISTS`
+
+When using `@di-framework/repo`, open the binding with `openPostgresDatabase` from
+`@di-framework/bindings/postgres`:
+
+```typescript
+import { openPostgresDatabase } from '@di-framework/bindings/postgres';
+
+const db = openPostgresDatabase(ordersDatabase);
+await db.atomicBatch([
+  { sql: 'INSERT INTO ledger (account, delta) VALUES (?, ?)', params: ['acct-1', -50] },
+  { sql: 'UPDATE balances SET amount = amount - 50 WHERE account = ?', params: ['acct-1'] },
+]);
+```
+
+`openPostgresDatabase` returns an `AutocommitDatabase` where each statement executes as its own
+transaction and `transaction(fn)` runs `fn` on the same autocommit handle without sending `BEGIN`,
+`COMMIT`, or `ROLLBACK` (`FOR UPDATE` and advisory locks last only for the statement that carries
+them). For write-only multi-statement sequences that do not read between statements, `atomicBatch`
+renders parameter literals safely and submits the script as a single `queryBatch` call, which the
+host executes on one pooled client as a single implicit PostgreSQL transaction that rolls back
+cleanly on error.
 
 ### Storage and readiness
 

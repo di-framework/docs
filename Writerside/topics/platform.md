@@ -12,10 +12,11 @@ lifecycle is `platform cluster up` and `platform cluster destroy`.
 di-framework extensions install platform
 ```
 
-`@di-framework/platform` **6.0.7** and `@di-framework/cli-plugin-platform` **6.0.8** include
-tenant kubeconfigs, the HTTP gateway, blobstore, egress, and the console behavior described
-below. `di-framework-kube` still installs `@di-framework/platform@6.0.2` unless you pass
-`--platform-package @di-framework/platform@6.0.7`. See
+`@di-framework/platform` **6.0.30**, `@di-framework/bindings` **6.0.30**, and
+`@di-framework/cli-plugin-platform` **6.3.0** include tenant kubeconfigs, the HTTP gateway,
+controller-backed deployment targets, blobstore, egress, per-tenant runtime operators, and the
+console behavior described below. `di-framework-kube` installs `@di-framework/platform@6.0.29`
+by default unless you pass `--platform-package @di-framework/platform@6.0.30`. See
 [Kubernetes with di-framework-kube](kube.md).
 
 The extension mounts one command group:
@@ -26,6 +27,18 @@ di-framework platform
 ├── dev
 ├── deploy
 ├── destroy
+├── login
+├── logout
+├── whoami
+├── logs
+├── secrets
+│   ├── list
+│   ├── set
+│   └── unset
+├── vars
+│   ├── list
+│   ├── set
+│   └── unset
 ├── console
 ├── service
 │   ├── create
@@ -42,10 +55,14 @@ di-framework platform
 
 | Command | Purpose |
 | --- | --- |
-| `build` | Bundle the application entry and componentize it for WASI HTTP. |
+| `build [--bundle <out.json>]` | Bundle the application entry and componentize it for WASI HTTP, or build, push, and write a controller-compatible `DeployBundle` JSON file with `--bundle`. |
 | `dev` | Build, then serve locally with wasmtime, wash, or jco. |
-| `deploy [name]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project. |
-| `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service`. Never tears down the platform. |
+| `deploy [name] [--preview]` | Build, publish, and apply a wasmCloud `WorkloadDeployment` for a project, or preview the deployment plan on controller-backed targets with `--preview`. |
+| `destroy [name]` | Remove that project's generated `WorkloadDeployment` and `Service` (or delete the controller deployment). Never tears down the platform. |
+| `login` / `logout` / `whoami` | Log in to a tenant controller over `/v1` (OIDC browser PKCE or `--api-key`), revoke a stored credential, or display the authenticated principal and role. |
+| `logs [service]` | Read or follow service logs from the tenant controller over `/v1` (`--env`, `--deployment`, `--follow`, `--since`, `--tail`). |
+| `secrets <list\|set\|unset> [name]` | List, set, or unset environment secrets via the tenant controller `/v1` API (`--env`, `--from-file`, `--value`). |
+| `vars <list\|set\|unset> [name]` | List, set, or unset environment variables via the tenant controller `/v1` API (`--env`, `--from-file`, `--value`). |
 | `service create <keyvalue\|messaging\|blobstore\|postgres\|egress> --name <name>` | Request Redis, NATS, blobstore, dedicated PostgreSQL, or approved egress in a tenant namespace. |
 | `console [--port <port>]` | Open the tenant control panel on loopback. |
 | `service list` / `service get <name>` | Inspect BackingService readiness, class, and endpoint summaries. |
@@ -56,8 +73,9 @@ di-framework platform
 | `cluster destroy [<target>]` | Tear down a managed platform target (`pulumi destroy`) only. |
 | `doctor` | Check the project and local toolchain for wasmCloud readiness. |
 
-`--target` is optional for `deploy`, `destroy`, `console`, `service`, `cluster up`, and
-`cluster destroy` when `default-target` is set. Cluster commands also accept a positional target.
+`--target` is optional for `build --bundle`, `deploy`, `destroy`, `login`, `logout`, `whoami`,
+`logs`, `secrets`, `vars`, `console`, `service`, `cluster up`, and `cluster destroy` when
+`default-target` is set. Cluster commands also accept a positional target.
 
 Run these commands directly. Do not wrap them in `package.json` scripts.
 
@@ -126,16 +144,16 @@ sibling checkouts for local verification. Declare exported binding classes in `s
 
 ```typescript
 import { Container } from '@di-framework/core/decorators';
-import { Config, Postgres, WasmCloudBinding } from '@di-framework/bindings';
+import { Config, PlatformBinding, Postgres } from '@di-framework/bindings';
 
-@WasmCloudBinding('orders-database', {
+@PlatformBinding('orders-database', {
   config: { database: 'orders' },
   secretFrom: 'orders-database-binding',
 })
 @Container()
 export class OrdersDatabase extends Postgres {}
 
-@WasmCloudBinding('app-config', {
+@PlatformBinding('app-config', {
   config: { greeting: 'Hello' },
   configFrom: 'orders-config',
 })
@@ -145,8 +163,8 @@ export class AppConfig extends Config {}
 
 These host capabilities are not [private service bindings](service-bindings.md)
 (`@ExportService` / `@ServiceBinding`). Application-authored bindings are an in-process DI
-contract inside one component; native bindings are WIT imports generated from `@WasmCloudBinding`
-classes.
+contract inside one component; native bindings are WIT imports generated from `@PlatformBinding`
+classes (`@WasmCloudBinding` remains exported as a deprecated alias for backward compatibility).
 
 Resolve these classes through `useContainer().resolve(...)` or inject them with `@Component`.
 The build discovers the declarations statically, creates real WIT imports in
@@ -276,12 +294,24 @@ outbound connections remain blocked until approved. See [Egress](backing-service
 
 Stock `ghcr.io/wasmcloud/wash:<version>` has no `wasi:tls` provider. The default tenant host
 image is
-`ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:ee89fd4bce4f9f35f4cd09c63d3cbdd07bea3071b5d372f82c9f49b9741c3669`,
-with pull policy `IfNotPresent`. `tenantHostImage` overrides that reference.
-`di-framework-kube up` writes the same digest when the platform config omits `tenantHostImage`.
-The [platform-examples](deployment.md#one-command-local-platform-example) stack still builds wash
-and pushes that image into its cluster registry. Deploy warns rather than fails when the tenant
-host image tag lacks `wasi-tls`.
+`ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:bbe9587c508079074d43f4c27c53eadd92ed2825dc3541b7bcbc1f79a4e843a0`,
+with pull policy `IfNotPresent`. `tenantHostImage` overrides that reference. For workloads that
+require single-instance execution (`di-framework.dev/exclusive-instance: "true"`, such as embedded
+PGlite), set `tenantHostImage` to the `wasi-tls-exclusive` variant
+(`ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive@sha256:fb1d4bd2d4cd2e3a9fd6b611121bdac26d1b5ca95896e5a4acfbb35439dc0465`).
+`di-framework-kube up` writes the same canonical digest when the platform config omits
+`tenantHostImage`. The [platform-examples](deployment.md#one-command-local-platform-example) stack
+still builds wash and pushes that image into its cluster registry. Deploy warns rather than fails
+when the tenant host image tag lacks `wasi-tls`.
+
+Tenant hosts never receive blanket `--allow-insecure-registries`. Instead, platform configuration
+accepts `insecureRegistries` — an array of exact `<host>[:<port>]` entries (with no scheme or
+path) passed per host via `--allow-insecure-registry` / `--insecure-registry` to the wash host so
+plain-HTTP registries are allowed per-host while TLS verification remains enabled for all other
+registries. Local installs automatically allowlist the in-cluster platform registry
+(`di-framework-registry.<namespace>.svc.cluster.local:5000`); existing-cluster installs require
+`insecureRegistry: true` alongside `insecureRegistries`. `createPlatform` rejects the legacy
+pre-allowlist host digest (`sha256:ee89fd4b…`) when an insecure-registry allowlist is active.
 
 ## Local development
 
@@ -330,6 +360,11 @@ insecure = false
 kubeconfig = "${WAREHOUSE_KUBECONFIG}"
 tenant = "warehouse"
 registry = "registry.example.com/warehouse"
+
+[targets.acme]
+account = "acme"
+controller = "https://controller.acme.localhost:28180"
+env = "prod"
 ```
 
 - `di-framework platform deploy` with no name uses the nearest `di-framework.config.json`.
@@ -349,10 +384,13 @@ A missing or malformed manifest reports `WASMCLOUD_DEPLOY_MANIFEST_NOT_FOUND` or
 
 ### Targets and tenants
 
-A target is one `[targets.<name>]` table: credential, namespace, host group, and registry.
+A target is one `[targets.<name>]` table: a managed Pulumi stack (`platform` + `stack`), an
+external cluster connection (`kubeconfig` + `registry` + `tenant` or `namespace`), or a tenant
+controller target (`account` + `controller` or `domain` + `env`).
 A tenant is the platform isolation unit: workload namespace `di-tenant-<t>`, runtime namespace
-`di-runtime-<t>`, and host group `tenant-<t>`. One tenant can have several targets, for example
-one per user. A target points at no tenant or exactly one.
+`di-runtime-<t>`, operator namespace `di-operator-<t>`, API-key namespace `di-apikeys-<t>`, and
+host group `tenant-<t>`. One tenant can have several targets, for example one per user or
+environment. A target points at no tenant or exactly one.
 
 `tenant = "<t>"` fills `namespace = "di-tenant-<t>"` and `hostgroup = "tenant-<t>"`; explicit
 `namespace` or `hostgroup` overrides the fill-in. An external target needs `kubeconfig`,
@@ -362,7 +400,7 @@ admin/plain-cluster target.
 ### Managed Pulumi target
 
 A managed target has `platform` (a directory inside the workspace that contains `Pulumi.yaml`) and
-an optional `stack` (default `dev`). It must not mix those fields with kubeconfig fields.
+an optional `stack` (default `dev`). It must not mix those fields with kubeconfig or controller fields.
 
 From the workspace root, generate a local Pulumi project for k0s, a local OCI registry, and
 the wasmCloud platform:
@@ -420,6 +458,41 @@ Once k0s yields a kubeconfig, the shared implementation provisions the registry 
 Deployment and Service and installs the operator through Pulumi `kubernetes.helm.v3.Release`
 (`oci://ghcr.io/wasmcloud/charts/runtime-operator`). Kube's existing-cluster profile leaves
 registry provisioning to the caller or example helpers.
+
+#### Platform configuration and runtime isolation
+
+Both platform entrypoints validate configuration up front (`validatePlatformConfig`) before
+creating cluster or Kubernetes resources:
+
+- **Gateway `routeAliases`:** Maps vanity or cutover `<route-host>.<tenant>` hostnames to
+  `<route-host>.<target-tenant>` through the HTTP gateway while preserving `X-Forwarded-Host`, so
+  applications that derive redirect or issuer URLs keep the public hostname. Reserved route hosts
+  (`console`, `controller`, `registry`) and alias chains are rejected.
+- **Runtime NATS storage caps (`runtimeNats`):** Caps each tenant's `di-nats` JetStream store in
+  `di-runtime-<t>` via `maxFileStore` (default `2Gi` / `10Gi` depending on profile) and
+  `maxMemoryStore` (default `256Mi` / `32Mi`).
+- **Scheduler NATS bus and per-tenant operators:** The platform runs `di-scheduler-nats` in
+  `wasmcloud` (`nats.enabled=false` on the Helm chart) with per-tenant NATS accounts (`T_<UID8>` /
+  `T_di-tenant-<t>`) and zero cross-account imports or exports. Each tenant gets a dedicated
+  `runtime-operator` in `di-operator-<t>` watching only `di-tenant-<t>` and managing hosts only in
+  `di-runtime-<t>`, while the chart's operator watches only `wasmcloud`. Tenant `wash-host` pods
+  connect with `--scheduler-nats-url` and `--scheduler-nats-creds` (and per-tenant TLS
+  certificates rotated through a current/next CA bundle) and run with
+  `automountServiceAccountToken: false` (no Kubernetes ServiceAccount token). Adding or removing a
+  tenant never restarts the platform operator.
+- **Tenant deletion policy and 7-step removal (`R1`–`R7`):** Each `tenants[]` entry accepts
+  `deletionPolicy` (`Retain`, the default, or `Delete`). When a Tenant is deleted, the controller
+  executes a 7-step removal state machine (`R1` revokes the tenant host scheduler identity; `R2`
+  scales tenant workloads and host pods to zero while keeping the tenant operator running to clear
+  host finalizers; `R3` deletes workloads under `Delete` or scales the tenant operator to zero and
+  strips workload/artifact finalizers under `Retain`; `R4` drops the tenant operator scheduler
+  account; `R5` deletes the operator RoleBindings, host identity Secret, and `di-operator-<t>`;
+  `R6` deletes or retains `di-tenant-<t>`, `di-runtime-<t>`, and `di-apikeys-<t>`; `R7` removes
+  the Tenant finalizer). If any step does not complete within its deadline (5–15 minutes), the
+  Tenant reports `RemovalStuck=True` with the step ID (`R1`–`R7`) and pending resources.
+  Re-adding a tenant whose namespaces were kept by `Retain` fails with `Exists` (`#618`) because
+  kept namespaces retain the previous Tenant UID and are never silently adopted; delete or adopt
+  the kept namespaces out of band before re-creating the tenant.
 
 Keep the project name, backend, stack, and configuration when upgrading an older generated
 project to the package import. Review `pulumi preview` before applying and migrate any local
@@ -480,6 +553,44 @@ The registry object separates the address used by ORAS to push from the address 
 cluster to pull. A string registry remains supported. An `http://` push URL or `insecure = true`
 enables ORAS plain HTTP for that target. See [Kubernetes with di-framework-kube](kube.md) for
 an external-target workflow using a loopback publisher and an in-cluster registry service.
+
+### Controller targets
+
+When a tenant runs the per-tenant controller and registry (`tenantAuth`), declare a
+controller-backed target in `di-framework.deploy.toml` with `account`, `controller` (or `domain`
+to derive `https://<account>.controller.<domain>`), and optional `env` (`"prod"` or `"staging"`,
+default `"prod"`):
+
+```toml
+default-target = "acme"
+
+[targets.acme]
+account = "acme"
+controller = "https://controller.acme.localhost:28180"
+env = "prod"
+```
+
+Controller-backed targets do not use a `kubeconfig` and require no local `kubectl` or `oras` for
+cluster apply when deploying `--bundle` artifacts through `POST /v1/deployments`:
+
+```bash
+di-framework platform login --target acme
+di-framework platform whoami --target acme
+di-framework platform build --bundle dist/greeter.bundle.json --target acme --env prod
+di-framework platform deploy greeter --target acme --preview
+di-framework platform deploy greeter --target acme --env prod
+di-framework platform logs greeter --target acme --env prod --follow
+di-framework platform secrets set API_KEY --value "$API_KEY" --target acme --env prod
+di-framework platform vars set LOG_LEVEL --value info --target acme --env prod
+di-framework platform logout --target acme
+```
+
+`login` authenticates via OIDC browser PKCE (or `--api-key <key>`) and stores credentials for the
+tenant account. `build --bundle <out.json>` builds the component, pushes it to the tenant registry
+advertised by the controller, and writes a `DeployBundle` JSON document. `deploy` submits that
+bundle to `POST /v1/deployments` (or previews the plan without applying when `--preview` is passed).
+`secrets <list|set|unset>` and `vars <list|set|unset>` manage per-environment configuration over
+`/v1`, and `logs` streams or queries service logs from the controller.
 
 ## Tenant kubeconfigs and HTTP gateway
 
@@ -562,6 +673,27 @@ applies but the host filter does not.
 
 See [PR #430](https://github.com/di-framework/di-framework/pull/430) and
 [PR #431](https://github.com/di-framework/di-framework/pull/431) for the control-plane design.
+
+### Write-only workload control Secrets
+
+When an application stores additional environment secrets in `<deployment>-control` (including
+framework keys such as `DI_AI_CONTROL_KEY`, `DI_PGLITE_KEY`, and `DI_PGLITE_KEY_PREVIOUS`),
+declare those key names in `di-framework.config.json`:
+
+```json
+{
+  "name": "orders",
+  "entry": "src/app.ts",
+  "controlSecretKeys": ["DI_AI_CONTROL_KEY", "DI_PGLITE_KEY", "DI_PGLITE_KEY_PREVIOUS"]
+}
+```
+
+Tenant developers have write-only Secret RBAC in `di-tenant-<name>` (`create`, `update`, `patch`,
+`delete`; no `get`, `list`, or `watch`). Because the CLI cannot read existing Secret values as a
+tenant developer, `platform secrets set` (`platform secret set`) and control Secret updates use
+create-or-patch (and dry-run admission checks against `tenant-secret-update` on `<deployment>-control`)
+without calling `get`. Once declared application keys are present in `<deployment>-control`,
+`platform deploy` preserves the existing Secret instead of overwriting those keys.
 
 ## Scheduled jobs
 
