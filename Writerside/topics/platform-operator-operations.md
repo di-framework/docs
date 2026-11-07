@@ -45,12 +45,10 @@ Any other spec change (`tenants`, `users`, `tenantAuth`, `tenantHostImage`) inst
 
 - `spec.target` and `spec.platform.storageRoot` can't change after creation.
 - `spec.platform.networkPolicyEngine: kube-router` is rejected by CRD admission (`XValidation`) on
-  `vcluster` targets (`!has(self.platform) || !has(self.platform.networkPolicyEngine) || self.target.type != 'vcluster' || self.platform.networkPolicyEngine != 'kube-router'`
-  on creation, with `optionalOldSelf` on updates): the vCluster virtual cluster has no real nodes of its
-  own for kube-router's DaemonSet, and a second kube-router inside the vCluster would run on the host's
-  node and race the host cluster's CNI enforcement. `vcluster` instances use `existing`. An instance
-  stored with `kube-router` before the rule can still be updated while it keeps that value, and once
-  switched to `existing` cannot switch back.
+  `vcluster` targets: the vCluster virtual cluster has no dedicated nodes for kube-router's DaemonSet,
+  and a second kube-router on the host node would conflict with the host cluster's CNI enforcement.
+  `vcluster` instances use `existing`. An instance stored with `kube-router` before the rule can still
+  be updated while it keeps that value, and once switched to `existing` cannot switch back.
 - The vCluster values are applied at creation only. Changing them means recreating the instance.
 - The tenant host image doesn't move on its own. An empty `tenantHostImage` keeps the image recorded in
   `status.applied.tenantHostImage`, so upgrading the instance or the operator doesn't restart the tenant
