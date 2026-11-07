@@ -21,8 +21,8 @@ Choose embedded PostgreSQL (`@di-framework/pglite-component`) when a workload ne
 
 ### Engine Versions and Bundled Extensions
 
-- **PostgreSQL 17.11 (`REL_17_11`)** in published `@di-framework/platform` **6.0.30**: `ghcr.io/di-framework/pglite-component@sha256:cef2a49c006584dc68d677c72c9f159d5fd8ff6cb1788bf4fd42ef43cbdc6e58`.
-- **PostgreSQL 18.6 (`REL_18_6`)** (upcoming / `main`: `ghcr.io/di-framework/pglite-component@sha256:e6f3543348710fb580ac5cf1cb03514bfb30b4b0107c0003e796dc89cad53e2f`) initializes new clusters with page-level `data_checksums` enabled (`initdb --data-checksums`).
+- **PostgreSQL 17.11 (`REL_17_11`)** in published `@di-framework/platform` **6.0.30** (`ghcr.io/di-framework/pglite-component@sha256:<digest>`).
+- **PostgreSQL 18.6 (`REL_18_6`)** (upcoming / `main`) initializes new clusters with page-level `data_checksums` enabled (`initdb --data-checksums`).
 - **Statically linked extensions:** Because the WASI engine cannot `dlopen` shared libraries at runtime, extensions are linked statically into the engine alongside a static OpenSSL 3.5 LTS `libcrypto` routed to WASI `random`:
   - `plpgsql` (enabled by default).
   - `pgcrypto` (`CREATE EXTENSION IF NOT EXISTS pgcrypto;`) providing `digest()`, `hmac()`, `crypt()`, `gen_salt()`, `pgp_sym_encrypt()`, `pgp_sym_decrypt()`, `pgp_pub_encrypt()`, and `pgp_pub_decrypt()`, alongside built-in `gen_random_uuid()`. Legacy OpenSSL algorithms (`bf`, `cast5`, and single `des`) are disabled for PGP/cipher operations; use `aes128`, `aes192`, or `aes256` for encryption (`crypt()` password hashing with `gen_salt('bf')` is implemented directly by `pgcrypto` and remains supported).
@@ -90,7 +90,7 @@ Configure embedded PostgreSQL in `di-framework.config.json` under the `"pglite"`
   "name": "orders",
   "entry": "src/app.ts",
   "pglite": {
-    "image": "ghcr.io/di-framework/pglite-component@sha256:cef2a49c006584dc68d677c72c9f159d5fd8ff6cb1788bf4fd42ef43cbdc6e58",
+    "image": "ghcr.io/di-framework/pglite-component@sha256:<digest>",
     "storageMount": "/data",
     "dataDir": "/data/pglite"
   }
@@ -120,14 +120,14 @@ Because PostgreSQL locks its `PGDATA` directory to a single process (`postmaster
 - Annotates the workload component with `di-framework.dev/exclusive-instance: "true"` and `di-framework.dev/persistent-storage: "true"`.
 - Sets `replicas: 1` (`maxInstances: 1`) and `deployPolicy: Recreate` (Kubernetes deployment strategy `Recreate`). Any configuration with `replicas > 1` is rejected.
 
-On the exclusive tenant host image (`ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive@sha256:fb1d4bd2d4cd2e3a9fd6b611121bdac26d1b5ca95896e5a4acfbb35439dc0465`), the platform enforces **two-gate serialization** so two instances or rollout revisions never open the same `PGDATA` directory concurrently:
+On the exclusive tenant host image (`ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive`, pinned by digest), the platform enforces **two-gate serialization** so two instances or rollout revisions never open the same `PGDATA` directory concurrently:
 
 1. **Host-local FIFO call permit (`ExclusiveInstanceGate`):** Within a host pod, concurrent `wasi:http/incoming-handler` requests queue in arrival order behind a single FIFO call permit. Only one warm component instance is built, and each caller holds the permit until its in-flight execution slot finishes, ensuring the instance is completely idle before the next request is admitted.
 2. **Cross-pod / cross-revision store lease (`di-exclusive-store-<workload>`):** Across revisions and pods, a Kubernetes `Lease` (`di-exclusive-store-<workload>` in `di-runtime-<t>`) and the host's canonical volume-mount gate registry ensure that a new revision's store cannot be instantiated until the terminating revision has finished draining in-flight calls, dropped its Wasm store, and released the lease (bounded by `WASH_EXCLUSIVE_WAIT_TIMEOUT_SECS`, default `600` seconds).
 
 ## Encryption at Rest (`@di-framework/pglite-encfs`) {id="encryption-at-rest"}
 
-`@di-framework/pglite-encfs` (`ghcr.io/di-framework/pglite-encfs@sha256:d834f456692d0b99d1fd4e9ba1bc8989749b43567e60362affb15adacd116860`) is a WASI WebAssembly component that interposes on `wasi:filesystem/types@0.2.6` and `wasi:filesystem/preopens@0.2.6` (as well as the provider's `@0.2.9` WASI filesystem/io/cli imports) between `pglite-component` and the host. Every file under `PGDATA` is encrypted before it is written to the host volume, while the guest application's own WASI imports continue to go directly to the host.
+`@di-framework/pglite-encfs` (`ghcr.io/di-framework/pglite-encfs@sha256:<digest>`) is a WASI WebAssembly component that interposes on `wasi:filesystem/types@0.2.6` and `wasi:filesystem/preopens@0.2.6` (as well as the provider's `@0.2.9` WASI filesystem/io/cli imports) between `pglite-component` and the host. Every file under `PGDATA` is encrypted before it is written to the host volume, while the guest application's own WASI imports continue to go directly to the host.
 
 ### Configuring Encryption in `di-framework.config.json`
 
@@ -139,9 +139,9 @@ Add `pglite.encryption` and declare `"DI_PGLITE_KEY"` in `controlSecretKeys` (or
   "entry": "src/app.ts",
   "controlSecretKeys": ["DI_PGLITE_KEY"],
   "pglite": {
-    "image": "ghcr.io/di-framework/pglite-component@sha256:cef2a49c006584dc68d677c72c9f159d5fd8ff6cb1788bf4fd42ef43cbdc6e58",
+    "image": "ghcr.io/di-framework/pglite-component@sha256:<digest>",
     "encryption": {
-      "image": "ghcr.io/di-framework/pglite-encfs@sha256:d834f456692d0b99d1fd4e9ba1bc8989749b43567e60362affb15adacd116860"
+      "image": "ghcr.io/di-framework/pglite-encfs@sha256:<digest>"
     }
   }
 }
