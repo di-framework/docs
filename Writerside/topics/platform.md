@@ -363,7 +363,7 @@ registry = "registry.example.com/warehouse"
 
 [targets.acme]
 account = "acme"
-controller = "https://controller.acme.localhost:28180"
+controller = "https://acme.controller.localhost:28180"
 env = "prod"
 ```
 
@@ -566,7 +566,7 @@ default-target = "acme"
 
 [targets.acme]
 account = "acme"
-controller = "https://controller.acme.localhost:28180"
+controller = "https://acme.controller.localhost:28180"
 env = "prod"
 ```
 
