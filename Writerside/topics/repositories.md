@@ -298,3 +298,33 @@ The same functions are re-exported by the portable wasmCloud build, which is wha
 `wasmcloud` export condition on `@di-framework/repo` selects. Import `@di-framework/repo/postgres`
 from application code. Shipped in `@di-framework/repo` **6.0.4**.
 
+## PostgreSQL `SqlDatabase` adapters
+
+To use `@di-framework/repo` repositories and SQL adapters with PostgreSQL inside WebAssembly components, choose the adapter that matches your PostgreSQL runtime model:
+
+- **Pooled host binding (`openPostgresDatabase` from `@di-framework/bindings/postgres`):** Wraps a `@PlatformBinding` `Postgres` (`wasmcloud:postgres@0.2.0`) host capability as an `AutocommitDatabase`. Because the host serves `wasmcloud:postgres` from a connection pool without per-caller connection affinity, each statement executes as its own transaction and `transaction(fn)` runs on the same autocommit handle without issuing `BEGIN` or `COMMIT`. For multi-statement write sequences that must commit or roll back atomically without intermediate reads, use `db.atomicBatch([...])`, which renders literals into a single `queryBatch` call executed on one pooled client:
+
+  ```typescript
+  import { openPostgresDatabase } from '@di-framework/bindings/postgres';
+
+  const db = openPostgresDatabase(ordersPostgresBinding);
+  await db.atomicBatch([
+    { sql: 'INSERT INTO orders (id, title) VALUES (?, ?)', params: [orderId, title] },
+    { sql: 'INSERT INTO audit_log (order_id, action) VALUES (?, ?)', params: [orderId, 'created'] },
+  ]);
+  ```
+
+- **Embedded single-instance PostgreSQL (`createWasmPgliteDatabase` from `@di-framework/repo/postgres`):** Wraps the `di-framework:pglite/database@0.2.0` WIT import provided by `@di-framework/pglite-component` as a full `SqlDatabase` with interactive `BEGIN`/`COMMIT`/`ROLLBACK` transactions, nested savepoints, `?` to `$1` placeholder rewriting, and `MigrationRunner` support:
+
+  ```typescript
+  import { createWasmPgliteDatabase } from '@di-framework/repo/postgres';
+
+  const db = await createWasmPgliteDatabase(process.env.DI_PGLITE_DATA_DIR ?? '/data/pglite');
+  await db.transaction(async (tx) => {
+    await tx.run('INSERT INTO orders (id, title) VALUES (?, ?)', [orderId, title]);
+  });
+  ```
+
+See [Embedded PostgreSQL and encryption at rest](pglite.md) for configuring `@di-framework/pglite-component`, exclusive-instance rollout serialization, and WASI filesystem encryption at rest with `@di-framework/pglite-encfs`.
+
+
