@@ -149,8 +149,8 @@ Install platform and AI extensions with `di-framework extensions install platfor
 local platform deploy. This is distinct from kube
 [examples-apps](https://github.com/di-framework/platform/blob/main/docs/kube.md#deploy-the-examples), its application verification workspace.
 
-`@di-framework/platform` **6.0.7** includes blobstore, egress, tenant kubeconfigs, and the HTTP
-gateway. `di-framework-kube` still installs `@di-framework/platform@6.0.2` unless you pass
+`@di-framework/platform` **6.0.30** includes blobstore, egress, tenant kubeconfigs, and the HTTP
+gateway. `di-framework-kube` installs `@di-framework/platform@6.0.29` by default unless you pass
 `--platform-package`. See [Kubernetes with di-framework-kube](https://github.com/di-framework/platform/blob/main/docs/kube.md).
 
 ## Optional Packages
