@@ -25,16 +25,18 @@ Permissions are the user's own tenant role, so `developer` and `viewer` RBAC, qu
 admission policies apply unchanged. Suspending a `User` removes its ServiceAccount and cuts access,
 including cached tokens.
 
-## Pinned image digests
+## Image references
 
-Pin container and component images by `@sha256:` digest:
+`tenantAuth.image` and `tenantAuth.registry.component` require immutable `@sha256:<digest>`
+references from the matching `@di-framework/platform` release (whereas `tenantHostImage` defaults to
+the digest pinned by `@di-framework/platform`):
 
-| Image setting | Published digest | Notes |
+| Image setting | Image repository | Notes |
 | --- | --- | --- |
-| `tenantAuth.image` | `ghcr.io/di-framework/tenant-auth@sha256:fa8eb9887a3c932f0d03b7cdff3911e44bdd600abfb4cd54bfe5e453b7acef9f` | Per-tenant controller and console image for `@di-framework/platform` **6.0.30**. |
-| `tenantAuth.registry.component` | `ghcr.io/di-framework/oci-registry@sha256:a99201b51a1481df0241e4d364e6156da3f18d196d6d83162b76e9a8b812222e` | Per-tenant OCI registry Wasm component. |
-| `tenantHostImage` (`wasi-tls`, default) | `ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:bbe9587c508079074d43f4c27c53eadd92ed2825dc3541b7bcbc1f79a4e843a0` | Default tenant host image (includes wash patches 0002 for `--insecure-registry` and 0003 for NATS blobstore credentials). |
-| `tenantHostImage` (`wasi-tls-exclusive`) | `ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive@sha256:fb1d4bd2d4cd2e3a9fd6b611121bdac26d1b5ca95896e5a4acfbb35439dc0465` | Exclusive-instance variant (adds wash patch 0001 for embedded PGlite workloads). |
+| `tenantAuth.image` | `ghcr.io/di-framework/tenant-auth@sha256:<digest>` | Per-tenant controller and console container image, pinned by release digest. |
+| `tenantAuth.registry.component` | `ghcr.io/di-framework/oci-registry@sha256:<digest>` | Per-tenant OCI registry Wasm component, pinned by release digest. |
+| `tenantHostImage` (`wasi-tls`, default) | `ghcr.io/di-framework/wash:2.8.0-wasi-tls` | Pinned by digest by `@di-framework/platform` when `tenantHostImage` is omitted (includes `--insecure-registry` and NATS blobstore credential file support). |
+| `tenantHostImage` (`wasi-tls-exclusive`) | `ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive` | Exclusive-instance variant for embedded PGlite workloads, pinned by digest by the platform operator or `tenantHostImage`. |
 
 ## Enable tenant auth
 
@@ -43,7 +45,7 @@ and console for every Tenant:
 
 ```yaml
 tenantAuth:
-  image: ghcr.io/di-framework/tenant-auth@sha256:fa8eb9887a3c932f0d03b7cdff3911e44bdd600abfb4cd54bfe5e453b7acef9f
+  image: ghcr.io/di-framework/tenant-auth@sha256:<digest>
   issuer: http://identity.acme.localhost:28180
   oauthClient: { id: provisioner, secretName: tenant-auth-oauth }
   issuerUpstream: di-platform-gateway.wasmcloud.svc.cluster.local:80
@@ -407,7 +409,7 @@ Add `tenantAuth.registry` to give every tenant its own OCI registry:
 tenantAuth:
   # ...
   registry:
-    component: ghcr.io/di-framework/oci-registry@sha256:a99201b51a1481df0241e4d364e6156da3f18d196d6d83162b76e9a8b812222e
+    component: ghcr.io/di-framework/oci-registry@sha256:<digest>
     publicUrl: https://registry.{tenant}.localhost:28180
 ```
 
