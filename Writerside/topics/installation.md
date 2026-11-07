@@ -143,15 +143,15 @@ repositories at **6.x**:
 Install platform and AI extensions with `di-framework extensions install platform` and
 `di-framework extensions install ai`. Platform commands use the `platform` group (including
 `platform cluster` for managed Pulumi targets). See [AI CLI](ai-cli.md) and
-[Platform](platform.md). Sample apps live in
+[Platform](https://github.com/di-framework/platform/blob/main/docs/platform.md). Sample apps live in
 [di-framework/examples](https://github.com/di-framework/examples), including
 [platform-examples](deployment.md#one-command-local-platform-example) for a single-command
 local platform deploy. This is distinct from kube
-[examples-apps](kube.md#deploy-the-examples), its application verification workspace.
+[examples-apps](https://github.com/di-framework/platform/blob/main/docs/kube.md#deploy-the-examples), its application verification workspace.
 
 `@di-framework/platform` **6.0.7** includes blobstore, egress, tenant kubeconfigs, and the HTTP
 gateway. `di-framework-kube` still installs `@di-framework/platform@6.0.2` unless you pass
-`--platform-package`. See [Kubernetes with di-framework-kube](kube.md).
+`--platform-package`. See [Kubernetes with di-framework-kube](https://github.com/di-framework/platform/blob/main/docs/kube.md).
 
 ## Optional Packages
 
@@ -176,16 +176,16 @@ The core package stands alone. Companion packages add data access, HTTP, GraphQL
 | `@di-framework/authz` | [Resource Authorization](authorization.md) |
 | `@di-framework/ai` | [AI](ai.md) |
 | `@di-framework/ai-utils` | [Agent Skills](ai-utils.md) — `SKILL.md`, `.agents/plugins`, jailed file tools, opt-in Bash |
-| `@di-framework/bindings` | [Native service bindings](platform.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
-| `@di-framework/cli-plugin-platform` | [Platform](platform.md) — WASI 0.3 build, development, and deployment extension |
+| `@di-framework/bindings` | [Native service bindings](https://github.com/di-framework/platform/blob/main/docs/platform.md#native-service-bindings) — PostgreSQL, key-value, blobstore, messaging, config, secrets, and outgoing HTTP |
+| `@di-framework/cli-plugin-platform` | [Platform](https://github.com/di-framework/platform/blob/main/docs/platform.md) — WASI 0.3 build, development, and deployment extension |
 | `@di-framework/cli-plugin-ai` | [AI CLI](ai-cli.md) — `ai agent` and `ai skills` |
-| `@di-framework/platform` | [Shared Pulumi platform](kube.md) — infrastructure, tenant isolation, and [Redis, NATS, blobstore, PostgreSQL, and egress backing services](backing-services.md), tenant kubeconfigs, and the HTTP gateway used by kube and the platform CLI |
+| `@di-framework/platform` | [Shared Pulumi platform](https://github.com/di-framework/platform/blob/main/docs/kube.md) — infrastructure, tenant isolation, and [Redis, NATS, blobstore, PostgreSQL, and egress backing services](https://github.com/di-framework/platform/blob/main/docs/backing-services.md), tenant kubeconfigs, and the HTTP gateway used by kube and the platform CLI |
 | `@di-framework/cloudfoundry` | [Cloud Foundry](cloudfoundry.md) — `VCAP_SERVICES` and `VCAP_APPLICATION` discovery |
 | `@di-framework/cloudflare` | [Cloudflare Workers](cloudflare.md) — binding discovery, wrangler config, and DI injection |
 
 For a local Kubernetes platform and live service-binding examples, use the separate
-[di-framework-kube CLI](kube.md). It requires Node.js, npm, and Pulumi, and installs the shared
-platform package from npm. Its [example workspace](kube.md#deploy-the-examples) links DI Framework
+[di-framework-kube CLI](https://github.com/di-framework/platform/blob/main/docs/kube.md). It requires Node.js, npm, and Pulumi, and installs the shared
+platform package from npm. Its [example workspace](https://github.com/di-framework/platform/blob/main/docs/kube.md#deploy-the-examples) links DI Framework
 **6** with `@di-framework/bindings` and `@di-framework/cli-plugin-platform` for builds and
 `di-framework platform deploy`. Published applications use the same packages at `@^6`.
 

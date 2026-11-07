@@ -348,7 +348,7 @@ or `SqliteActorStorage.temporary()`.
 ## Next steps
 
 - [Remote actors and ownership](actors-distributed.md) - RPC, fencing, and recovery
-- [Platform](platform.md#actors) - Single-host build and hostPath storage
+- [Platform](https://github.com/di-framework/platform/blob/main/docs/platform.md#actors) - Single-host build and hostPath storage
 - [CLI](cli.md#actor-commands) - `actor list` / `inspect` / `reset` / `clean`
 - [Repositories](repositories.md#database-migrations) - Shared `MigrationRunner`
 - [Installation](installation.md) - Companion packages
