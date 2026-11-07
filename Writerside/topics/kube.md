@@ -142,7 +142,7 @@ The file also accepts these platform settings:
 
 | Setting | Purpose |
 | --- | --- |
-| `tenantHostImage` | Runtime image for tenant hosts. When omitted, `up` pins `ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:bbe9587c508079074d43f4c27c53eadd92ed2825dc3541b7bcbc1f79a4e843a0` (and automatically upgrades stacks still pinned to earlier CLI default digests such as `ee89fd4b…`, `d88158b0…`, or `8f0ee9c5…`). Set this to override that digest (or use `wasi-tls-exclusive@sha256:fb1d4bd2d4cd2e3a9fd6b611121bdac26d1b5ca95896e5a4acfbb35439dc0465` for exclusive-instance workloads). |
+| `tenantHostImage` | Runtime image for tenant hosts. When omitted, `up` pins the release's default `ghcr.io/di-framework/wash:2.8.0-wasi-tls` digest (and automatically upgrades stacks still pinned to earlier CLI default digests). Set this to override that image (or use the `ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive` digest for exclusive-instance workloads). |
 | `tenantHostImagePullPolicy` | Kubernetes pull policy for that image. |
 | `insecureRegistries` | Array of exact `<host>[:<port>]` plain-HTTP registries tenant hosts may pull from (merged with repeatable `--insecure-registry`; requires `--allow-insecure-registries`). |
 | `tenantAuth` | Per-tenant controller, console, and OCI registry configuration object passed through to the platform stack. |

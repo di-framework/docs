@@ -295,13 +295,12 @@ approves nothing). `"*"` is rejected. Deploy succeeds when the service is `NotAp
 outbound connections remain blocked until approved. See [Egress](backing-services.md#egress).
 
 Stock `ghcr.io/wasmcloud/wash:<version>` has no `wasi:tls` provider. The default tenant host
-image is
-`ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:bbe9587c508079074d43f4c27c53eadd92ed2825dc3541b7bcbc1f79a4e843a0`,
+image is `ghcr.io/di-framework/wash:2.8.0-wasi-tls` (pinned by digest by `@di-framework/platform`),
 with pull policy `IfNotPresent`. `tenantHostImage` overrides that reference. For workloads that
 require single-instance execution (`di-framework.dev/exclusive-instance: "true"`, such as embedded
-PGlite), set `tenantHostImage` to the `wasi-tls-exclusive` variant
-(`ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive@sha256:fb1d4bd2d4cd2e3a9fd6b611121bdac26d1b5ca95896e5a4acfbb35439dc0465`).
-`di-framework-kube up` writes the same canonical digest when the platform config omits
+PGlite), set `tenantHostImage` to the `ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive` digest
+published with the platform release.
+`di-framework-kube up` writes the same canonical default digest when the platform config omits
 `tenantHostImage`. The [platform-examples](deployment.md#one-command-local-platform-example) stack
 still builds wash and pushes that image into its cluster registry. Deploy warns rather than fails
 when the tenant host image tag lacks `wasi-tls`.
@@ -312,8 +311,8 @@ path) passed per host via `--allow-insecure-registry` / `--insecure-registry` to
 plain-HTTP registries are allowed per-host while TLS verification remains enabled for all other
 registries. Local installs automatically allowlist the in-cluster platform registry
 (`di-framework-registry.<namespace>.svc.cluster.local:5000`); existing-cluster installs require
-`insecureRegistry: true` alongside `insecureRegistries`. `createPlatform` rejects the legacy
-pre-allowlist host digest (`sha256:ee89fd4b…`) when an insecure-registry allowlist is active.
+`insecureRegistry: true` alongside `insecureRegistries`. `createPlatform` rejects legacy
+pre-allowlist host digests when an insecure-registry allowlist is active.
 
 ## Local development
 
