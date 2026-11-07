@@ -92,7 +92,7 @@ Configure embedded PostgreSQL in `di-framework.config.json` under the `"pglite"`
   "pglite": {
     "image": "ghcr.io/di-framework/pglite-component@sha256:e6f3543348710fb580ac5cf1cb03514bfb30b4b0107c0003e796dc89cad53e2f",
     "storageMount": "/data",
-    "dataDir": "/data/pgdata"
+    "dataDir": "/data/pglite"
   }
 }
 ```
@@ -102,8 +102,8 @@ Configure embedded PostgreSQL in `di-framework.config.json` under the `"pglite"`
 | `pglite.image` | Required (unless `wasm` is set) | Immutable OCI component reference pinned by `@sha256:<digest>`. Mutable tags are rejected. |
 | `pglite.wasm` | None | Local `.wasm` file path inside the project for offline component development (or `DI_FRAMEWORK_PGLITE_WASM` env override). Refused by `platform deploy` and in CI unless `DI_FRAMEWORK_ALLOW_LOCAL_PGLITE=1` is set. |
 | `pglite.storageMount` | `"/data"` | Mounted WASI filesystem preopen path (resolved against `wasmcloud.storage.mounts`; tenant targets accept `/data` or `/data/actors`). |
-| `pglite.dataDir` | `"<storageMount>/pgdata"` (`/data/pglite`) | Database root directory under `storageMount`, injected into the guest environment as `DI_PGLITE_DATA_DIR`. Setting a conflicting user `wasmcloud.env.DI_PGLITE_DATA_DIR` or configuring two workload members that resolve to the same database root fails with `WASMCLOUD_PGLITE_DATA_DIR_CONFLICT`. |
-| `pglite.encryption` | None | Optional `@di-framework/pglite-encfs` configuration (`{ "image": "ghcr.io/di-framework/pglite-encfs@sha256:..." }` or local `wasm`); see [Encryption at Rest](#encryption-at-rest-di-frameworkpglite-encfs). |
+| `pglite.dataDir` | `"<storageMount>/pglite"` (`/data/pglite`) | Database root directory under `storageMount`, injected into the guest environment as `DI_PGLITE_DATA_DIR`. Setting a conflicting user `wasmcloud.env.DI_PGLITE_DATA_DIR` or configuring two workload members that resolve to the same database root fails with `WASMCLOUD_PGLITE_DATA_DIR_CONFLICT`. |
+| `pglite.encryption` | None | Optional `@di-framework/pglite-encfs` configuration (`{ "image": "ghcr.io/di-framework/pglite-encfs@sha256:..." }` or local `wasm`); see [Encryption at Rest](#encryption-at-rest). |
 
 ### Build and Composition Pipeline
 
@@ -125,7 +125,7 @@ On the exclusive tenant host image (`ghcr.io/di-framework/wash:2.8.0-wasi-tls-ex
 1. **Host-local FIFO call permit (`ExclusiveInstanceGate`):** Within a host pod, concurrent `wasi:http/incoming-handler` requests queue in arrival order behind a single FIFO call permit. Only one warm component instance is built, and each caller holds the permit until its in-flight execution slot finishes, ensuring the instance is completely idle before the next request is admitted.
 2. **Cross-pod / cross-revision store lease (`di-exclusive-store-<workload>`):** Across revisions and pods, a Kubernetes `Lease` (`di-exclusive-store-<workload>` in `di-system-<t>`) and the host's canonical volume-mount gate registry ensure that a new revision's store cannot be instantiated until the terminating revision has finished draining in-flight calls, dropped its Wasm store, and released the lease (bounded by `WASH_EXCLUSIVE_WAIT_TIMEOUT_SECS`, default `600` seconds).
 
-## Encryption at Rest (`@di-framework/pglite-encfs`)
+## Encryption at Rest (`@di-framework/pglite-encfs`) {id="encryption-at-rest"}
 
 `@di-framework/pglite-encfs` (`ghcr.io/di-framework/pglite-encfs@sha256:d834f456692d0b99d1fd4e9ba1bc8989749b43567e60362affb15adacd116860`) is a WASI WebAssembly component that interposes on `wasi:filesystem/types@0.2.6` and `wasi:filesystem/preopens@0.2.6` (as well as the provider's `@0.2.9` WASI filesystem/io/cli imports) between `pglite-component` and the host. Every file under `PGDATA` is encrypted before it is written to the host volume, while the guest application's own WASI imports continue to go directly to the host.
 
