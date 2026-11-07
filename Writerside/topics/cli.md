@@ -333,7 +333,7 @@ Dispatch rules:
 
 Root help lists installed extensions alongside the built-in tree. First-party extensions:
 
-- [Platform](platform.md) (`@di-framework/cli-plugin-platform`) builds, serves, and deploys WASI 0.3 components.
+- [Platform](https://github.com/di-framework/platform/blob/main/docs/platform.md) (`@di-framework/cli-plugin-platform`) builds, serves, and deploys WASI 0.3 components.
 - [AI CLI](ai-cli.md) (`@di-framework/cli-plugin-ai`) inspects and manages agent configuration and Agent Skills. Through 5.x those commands shipped in `@di-framework/cli`. In 6.0 they moved to this extension when AI moved to [di-framework/ai](https://github.com/di-framework/ai).
 
 Authors of new extensions start from
@@ -431,9 +431,9 @@ typed package API is extended first.
 
 - [Installation](installation.md) - Core package and CLI setup
 - [Quick Start](quick-start.md) - Basics after scaffolding
-- [Platform](platform.md) - Build and deploy apps as WebAssembly components
-- [Platform backing services](backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis, NATS, blobstore, PostgreSQL, and egress requests; `platform console` opens the tenant panel
-- [Kubernetes with di-framework-kube](kube.md) - Separate platform CLI and live example deployment workflow
+- [Platform](https://github.com/di-framework/platform/blob/main/docs/platform.md) - Build and deploy apps as WebAssembly components
+- [Platform backing services](https://github.com/di-framework/platform/blob/main/docs/backing-services.md) - `platform service create/list/get/delete/classes` for tenant Redis, NATS, blobstore, PostgreSQL, and egress requests; `platform console` opens the tenant panel
+- [Kubernetes with di-framework-kube](https://github.com/di-framework/platform/blob/main/docs/kube.md) - Separate platform CLI and live example deployment workflow
 - [HTTP Router](http-router.md) - HTTP routing, OpenAPI generation, and static assets
 - [Private service bindings](service-bindings.md) - Named in-process contracts (no dedicated CLI command)
 - [Scheduling](scheduling.md) - `@Cron` (discovered by `platform build`, no `cron` group)

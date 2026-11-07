@@ -80,7 +80,7 @@ is the `.grit` basename, such as `no-bootstrap-decorator`.
 the whole project.
 
 `no-plaintext-binding-secret` tells you to reference the secret with `secretFrom`. See
-[native service bindings](platform.md#native-service-bindings). `no-bad-cron-expression` matches
+[native service bindings](https://github.com/di-framework/platform/blob/main/docs/platform.md#native-service-bindings). `no-bad-cron-expression` matches
 the [scheduling](scheduling.md) contract: a 5-field expression or a millisecond interval.
 
 ## Next steps
@@ -88,4 +88,4 @@ the [scheduling](scheduling.md) contract: a 5-field expression or a millisecond 
 - [Runtime type checks](tsc.md) - Emit-time parameter guards
 - [Best practices](best-practices.md) - Recommended application patterns
 - [Authentication](auth.md) - Session and bearer secrets
-- [Platform](platform.md#native-service-bindings) - `@WasmCloudBinding` configuration
+- [Platform](https://github.com/di-framework/platform/blob/main/docs/platform.md#native-service-bindings) - `@WasmCloudBinding` configuration

@@ -211,7 +211,7 @@ Implemented deploy path:
 - Workload `replicas: 1`, `deployPolicy: Recreate`, `QUEUE_DB_PATH=/data/queue.db`,
   `DI_SQLITE_BACKEND=wasm`; `hostgroup: storage` and the hostPath under
   `/var/lib/di-framework/storage` apply only to targets without a `hostgroup`. Tenant targets
-  use the [platform-managed workload directory](platform.md#deployed-storage), shared by
+  use the [platform-managed workload directory](https://github.com/di-framework/platform/blob/main/docs/platform.md#deployed-storage), shared by
   workload members and private to the tenant.
 - Public ingress is omitted for workers; a ClusterIP Service still exists for control HTTP
 - List / enqueue / inspect require `invoke`; retry requires `admin`
@@ -221,7 +221,7 @@ SQLite-backed workloads cannot use more than one replica (WASI VFS has no file l
 Deployed HTTP workloads always receive `DI_CONTROL_TOKEN`. Unconfigured local/dev may invoke
 without a token (enqueue, list, inspect) but cannot retry. `pump()` runs after those control
 requests. Control paths reject `X-Forwarded-*` and are not reachable through public ingress.
-See [Control HTTP](platform.md#control-http).
+See [Control HTTP](https://github.com/di-framework/platform/blob/main/docs/platform.md#control-http).
 
 You can still [schedule](scheduling.md) work that enqueues jobs; neither feature requires the
 other.
@@ -251,4 +251,4 @@ other.
 - [Scheduling](scheduling.md) - Optional `@Cron` that can enqueue work
 - [CLI](cli.md) - `queue list` / `inspect` / `retry`
 - [Testing](testing.md) - Isolated containers and in-memory backends
-- [Platform](platform.md) - Worker deploy without public ingress
+- [Platform](https://github.com/di-framework/platform/blob/main/docs/platform.md) - Worker deploy without public ingress

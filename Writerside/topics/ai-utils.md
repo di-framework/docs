@@ -390,7 +390,7 @@ example for official `@di-framework/plugin` discovery plus elective MCP wiring.
 
 ## Related
 
-- [SkillsAgent on kube](kube.md#using-a-skillsagent) — guest filesystem, model transport, and tool requirements before a complete agent deployment
+- [SkillsAgent on kube](https://github.com/di-framework/platform/blob/main/docs/kube.md#using-a-skillsagent) — guest filesystem, model transport, and tool requirements before a complete agent deployment
 - [AI](ai.md) — chat, tools, RAG, MCP, and agents (`@di-framework/ai`)
 - [AI CLI](ai-cli.md) — `di-framework ai agent` and `di-framework ai skills` (`@di-framework/cli-plugin-ai`)
 - [Agent configuration](agent-foundations.md) — neutral sources, validation, instructions, plugins, and `.aiignore`
