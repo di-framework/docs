@@ -460,40 +460,22 @@ Deployment and Service and installs the operator through Pulumi `kubernetes.helm
 (`oci://ghcr.io/wasmcloud/charts/runtime-operator`). Kube's existing-cluster profile leaves
 registry provisioning to the caller or example helpers.
 
-#### Platform configuration and runtime isolation
+#### Platform configuration
 
-Both platform entrypoints validate configuration up front (`validatePlatformConfig`) before
-creating cluster or Kubernetes resources:
+Both platform entrypoints validate configuration up front before creating cluster or Kubernetes
+resources:
 
 - **Gateway `routeAliases`:** Maps vanity or cutover `<route-host>.<tenant>` hostnames to
   `<route-host>.<target-tenant>` through the HTTP gateway while preserving `X-Forwarded-Host`, so
   applications that derive redirect or issuer URLs keep the public hostname. Reserved route hosts
   (`console`, `controller`, `registry`) and alias chains are rejected.
 - **Runtime NATS storage caps (`runtimeNats`):** Caps each tenant's `di-nats` JetStream store in
-  `di-runtime-<t>` via `maxFileStore` (default `2Gi` / `10Gi` depending on profile) and
-  `maxMemoryStore` (default `256Mi` / `32Mi`).
-- **Scheduler NATS bus and per-tenant operators:** The platform runs `di-scheduler-nats` in
-  `wasmcloud` (`nats.enabled=false` on the Helm chart) with per-tenant NATS accounts (`T_<UID8>` /
-  `T_di-tenant-<t>`) and zero cross-account imports or exports. Each tenant gets a dedicated
-  `runtime-operator` in `di-operator-<t>` watching only `di-tenant-<t>` and managing hosts only in
-  `di-runtime-<t>`, while the chart's operator watches only `wasmcloud`. Tenant `wash-host` pods
-  connect with `--scheduler-nats-url` and `--scheduler-nats-creds` (and per-tenant TLS
-  certificates rotated through a current/next CA bundle) and run with
-  `automountServiceAccountToken: false` (no Kubernetes ServiceAccount token). Adding or removing a
-  tenant never restarts the platform operator.
-- **Tenant deletion policy and 7-step removal (`R1`–`R7`):** Each `tenants[]` entry accepts
-  `deletionPolicy` (`Retain`, the default, or `Delete`). When a Tenant is deleted, the controller
-  executes a 7-step removal state machine (`R1` revokes the tenant host scheduler identity; `R2`
-  scales tenant workloads and host pods to zero while keeping the tenant operator running to clear
-  host finalizers; `R3` deletes workloads under `Delete` or scales the tenant operator to zero and
-  strips workload/artifact finalizers under `Retain`; `R4` drops the tenant operator scheduler
-  account; `R5` deletes the operator RoleBindings, host identity Secret, and `di-operator-<t>`;
-  `R6` deletes or retains `di-tenant-<t>`, `di-runtime-<t>`, and `di-apikeys-<t>`; `R7` removes
-  the Tenant finalizer). If any step does not complete within its deadline (5–15 minutes), the
-  Tenant reports `RemovalStuck=True` with the step ID (`R1`–`R7`) and pending resources.
-  Re-adding a tenant whose namespaces were kept by `Retain` fails with `Exists` because
-  kept namespaces retain the previous Tenant UID and are never silently adopted; delete or adopt
-  the kept namespaces out of band before re-creating the tenant.
+  `di-runtime-<t>` via `maxFileStore` and `maxMemoryStore`.
+- **Tenant deletion policy (`deletionPolicy`):** Each `tenants[]` entry accepts `deletionPolicy`
+  (`Retain`, the default, or `Delete`). `Delete` removes the tenant's workloads and namespaces when
+  the tenant is removed; `Retain` keeps `di-tenant-<t>` and `di-runtime-<t>`. Re-adding a tenant
+  whose namespaces were kept by `Retain` fails with `Exists` until the kept namespaces are removed
+  out of band.
 
 Keep the project name, backend, stack, and configuration when upgrading an older generated
 project to the package import. Review `pulumi preview` before applying and migrate any local
