@@ -8,13 +8,13 @@ at the exact `@di-framework/platform` version the instance names.
 
 The operator, its Helm chart and its Headlamp plugin publish from
 [di-framework/platform](https://github.com/di-framework/platform/tree/main/platform/operator) and are
-released together with the platform. This page describes release **6.0.22**.
+released together with the platform. This page describes release **6.0.30**.
 
 | Page | Covers |
 | --- | --- |
 | This page | Host requirements, installing the chart, Headlamp and its plugin, a first instance, uninstalling. |
 | [PlatformInstance reference](platform-instance-reference.md) | Every `spec` and `status` field, the conditions and their reasons. |
-| [Operate platform instances](platform-operator-operations.md) | Upgrades, repair, `Retain` and `Delete`, reading conditions on failure, owner-Service resync. |
+| [Operate platform instances](platform-operator-operations.md) | Upgrades, repair, `Retain` and `Delete`, reading conditions on failure, owner-Service and host-namespace resync. |
 
 ## Host requirements
 
@@ -31,15 +31,35 @@ The operator needs:
   cluster-admin operator is acceptable; instance owners are trusted in v1alpha1.
 - **A host NetworkPolicy engine.** Instances run with `networkPolicyEngine: existing`, so the host
   cluster must enforce NetworkPolicy.
-- **Kubernetes 1.30 or later** for the `ValidatingAdmissionPolicy` that protects each instance's
-  `service/vcluster`. On an API server without admission policies the operator carries on and reports
-  `OwnerServiceProtected=False`.
-- **Egress to npm, the Pulumi plugin host and the platform's images.** Each install runs
-  `npm install` and fetches the Pulumi Kubernetes provider plugin; the image doesn't carry them yet, so
-  every instance's first install downloads both.
+- **Kubernetes 1.30 or later.** The `PlatformInstance` CRD's `networkPolicyEngine` transition rule uses
+  `optionalOldSelf`, which older API servers drop, and the operator installs a
+  `ValidatingAdmissionPolicy` that protects each instance's `service/vcluster`. On an API server without
+  admission policies the operator carries on and reports `OwnerServiceProtected=False`.
+- **Egress to the platform's images (and to npm and the Pulumi plugin host for non-default versions).**
+  The operator image bakes its default `@di-framework/platform` release (**6.0.30** in `v6.0.30`) and the
+  matching Pulumi resource plugins, so an instance at the default version needs only egress to pull the
+  platform's container images. See [Outbound traffic](#outbound-traffic).
 - **A namespace that admits `hostPath` pods** for the storage cleanup Job that runs when an instance
   with `deletionPolicy: Delete` is deleted. It is the release namespace unless `cleanupNamespace` names
   another.
+
+### Outbound traffic {id="outbound-traffic"}
+
+The operator container image bakes one install project at `/opt/platform-operator/project`
+(`--baked-project`): `@di-framework/platform` at the operator's default platform version (**6.0.30** in
+release `v6.0.30`, matching the chart and Headlamp plugin version) installed with `npm ci` against a
+committed lockfile, along with the matching Pulumi resource plugins (`@pulumi/kubernetes`,
+`@pulumi/command`, `@pulumi/random`, and `@pulumi/tls` provider plugins as required by the lockfile) at
+`/opt/platform-operator/pulumi-plugins` (`--baked-plugins`).
+
+- When `spec.version` matches the operator's default platform version (`6.0.30` in `v6.0.30`), the
+  installer copies the baked `node_modules` into the instance's project on the state volume and links the
+  pre-installed plugins into `$PULUMI_HOME/plugins`. `pulumi up` runs directly from the pre-installed
+  package cache without downloading `@di-framework/platform` from `registry.npmjs.org` or Pulumi plugins
+  from `get.pulumi.com` / `api.github.com`.
+- Outbound access to `registry.npmjs.org` and the Pulumi plugin hosts (`get.pulumi.com` and
+  `api.github.com` / GitHub releases) is only needed when an instance pins a non-default `spec.version`
+  that is not pre-cached in the operator image.
 
 ## Install the operator
 
@@ -49,7 +69,7 @@ version.
 
 ```bash
 helm install platform-operator oci://ghcr.io/di-framework/charts/platform-operator \
-  --version 6.0.22 --namespace platform-operator --create-namespace
+  --version 6.0.30 --namespace platform-operator --create-namespace
 ```
 
 Allow privileged pods in the namespace the cleanup Jobs run in (the release namespace by default), so
@@ -61,8 +81,8 @@ kubectl label namespace platform-operator pod-security.kubernetes.io/enforce=pri
 
 The chart installs the CRD, the operator Deployment and its RBAC, the operator's Pulumi state claim and
 its passphrase Secret. The image is always pulled by digest (`image.digest`). The vCluster chart
-version, its values and the platform version are not chart values: they come with the operator image,
-and each `PlatformInstance` names its own `spec.version`.
+version, its values and the baked default platform version are not chart values: they come with the
+operator image, and each `PlatformInstance` names its own `spec.version`.
 
 ### The passphrase and offline renders
 
@@ -91,14 +111,14 @@ existing instance's state becomes unreadable at the operator's next restart, per
 | Value | Default | Operator flag |
 | --- | --- | --- |
 | `image.repository` | `ghcr.io/di-framework/platform-operator` | |
-| `image.digest` | the operator image published with the release; must match `sha256:<64 hex>` | |
+| `image.digest` | the operator image published with the release (in chart `6.0.30`, the image that bakes `@di-framework/platform` `6.0.30` and its Pulumi plugins); must match `sha256:<64 hex>` | |
 | `replicaCount` | `1`; more than 1 requires `leaderElect` | |
 | `leaderElect` | `true` | `--leader-elect` |
 | `storageRootBase` | `/var/lib/kubesolo/instances` | `--storage-root-base` |
 | `installTimeout` | `30m` | `--install-timeout` |
 | `repairInterval` | `30m` | `--repair-interval` |
 | `targetPoll` | `10s` | `--target-poll` |
-| `maxConcurrentInstalls` | `2` | `--max-concurrent-installs` |
+| `maxConcurrentInstalls` | `2` (each install runs Pulumi in the operator pod, and `npm install` only when `spec.version` differs from the baked default platform version) | `--max-concurrent-installs` |
 | `cleanupNamespace` | empty: the release namespace | `--cleanup-namespace` (only when set) |
 | `extraArgs` | `[]` | any other flag, such as `--zap-log-level=debug` |
 | `state.size`, `state.storageClassName` | `10Gi`, the default class | `--state-dir` |
@@ -119,7 +139,7 @@ with a read-only root filesystem.
 
 ```bash
 helm upgrade --install platform-operator oci://ghcr.io/di-framework/charts/platform-operator \
-  --version 6.0.22 --namespace platform-operator --create-namespace \
+  --version 6.0.30 --namespace platform-operator --create-namespace \
   --set headlamp.enabled=true
 ```
 
@@ -141,7 +161,7 @@ headlamp:
       plugins:
         - name: di-framework-platform
           source: https://artifacthub.io/packages/headlamp/di-framework-platform/di-framework-platform
-          version: 6.0.22
+          version: 6.0.30
 ```
 
 pluginctl downloads the tarball attached to the platform's GitHub release and checks its sha256. The
@@ -155,8 +175,8 @@ too. It adds:
 - **Platform Instances** in the sidebar: name, namespace, phase, version (with the installed version
   while an upgrade is in progress), Ready and age.
 - **Create** and **Edit spec** forms, with sections for tenants, users, tenant auth and tenant hosts.
-  The forms check what the CRD would before sending. **Show YAML** shows the exact object that will be
-  sent.
+  The forms check what the CRD would before sending (and do not offer `kube-router` for the `vcluster`
+  target). **Show YAML** shows the exact object that will be sent.
   Edit sends a JSON Patch of only the changed fields (**Show patch** shows it) and refuses to overwrite
   a concurrent change: reopen the form and retry.
 - **Detail view**: spec and status, what the last install applied, endpoints, conditions with reasons
@@ -172,7 +192,7 @@ metadata:
   name: one
   namespace: team-a
 spec:
-  version: 6.0.22          # exact @di-framework/platform version
+  version: 6.0.30          # exact @di-framework/platform version
   target:
     type: vcluster
   platform:                # optional
@@ -199,6 +219,13 @@ instance's host namespace admits only the operator's namespace to that API. From
 `platform.di-framework.dev/instance: <namespace>/<name>`) and point the kubeconfig at the local port;
 the proxy certificate names `127.0.0.1` and `localhost`.
 
+For `vcluster` instances, the operator reconciles scoped ingress `NetworkPolicy` objects in the host
+namespace (`platform-operator-deny-ingress`, `platform-operator-allow-control-plane`,
+`platform-operator-allow-dns`, `platform-operator-allow-platform-nats`, `platform-operator-allow-issuer`,
+`platform-operator-allow-same-namespace`, and `platform-operator-allow-operator`) alongside the platform's
+synced policies (which narrow Kubernetes API server egress to `/32` or `/128` endpoints rather than broad
+`0.0.0.0/0` RFC1918 egress). See [Host-namespace isolation](platform-operator-operations.md#host-namespace-isolation).
+
 ### Tenants, users and tenant auth
 
 `spec.platform` also carries the instance's tenants, users, `tenantAuth` and tenant host image, so an
@@ -215,7 +242,7 @@ apiVersion: platform.di-framework.dev/v1alpha1
 kind: PlatformInstance
 metadata: { name: one, namespace: team-a }
 spec:
-  version: 6.0.22
+  version: 6.0.30
   target: { type: vcluster }
   platform:
     tenants:
