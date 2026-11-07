@@ -8,8 +8,8 @@ These features are in published `@di-framework/platform` **6.0.30**,
 `@di-framework/tenant-cli` **6.0.30**, and `@di-framework/cli-plugin-platform` **6.3.0**
 from [di-framework/platform](https://github.com/di-framework/platform) and
 [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions).
-`di-framework-kube` installs `@di-framework/platform@6.0.13` by default and accepts a newer
-version via `--platform-package`; see [Kubernetes with di-framework-kube](kube.md).
+`di-framework-kube` installs `@di-framework/platform@6.0.29` by default and accepts a newer
+version via `--platform-version` or `--platform-package`; see [Kubernetes with di-framework-kube](kube.md).
 
 ## How it fits together
 
