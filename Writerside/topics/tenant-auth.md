@@ -9,7 +9,7 @@ These features are in published `@di-framework/platform` **6.0.30**,
 from [di-framework/platform](https://github.com/di-framework/platform) and
 [di-framework/cli-extensions](https://github.com/di-framework/cli-extensions).
 `di-framework-kube` installs `@di-framework/platform@6.0.29` by default and accepts a newer
-version via `--platform-version` or `--platform-package`; see [Kubernetes with di-framework-kube](kube.md).
+version via `--platform-package @di-framework/platform@6.0.30`; see [Kubernetes with di-framework-kube](kube.md).
 
 ## How it fits together
 
@@ -31,7 +31,7 @@ Pin container and component images by `@sha256:` digest:
 
 | Image setting | Published digest | Notes |
 | --- | --- | --- |
-| `tenantAuth.image` | `ghcr.io/di-framework/tenant-auth@sha256:fa8eb9887a3c932f0d03b7cdff3911e44bdd600abfb4cd54bfe5e453b7acef9f` | `@di-framework/platform` **6.0.30** release pin (`sha256:5f36f1053c3f477758d9239bd84babb75abad712609a33324a8eba1a3e468f46` on `main`). |
+| `tenantAuth.image` | `ghcr.io/di-framework/tenant-auth@sha256:fa8eb9887a3c932f0d03b7cdff3911e44bdd600abfb4cd54bfe5e453b7acef9f` | Per-tenant controller and console image for `@di-framework/platform` **6.0.30**. |
 | `tenantAuth.registry.component` | `ghcr.io/di-framework/oci-registry@sha256:a99201b51a1481df0241e4d364e6156da3f18d196d6d83162b76e9a8b812222e` | Per-tenant OCI registry Wasm component. |
 | `tenantHostImage` (`wasi-tls`, default) | `ghcr.io/di-framework/wash:2.8.0-wasi-tls@sha256:bbe9587c508079074d43f4c27c53eadd92ed2825dc3541b7bcbc1f79a4e843a0` | Default tenant host image (includes wash patches 0002 for `--insecure-registry` and 0003 for NATS blobstore credentials). |
 | `tenantHostImage` (`wasi-tls-exclusive`) | `ghcr.io/di-framework/wash:2.8.0-wasi-tls-exclusive@sha256:fb1d4bd2d4cd2e3a9fd6b611121bdac26d1b5ca95896e5a4acfbb35439dc0465` | Exclusive-instance variant (adds wash patch 0001 for embedded PGlite workloads). |
@@ -88,16 +88,14 @@ For each tenant `<t>` with 8-character UID prefix `<uid8>`, reconcile registers 
 OAuth clients scoped to organization `<t>` with token audience `[<controllerPublicUrl>]`:
 
 - **`tenant-<t>-<uid8>-console` (`CONFIDENTIAL`):** `client_secret_basic` client for `authorization_code`
-  and `refresh_token` grants, redirect URI `<consoleUrl>/oidc/callback` (`<consoleUrl>/auth/callback`),
-  and scopes `openid profile email offline_access` (`tenant:<t>:console`). Reconcile writes its
-  `clientId` and `clientSecret` into Secret `tenant-console-oauth` in `di-runtime-<t>` (and
-  `di-tenant-<t>` where applicable). If `tenant-console-oauth` is deleted, reconcile rotates the
-  secret idempotently.
+  and `refresh_token` grants, redirect URI `<consoleUrl>/oidc/callback`,
+  and scopes `openid profile email offline_access`. Reconcile writes its
+  `clientId` and `clientSecret` into Secret `tenant-console-oauth` in `di-runtime-<t>`. If
+  `tenant-console-oauth` is deleted, reconcile rotates the secret idempotently.
 - **`tenant-<t>-<uid8>-cli` (`PUBLIC` PKCE):** `tokenEndpointAuthMethod: none` client with loopback
-  redirect URI `http://127.0.0.1/callback` and scopes `openid profile email offline_access`
-  (`tenant:<t>:cli`). The platform passes this client ID to the controller via
-  `TENANT_CONTROLLER_CLI_CLIENT_ID`, and the controller returns it from `GET /v1/auth/info`
-  (`GET /v1/auth/config`).
+  redirect URI `http://127.0.0.1/callback` and scopes `openid profile email offline_access`.
+  The platform passes this client ID to the controller via
+  `TENANT_CONTROLLER_CLI_CLIENT_ID`, and the controller returns it from `GET /v1/auth/info`.
 
 During tenant removal (step `R6`), the controller revokes both clients. If the identity server is
 unreachable or rejects provisioning, the Tenant reports `TenantAuthReady=False` with reason
@@ -162,7 +160,7 @@ Tenant API keys (`dik_<id>_<secret>`) are stored as SHA-256 hashes in a dedicate
   `di-apikeys-<tenant>`, with no Secret permissions in `di-runtime-<tenant>`.
 - **Upgrade migration:** When upgrading from an earlier release, reconcile waits until
   `tenantAuth.image` runs a build that reads `di-apikeys-<tenant>` (`ApiKeyMigrationWaiting`),
-  copies each legacy `di-apikey-*` (`tenant-apikey-*`) Secret into `di-apikeys-<tenant>`, verifies
+  copies each legacy `di-apikey-*` Secret into `di-apikeys-<tenant>`, verifies
   the copy before deleting the original, drops the legacy Secret read rule, and sets
   `status.apiKeysMigrated: true` alongside `status.apiKeysNamespace`. If a key cannot be moved (for
   example, when `count/secrets` exceeds `spec.resources.apiKeys`), `TenantAuthReady` reports
@@ -265,7 +263,7 @@ di-tenant whoami
 di-tenant logout
 ```
 
-- `login` calls `GET /v1/auth/info` (`GET /v1/auth/config`) for the account, identity-server
+- `login` calls `GET /v1/auth/info` for the account, identity-server
   issuer, and per-tenant public client ID (`tenant-<t>-<uid8>-cli`), then runs a browser OIDC flow
   with PKCE and a loopback redirect. `--no-browser` prints the sign-in URL instead of opening it;
   `--api-key <key>` logs in with a `dik_` API key and skips the browser.
@@ -529,17 +527,16 @@ Every hop that carries a registry credential uses TLS under the tenant CA:
 
 - **Public registry front (`:8790` → `di-http:443` / `:9443`):** Clients connect to the
   controller's `:8790` TLS listener (directly or via gateway SNI passthrough). The controller
-  forwards requests over HTTPS (`https://di-http.di-runtime-<tenant>.svc.cluster.local:443` /
-  `https://di-http.di-system-<tenant>.svc.cluster.local:443`) to the `http-tls` sidecar (`:9443`)
-  in each tenant host pod, verifying the sidecar's serving certificate (`tenant-controller-tls` /
-  `tenant-runtime-tls`) against `TENANT_CONTROLLER_HOST_CA` before the sidecar relays to wash on
-  `127.0.0.1:9191`.
+  forwards requests over HTTPS (`https://di-http.di-runtime-<tenant>.svc.cluster.local:443`) to
+  the `http-tls` sidecar (`:9443`) in each tenant host pod, verifying the sidecar's serving
+  certificate (`tenant-controller-tls`) against `TENANT_CONTROLLER_HOST_CA` before the sidecar
+  relays to wash on `127.0.0.1:9191`.
 - **Whoami callback (`:8789`):** `di-tenant-registry` authorizes every request by calling
   `https://tenant-controller.di-runtime-<tenant>.svc:8789/v1/auth/whoami`. Listener `:8789`
   serves TLS only (plain HTTP connections are closed without response), and tenant hosts trust the
   tenant CA for outgoing `wasi:http` via `--http-client-ca-path=/registry-ca/ca.crt`.
 - **In-cluster pull-only proxy (`:8791`):** Service `tenant-registry` in `di-runtime-<tenant>`
-  (`tenant-registry.di-runtime-<tenant>.svc:443` / `di-registry-pull.<tenant>.svc.cluster.local:443`)
+  (`tenant-registry.di-runtime-<tenant>.svc:443`)
   points at the controller's `:8791` listener, which allows `GET` and `HEAD` only (`405`
   otherwise) and admits only the tenant's host pods via NetworkPolicy. During host startup, `:8791`
   waits up to 30 seconds (`TENANT_CONTROLLER_REGISTRY_PULL_WAIT_MS`) with backoff while
